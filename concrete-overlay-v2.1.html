@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concrete Overlays</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-16: per-page Tally feedback embed (md->html reverse builder) */
+.comments { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+.comments h2 { color: var(--accent); border: none; margin: 0 0 .75rem; font-size: 1.1rem; }
+.comments iframe { width: 100%; border: 0; min-height: 320px; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+<style>
+/* standalone overrides: center the content column (no 269-tree sidebar to bound it) */
+.content { max-width: 940px; margin: 0 auto; }
+/* callouts — palette-consistent with the site (accent / taxonomic-blue) */
+.callout { margin: 1.15rem 0; padding: .7rem 1rem .75rem; border: 1px solid var(--border);
+  border-radius: 6px; background: var(--chip); }
+.callout > :first-child { margin-top: 0; }
+.callout > :last-child { margin-bottom: 0; }
+.callout-title { display: block; font-weight: 700; margin-bottom: .4rem; }
+.callout-warn { border-left: 4px solid var(--accent); }
+.callout-warn .callout-title { color: var(--accent); }
+.callout-note { border-left: 4px solid #6b7fd7; }
+.callout-note .callout-title { color: #4a5fc0; }
+.callout table { background: #fff; }
+.callout .table-scroll { margin: .5rem 0; }
+/* concept cross-references (wikilinks) kept as muted references, not broken links */
+.xref { color: var(--muted); border-bottom: 1px dotted var(--muted); }
+/* IEEE numbered citations + reference-list targets */
+a.cite { color: var(--link); text-decoration: none; white-space: nowrap; }
+a.cite:hover { text-decoration: underline; }
+#content ol li[id^="ref-"] { margin: .3rem 0; overflow-wrap: anywhere; scroll-margin-top: 1rem; }
+#content ol li[id^="ref-"]:target { background: var(--chip); outline: 2px solid var(--accent); }
+/* IEEE reference entries written as `[N] ...` lines rather than an ordered list */
+.reflist p.ref { margin: .35rem 0; padding-left: 2.4rem; text-indent: -2.4rem;
+  overflow-wrap: anywhere; scroll-margin-top: 1rem; }
+.reflist p.ref:target { background: var(--chip); outline: 2px solid var(--accent); }
+.reflist .ref-n { color: var(--muted); font-variant-numeric: tabular-nums; }
+/* local cross-page links (sibling markdown, extracted guides) */
+a.xref-link { color: var(--muted); text-decoration: none; border-bottom: 1px dotted var(--muted); }
+a.xref-link:hover { color: var(--link); border-bottom-color: var(--link); }
+/* field hold-point checklists */
+ul.tasklist { list-style: none; padding-left: .15rem; }
+ul.tasklist li.task { display: flex; gap: .6rem; align-items: baseline; margin: .45rem 0; }
+ul.tasklist li.task input { flex: 0 0 auto; margin: 0; accent-color: var(--accent); }
+p.figure { text-align: center; }
+p.figure em { display: block; color: var(--sub); font-size: .9rem; line-height: 1.5; margin-top: .5rem; }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Pages</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Pages"><div class="sidebar-head"><p class="brand-kicker">CP Tech &middot; Guides</p><p class="brand-title">Concrete Overlays</p><p class="brand-count">3 example pages</p></div><ul class="tree" id="tree"><li><a href="index.html">&#8592; Overview</a></li><li><a href="concrete-overlays-v3.html">Concrete Overlays — full-corpus (v3)</a></li><li><a href="concrete-overlay-v2.1.html" class="active">Concrete Overlays — practitioner (v2.1)</a></li><li><a href="concrete-overlays-v4.html">Concrete Overlays — merged (v4)</a></li><li><a href="https://ig0r.github.io/cnrt-pvmt-wiki/" rel="noopener noreferrer" target="_blank">&#8599; Full concept wiki (269)</a></li></ul></nav>
+<main class="content" id="content" tabindex="-1">
+<article>
+<h1 id="concrete-overlays">Concrete Overlays</h1>
+<div class="callout callout-note"><p><strong>Use this page for:</strong> selecting, designing, constructing, or accepting a concrete overlay over an existing asphalt, composite, or concrete pavement. This is a practitioner-facing synthesis, not a substitute for project-specific structural design, agency specifications, or a pavement evaluation.</p></div>
+<h2 id="overview">Overview</h2>
+<h3 id="definition-and-purpose">Definition and purpose</h3>
+<p>A concrete overlay is a new concrete pavement layer placed over an existing asphalt, composite, or concrete pavement to restore function and extend service life while retaining useful parts of the existing structure. The principal overlay family is selected from the existing pavement material and the intended interface: concrete-on-asphalt bonded (COA-B), concrete-on-asphalt unbonded (COA-U), concrete-on-concrete bonded (COC-B), or concrete-on-concrete unbonded (COC-U). <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-2">[2]</a></p>
+<p>The system decision is not merely a surface-treatment choice. A bonded overlay uses composite action and therefore depends on a sound, prepared interface; an unbonded overlay uses the existing pavement as a foundation and must have uniform support, drainage, and a compatible separation strategy where the underlying pavement is concrete. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-3">[3]</a></p>
+<h3 id="key-characteristics">Key characteristics</h3>
+<div class="table-scroll"><table><thead><tr><th>Overlay family</th><th>Existing pavement and interface</th><th>Principal value</th><th>Main condition to verify</th></tr></thead><tbody><tr><td>COA-B</td><td>Good-quality asphalt; concrete is bonded to asphalt</td><td>Can capitalize on the structural value of a sound asphalt layer</td><td>Bond and asphalt condition must be reliable. <a class="cite" href="#ref-1">[1]</a></td></tr><tr><td>COA-U</td><td>Asphalt or composite pavement; normally no separation layer</td><td>Uses the existing pavement as a stiff, uniform foundation</td><td>Repair unstable asphalt, potholes, wide cracks, and unsuitable profile before paving. <a class="cite" href="#ref-1">[1]</a></td></tr><tr><td>COC-B</td><td>Concrete in good to excellent condition; direct bond</td><td>Can provide a thin, long-life rehabilitation when jointing and bond are controlled</td><td>Existing concrete condition, surface preparation, joint compatibility, and weather-sensitive construction. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-3">[3]</a></td></tr><tr><td>COC-U</td><td>Concrete pavement with an asphalt or nonwoven-geotextile separation layer</td><td>Isolates movements and minor defects in the old pavement</td><td>Uniform support, drainage, needed pre-overlay repairs, and correct separation layer. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-5">[5]</a></td></tr></tbody></table></div>
+<p>The primary structural concern is <strong>uniformity of support</strong>, not simply a high support value. An overlay can be designed for a range of support strengths, but abrupt changes in support can cause distress. Drainage, rocking slabs, broken concrete, joints, localized weak areas, and pavement edge conditions are therefore selection inputs rather than construction afterthoughts. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-11">[11]</a></p>
+<h3 id="practitioner-navigation">Practitioner navigation</h3>
+<div class="table-scroll"><table><thead><tr><th>Role or immediate question</th><th>Start here</th><th>Then go to</th></tr></thead><tbody><tr><td>Agency or project manager: “Is an overlay viable?”</td><td><a href="#application">Application</a> and the decision path</td><td>Pavement evaluation and life-cycle assessment. <a class="cite" href="#ref-6">[6]</a>, <a class="cite" href="#ref-28">[28]</a></td></tr><tr><td>Designer: “Which system and details?”</td><td><a href="#decision-path-select-an-overlay-system">Decision path</a></td><td>Materials, parameters, and the overlay design guides. <a class="cite" href="#ref-2">[2]</a></td></tr><tr><td>Field engineer: “May paving start?”</td><td><a href="#release-to-placement-checklist">Release-to-placement checklist</a></td><td>QC/acceptance and the dowel-basket checklist. <a class="cite" href="#ref-9">[9]</a>, <a class="cite" href="#ref-12">[12]</a></td></tr><tr><td>Inspector: “What requires a hold point?”</td><td><a href="#quality-control-and-acceptance">Quality control and acceptance</a></td><td>Pre-overlay repairs, separation layer, jointing, and curing. <a class="cite" href="#ref-4">[4]</a>, <a class="cite" href="#ref-8">[8]</a></td></tr><tr><td>Contractor: “What must be coordinated?”</td><td><a href="#procedure">Procedure</a> and <a href="#environmental-and-operational-limits">Operational limits</a></td><td>Project plans, mixture trial batches, traffic control, and agency specifications. <a class="cite" href="#ref-3">[3]</a>, <a class="cite" href="#ref-9">[9]</a></td></tr></tbody></table></div>
+<h2 id="application">Application</h2>
+<h3 id="when-to-use-a-concrete-overlay">When to use a concrete overlay</h3>
+<p>Use an overlay when the existing pavement can contribute stable, reasonably uniform support after economically justified repairs and the project can accommodate the added elevation, drainage, tie-in, utility, curb, and traffic-control changes. A feasibility study should combine records review, distress mapping, field inspection, and targeted coring or testing; it should not select an overlay family from a single visual rating. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-6">[6]</a>, <a class="cite" href="#ref-16">[16]</a></p>
+<p>Concrete overlays are especially appropriate where reconstruction would discard a usable foundation, where durability and lower-maintenance service are desired, or where expedited staged construction is valuable. The primary overlay guide reports many overlays with low-maintenance lives of at least 20 years and documents longer-performing examples, but the page treats those as experience, not a project warranty. <a class="cite" href="#ref-1">[1]</a></p>
+<h3 id="when-not-to-use-one-yet">When not to use one yet</h3>
+<p>Do <strong>not</strong> proceed directly to an overlay when any of the following is unresolved:</p>
+<ul><li>Existing support is nonuniform or unstable, indicated by rocking slabs, severe breakup, widespread loss of support, or abrupt structural transitions. Investigate and repair the cause first. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-11">[11]</a></li><li>Drainage cannot carry water away from the pavement system. An overlay alone does not correct a drainage defect. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-6">[6]</a></li><li>The selected bonded system cannot achieve a dependable bond because the existing pavement is not in suitable condition or because surface preparation, jointing, mixture, and weather controls cannot be delivered. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-3">[3]</a></li><li>Required grade changes create unresolved conflicts at bridges, curbs, gutters, drainage inlets, utilities, sidewalks, or ADA routes. Parking-lot work commonly exposes these fixed-elevation constraints. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-7">[7]</a></li><li>The condition is so widespread that full-depth reconstruction, full-depth reclamation with cement, or another rehabilitation strategy is more appropriate. <a class="cite" href="#ref-22">[22]</a>, <a class="cite" href="#ref-23">[23]</a></li></ul>
+<h3 id="decision-path-select-an-overlay-system">Decision path: select an overlay system</h3>
+<ol><li><strong>Establish the candidate condition.</strong> Review history, layer data, traffic, drainage, distresses, and field evidence; core or test where the condition or layer structure is uncertain. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-6">[6]</a>, <a class="cite" href="#ref-16">[16]</a></li><li><strong>Resolve foundation and drainage defects.</strong> If support will remain nonuniform after practical repairs, pause the overlay decision and evaluate reconstruction or foundation rehabilitation. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-11">[11]</a></li><li><strong>Classify the existing pavement.</strong> Existing asphalt/composite leads to a COA decision; existing concrete leads to a COC decision. <a class="cite" href="#ref-1">[1]</a></li><li><strong>Decide whether composite bond is dependable.</strong> For COA-B, the asphalt must be good or economically restorable to good condition. For COC-B, the existing concrete must be good to excellent and the project must control surface preparation, bonding, and joint compatibility. If those conditions are not met, evaluate the unbonded counterpart. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-3">[3]</a></li><li><strong>For COC-U, choose a separation-layer strategy.</strong> Asphalt and nonwoven geotextile are common choices. Evaluate drainage, existing-pavement condition, traffic, profile, material behavior, and constructability; do not specify fabric solely by generic weight. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-5">[5]</a>, <a class="cite" href="#ref-3">[3]</a></li><li><strong>Complete structural design and constructability review.</strong> Determine thickness, jointing, load transfer, fiber use, shoulder/edge details, staging, and opening criteria using the governing agency method. The selection page does not replace the overlay design procedure. <a class="cite" href="#ref-2">[2]</a>, <a class="cite" href="#ref-1">[1]</a></li></ol>
+<h2 id="implementation">Implementation</h2>
+<h3 id="materials">Materials</h3>
+<div class="table-scroll"><table><thead><tr><th>Component</th><th>Project decision</th><th>Source-backed guidance</th></tr></thead><tbody><tr><td>Concrete constituents</td><td>Specify cementitious materials, aggregates, water, admixtures, and air system to the governing mix and exposure requirements.</td><td>The overlay guide identifies ASTM C150, C595, and C1157 cementitious materials and ASTM C33 aggregate as common references; it cautions against treating early-strength cement as a universal overlay solution. <a class="cite" href="#ref-1">[1]</a></td></tr><tr><td>Aggregate and bond compatibility</td><td>Check aggregate size against slab thickness. For COC-B, evaluate thermal compatibility with the existing concrete.</td><td>Maximum coarse aggregate size should not exceed one-third of overlay thickness; COC-B benefits from aggregate with a coefficient of thermal expansion similar to or lower than that of the existing concrete. <a class="cite" href="#ref-1">[1]</a></td></tr><tr><td>Macrofibers</td><td>Use only when the structural design specifies residual strength and mixture qualification confirms placement and finishing.</td><td>Macrofibers can improve post-crack behavior and retain load transfer, but they are not a substitute for dowels for faulting control. Trial batches are recommended. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-17">[17]</a></td></tr><tr><td>Separation layer</td><td>Use for COC-U when required by the design.</td><td>Conventional asphalt and nonwoven geotextile are the common separation-layer materials. The 4th-edition guide gives typical fabric specifications by overlay thickness; the geotextile guide adds performance and construction limits. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-5">[5]</a></td></tr><tr><td>Dowels and tie bars</td><td>Select diameter, spacing, coating, and layout for traffic, thickness, and joint design.</td><td>Dowels used for load transfer should conform to ASTM A1078; the overlay guide notes that dowels are typically not used below 7 in. overlay thickness, but design governs. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-12">[12]</a></td></tr><tr><td>Curing compound and joint material</td><td>Include curing and joint treatment in the materials submittal and inspection plan.</td><td>The overlay guide recommends white-pigmented membrane curing compound conforming to ASTM C309, ASTM C1315, or AASHTO M 148, applied to the surface and exposed vertical faces. Joint-material selection depends on climate and the drainage behavior of the joint system. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-13">[13]</a></td></tr><tr><td>Recycled and supplementary materials</td><td>Evaluate materials with the mix design, exposure, and performance requirements rather than assuming a generic sustainability benefit.</td><td>The recycled-concrete, sustainable-pavement, and ternary-mixture guides provide material-selection and qualification context; they do not replace overlay-specific design and QA requirements. <a class="cite" href="#ref-24">[24]</a>, <a class="cite" href="#ref-25">[25]</a>, <a class="cite" href="#ref-26">[26]</a></td></tr></tbody></table></div>
+<h3 id="equipment">Equipment</h3>
+<p>Plan conventional concrete-paving equipment plus the equipment needed for the selected system: survey/machine-control tools; milling, removal, and repair equipment; cleaning and surface-preparation equipment; separation-layer placement equipment; approved dowel-basket handling and anchoring equipment; batch, transport, placement, consolidation, finishing, texturing, curing, and saw-cutting equipment. Verify the equipment plan in a pre-paving meeting and use the project quality plan to assign inspection responsibility. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-8">[8]</a>, <a class="cite" href="#ref-9">[9]</a></p>
+<h3 id="configuration-and-parameters">Configuration and parameters</h3>
+<div class="table-scroll"><table><thead><tr><th>Item</th><th>Guidance</th><th>Decision boundary</th></tr></thead><tbody><tr><td>COC-U joint layout</td><td>For overlays 6 in. and thinner, approximately 6-ft square panels are common; for 8 in. and thicker, a full 12-ft lane width with 12- to 15-ft panel lengths is typical.</td><td>The 6- to 8-in. range requires engineering judgment considering climate and traffic. <a class="cite" href="#ref-1">[1]</a></td></tr><tr><td>COC-U saw-cut depth</td><td>A transverse contraction joint is commonly sawed to one-third of the slab depth; one-half depth may be used over geotextile.</td><td>Confirm with the design and project specification. <a class="cite" href="#ref-1">[1]</a></td></tr><tr><td>COC-U separation layer</td><td>Conventional asphalt is commonly nominally 1 to 2 in. thick to cover irregularities.</td><td>Minimize HMA thickness while providing coverage and density; design drainage and traffic resistance. <a class="cite" href="#ref-1">[1]</a></td></tr><tr><td>Nonwoven geotextile</td><td>The 4th-edition guide summarizes typical values of 13.0 oz/yd2 and 130 mils for overlays below 5 in., and 15 oz/yd2 and 170 mils for overlays 5 in. and thicker.</td><td>These are guide values, not a substitute for project-specific product qualification and performance requirements. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-5">[5]</a></td></tr><tr><td>Geotextile placement temperature</td><td>Surface temperature of the fabric should not exceed 120 F immediately before concrete placement.</td><td>Cool with damp, not saturated, fabric; standing water is not acceptable at placement. <a class="cite" href="#ref-1">[1]</a></td></tr><tr><td>Dowel use</td><td>Some overlays rely on the existing pavement support and use smaller dowels or none; under 7 in. they are typically not used.</td><td>Design traffic, slab geometry, overlay thickness, and faulting risk control. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-12">[12]</a></td></tr><tr><td>Bonded-overlay jointing</td><td>COC-B joints should align with or be compatible with existing joints; parking COA-B applications typically use small, square panels.</td><td>Do not import parking-lot joint dimensions into highway design without a supporting design. <a class="cite" href="#ref-3">[3]</a>, <a class="cite" href="#ref-7">[7]</a></td></tr></tbody></table></div>
+<h3 id="procedure">Procedure</h3>
+<ol><li><strong>Evaluate and document the existing pavement.</strong> Assemble records, map distresses, identify drainage and elevation constraints, inspect support, and collect cores or tests where needed. Make the repair scope visible in the plans and quality plan. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-6">[6]</a>, <a class="cite" href="#ref-16">[16]</a></li><li><strong>Select and design the overlay system.</strong> Choose COA-B, COA-U, COC-B, or COC-U only after condition and interface requirements are verified. Size the overlay, jointing, load transfer, and fibers by the governing design method. <a class="cite" href="#ref-2">[2]</a>, <a class="cite" href="#ref-1">[1]</a></li><li><strong>Execute and accept pre-overlay repairs.</strong> Mill or remove unsuitable asphalt, repair localized support and subbase problems, repair concrete joints or localized deterioration as needed, and prevent isolated repairs from creating new abrupt support changes. <a class="cite" href="#ref-4">[4]</a>, <a class="cite" href="#ref-15">[15]</a>, <a class="cite" href="#ref-11">[11]</a></li><li><strong>Prepare the interface.</strong> Clean and prepare bonded interfaces to the project requirements. For unbonded concrete-over-concrete work, place and protect the selected separation layer; for asphalt interfaces, correct profile and instability before paving. <a class="cite" href="#ref-3">[3]</a>, <a class="cite" href="#ref-1">[1]</a></li><li><strong>Establish geometry and load-transfer details.</strong> Verify grade control, joint layout, basket location and anchorage, tie bars, and planned saw-cut sequence before the first load of concrete. Use a formal basket inspection where dowels are specified. <a class="cite" href="#ref-12">[12]</a>, <a class="cite" href="#ref-9">[9]</a></li><li><strong>Place, consolidate, finish, texture, and cure.</strong> Apply conventional concrete-paving controls, preserve alignment and thickness, and cure immediately after texturing. Select texture for project friction/noise goals and verify that it is compatible with the overlay system. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-8">[8]</a>, <a class="cite" href="#ref-18">[18]</a>, <a class="cite" href="#ref-19">[19]</a></li><li><strong>Saw, protect, and open to traffic.</strong> Cut joints at the planned time, protect early-age concrete from damaging traffic, and open only when the project-specific strength/maturity and operational criteria have been met. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-8">[8]</a>, <a class="cite" href="#ref-21">[21]</a></li></ol>
+<h3 id="environmental-and-operational-limits">Environmental and operational limits</h3>
+<p>Bonded overlays require particular attention to the existing surface, concrete mixture, jointing, and weather because bond loss can lead quickly to cracking. Unbonded systems still require a dry, stable, properly drained interface; a separation layer is not a remedy for unstable support or trapped water. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-3">[3]</a>, <a class="cite" href="#ref-5">[5]</a></p>
+<p>Set project-specific limits for temperature, wind, precipitation, curing, saw-cut timing, concrete delivery, and opening strength in the contract documents and quality plan. The guides provide construction practices and acceptance controls, but this page does not infer universal numerical weather or opening limits from them. <a class="cite" href="#ref-8">[8]</a>, <a class="cite" href="#ref-9">[9]</a>, <a class="cite" href="#ref-10">[10]</a></p>
+<h3 id="release-to-placement-checklist">Release-to-placement checklist</h3>
+<p>Use this as a field hold-point list; agency specifications and the approved quality plan remain controlling.</p>
+<ul class="tasklist"><li class="task"><input type="checkbox" disabled><span>Existing-pavement evaluation, design basis, repair limits, and drainage details are available to the field team. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-6">[6]</a></span></li><li class="task"><input type="checkbox" disabled><span>Required milling, removals, partial-depth/full-depth repairs, and localized foundation repairs are accepted; no rocking slabs, open voids, or unaddressed unstable areas remain. <a class="cite" href="#ref-4">[4]</a>, <a class="cite" href="#ref-15">[15]</a>, <a class="cite" href="#ref-11">[11]</a></span></li><li class="task"><input type="checkbox" disabled><span>The bonded surface is prepared and clean, or the unbonded separation layer is the approved type, continuous, protected, and free of standing water. <a class="cite" href="#ref-3">[3]</a>, <a class="cite" href="#ref-5">[5]</a></span></li><li class="task"><input type="checkbox" disabled><span>Grade, cross slope, tie-ins, drainage inlets, utilities, and fixed-elevation constraints are checked. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-7">[7]</a></span></li><li class="task"><input type="checkbox" disabled><span>Dowel baskets, tie bars, and joint layout are inspected for location, elevation, alignment, anchorage, and damage; deviations are dispositioned before paving. <a class="cite" href="#ref-12">[12]</a>, <a class="cite" href="#ref-9">[9]</a>, <a class="cite" href="#ref-20">[20]</a></span></li><li class="task"><input type="checkbox" disabled><span>The approved mixture, trial-batch results when fibers are used, material certificates, curing compound, and test equipment are ready. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-27">[27]</a>, <a class="cite" href="#ref-21">[21]</a></span></li><li class="task"><input type="checkbox" disabled><span>Paving, curing, saw-cutting, traffic control, inspection staffing, and nonconformance response are coordinated in the pre-paving plan. <a class="cite" href="#ref-8">[8]</a>, <a class="cite" href="#ref-9">[9]</a>, <a class="cite" href="#ref-10">[10]</a></span></li></ul>
+<h3 id="quality-control-and-acceptance">Quality control and acceptance</h3>
+<div class="table-scroll"><table><thead><tr><th>Control point</th><th>Verify</th><th>Action when not acceptable</th></tr></thead><tbody><tr><td>Existing condition and repair</td><td>Distress limits, support uniformity, repair extent, drainage, and profile.</td><td>Stop progression into the affected area; investigate and repair the cause, not just the surface symptom. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-4">[4]</a></td></tr><tr><td>Separation layer or bond surface</td><td>Material, continuity, drainage condition, cleanliness/dryness as applicable, and no damage before placement.</td><td>Correct the interface before concrete is placed. <a class="cite" href="#ref-3">[3]</a>, <a class="cite" href="#ref-5">[5]</a></td></tr><tr><td>Dowel/tie-bar installation</td><td>Alignment, spacing, depth/elevation, basket anchorage, coating condition, and displacement during paving.</td><td>Hold paving or remove and replace/rework the affected installation under the project procedure. <a class="cite" href="#ref-12">[12]</a>, <a class="cite" href="#ref-9">[9]</a></td></tr><tr><td>Fresh concrete</td><td>Batch records, air content, temperature, workability, fiber dispersion when used, and delivery/placement time.</td><td>Follow the approved quality plan and disposition process; do not compensate for a nonconforming mixture in the field without authorization. <a class="cite" href="#ref-9">[9]</a>, <a class="cite" href="#ref-21">[21]</a>, <a class="cite" href="#ref-1">[1]</a></td></tr><tr><td>Finished overlay</td><td>Thickness, strength, air content, aggregate gradation, smoothness, texture, curing coverage, and jointing.</td><td>Use contract acceptance and corrective-action provisions. These are the normal acceptance categories identified for overlays. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-8">[8]</a></td></tr><tr><td>Opening to traffic</td><td>Project-specified strength/maturity, joint condition, curing/protection removal, and traffic staging.</td><td>Keep traffic off the area until the approved opening criterion is met. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-21">[21]</a></td></tr></tbody></table></div>
+<h2 id="performance-and-service-life">Performance and service life</h2>
+<p>Overlay performance depends on the design system matching the existing pavement condition, a stable and drained foundation, reliable interface behavior, controlled jointing/load transfer, and construction quality. The primary guide reports experience with low-maintenance lives of at least 20 years and examples lasting 30 to 40 years; such outcomes are evidence of potential, not a promise for a different traffic, climate, or construction context. <a class="cite" href="#ref-1">[1]</a></p>
+<p>For bonded overlays, maintain the bond and control reflective cracking risk. For unbonded overlays, preserve uniform support and the performance of the separation layer. Asphalt separation layers that strip or consolidate, and geotextiles that are unsuitable for the system, can affect faulting, cracking, and ride. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-5">[5]</a></p>
+<p>Monitor condition after opening through the pavement-management program: cracking, faulting, joint load transfer, drainage performance, ride, texture, and repairs are useful inputs to preservation timing and the next rehabilitation decision. <a class="cite" href="#ref-6">[6]</a>, <a class="cite" href="#ref-29">[29]</a>, <a class="cite" href="#ref-14">[14]</a></p>
+<h2 id="limitations-and-troubleshooting">Limitations and troubleshooting</h2>
+<div class="table-scroll"><table><thead><tr><th>Symptom or risk</th><th>Likely system issue</th><th>First response</th></tr></thead><tbody><tr><td>Early cracking or debonding in a bonded overlay</td><td>Existing pavement did not meet condition requirements; interface preparation, joint compatibility, materials, or weather control was inadequate.</td><td>Investigate bond and existing-condition assumptions before adopting a localized repair. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-3">[3]</a></td></tr><tr><td>Faulting, cracking, or loss of ride near localized weak areas</td><td>Nonuniform support, drainage distress, rocking/broken slabs, or unresolved base/subgrade defects.</td><td>Diagnose support and drainage; repair the cause and reassess the overlay structural design if the condition is widespread. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-11">[11]</a></td></tr><tr><td>Distress above an asphalt separation layer</td><td>HMA stripping, excessive deformation, poor mixture design, inadequate drainage, or traffic overstress.</td><td>Verify HMA and drainage design rather than increasing the overlay thickness by default. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-5">[5]</a></td></tr><tr><td>Geotextile-related constructability or performance concern</td><td>Unsuitable material/thickness, poor overlap/detailing, hot or wet fabric, or application outside the intended system.</td><td>Recheck product requirements, placement details, surface condition, and system applicability before placing concrete. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-5">[5]</a></td></tr><tr><td>Joint distress or poor load transfer</td><td>Incompatible joint layout, delayed/inadequate sawing, damaged/misaligned baskets, or a dowel decision mismatched to traffic and thickness.</td><td>Inspect the joint system, basket records, and early-age construction sequence. Macrofibers do not replace dowels for faulting control. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-12">[12]</a>, <a class="cite" href="#ref-13">[13]</a></td></tr><tr><td>Uncertain repair boundary</td><td>Distress investigation did not distinguish localized deterioration from a system-level foundation problem.</td><td>Return to records, mapping, coring, and support/drainage assessment before expanding the repair scope. <a class="cite" href="#ref-4">[4]</a>, <a class="cite" href="#ref-15">[15]</a>, <a class="cite" href="#ref-16">[16]</a></td></tr></tbody></table></div>
+<h2 id="related-concepts">Related concepts</h2>
+<ul><li><strong>Prerequisite:</strong> <span class="xref">Evaluate existing pavement condition</span> for records review, distress mapping, field inspection, and targeted testing before selecting an overlay. <a class="cite" href="#ref-6">[6]</a>, <a class="cite" href="#ref-16">[16]</a></li><li><strong>Decision support:</strong> <span class="xref">Overlay option decision example</span> demonstrates how to record the decision logic and evidence boundary.</li><li><strong>Complementary repair:</strong> <span class="xref">Partial-Depth Repair</span> addresses localized near-surface concrete deterioration that can be part of pre-overlay repair scope. <a class="cite" href="#ref-15">[15]</a></li><li><strong>Construction control:</strong> <span class="xref">Dowel Basket Placement Checklist</span> provides the focused inspection workflow for projects using baskets. <a class="cite" href="#ref-12">[12]</a>, <a class="cite" href="#ref-9">[9]</a></li><li><strong>Surface and functional outcome:</strong> <span class="xref">Diamond Grooving</span> and <span class="xref">Next Generation Concrete Surface</span> relate to texture, ride, friction, and noise decisions; they are not a substitute for overlay structural design. <a class="cite" href="#ref-18">[18]</a>, <a class="cite" href="#ref-19">[19]</a></li><li><strong>Alternative strategy:</strong> Cement-based integrated pavement solutions and full-depth reclamation may be better candidates when the overlay feasibility gates cannot be satisfied. <a class="cite" href="#ref-22">[22]</a>, <a class="cite" href="#ref-23">[23]</a></li></ul>
+<h2 id="references">References</h2>
+<h3 id="cited-guides">Cited guides</h3>
+<div class="reflist"><p class="ref" id="ref-1"><span class="ref-n">[1]</span> <em>Guide to Concrete Overlays, 4th Edition</em> (web extraction), especially chapters 2, 3, 6, and 8. Available: <span class="xref">Extracted Markdown</span></p><p class="ref" id="ref-2"><span class="ref-n">[2]</span> <em>Concrete Overlays Design Guide</em>. Available: <span class="xref">Extracted Markdown</span></p><p class="ref" id="ref-3"><span class="ref-n">[3]</span> <em>Concrete Overlay Construction Document Development Guide</em>. Available: <span class="xref">Extracted Markdown</span></p><p class="ref" id="ref-4"><span class="ref-n">[4]</span> <em>Concrete Overlay Repair Strategies Guide</em>. Available: <span class="xref">Extracted Markdown</span></p><p class="ref" id="ref-5"><span class="ref-n">[5]</span> <em>Performance Assessment of Nonwoven Geotextile Materials Used as a Separation Layer for Unbonded Concrete Overlays</em>. Available: <span class="xref">Extracted Markdown</span></p><p class="ref" id="ref-6"><span class="ref-n">[6]</span> <em>Concrete Pavement Preservation Guide, 3rd Edition</em> (web extraction), pavement evaluation and concrete overlays chapters. Available: <span class="xref">Extracted Markdown</span></p><p class="ref" id="ref-7"><span class="ref-n">[7]</span> <em>Concrete Overlays for Parking Lots, 2nd Edition</em>. Available: <span class="xref">Extracted Markdown</span></p><p class="ref" id="ref-8"><span class="ref-n">[8]</span> <em>Integrated Materials and Construction Practices for Concrete Pavement</em>. Available: <span class="xref">Extracted Markdown</span></p><p class="ref" id="ref-9"><span class="ref-n">[9]</span> <em>Quality Control for Concrete Paving</em> (web extraction). Available: <span class="xref">Extracted Markdown</span></p><p class="ref" id="ref-10"><span class="ref-n">[10]</span> <em>Quality Control/Quality Assurance of Concrete Airfield Pavement</em>. Available: <span class="xref">Extracted Markdown</span></p><p class="ref" id="ref-11"><span class="ref-n">[11]</span> <em>Guide to Foundation Layers for Concrete Pavement</em>. Available: <span class="xref">Extracted Markdown</span></p><p class="ref" id="ref-12"><span class="ref-n">[12]</span> <em>Guide to Dowel Load Transfer Systems for Jointed Concrete Roadway Pavements</em>. Available: <span class="xref">Extracted Markdown</span></p><p class="ref" id="ref-13"><span class="ref-n">[13]</span> <em>Joint Performance Guide</em>. Available: <span class="xref">Extracted Markdown</span></p><p class="ref" id="ref-14"><span class="ref-n">[14]</span> <em>Guide for Concrete Pavement Joint Deterioration</em>. Available: <span class="xref">Extracted Markdown</span></p><p class="ref" id="ref-15"><span class="ref-n">[15]</span> <em>Partial-Depth Repair Guide</em>. Available: <span class="xref">Extracted Markdown</span></p><p class="ref" id="ref-16"><span class="ref-n">[16]</span> <em>Concrete Pavement Distress Assessments and Solutions Guide</em>. Available: <span class="xref">Extracted Markdown</span></p><p class="ref" id="ref-17"><span class="ref-n">[17]</span> <em>Thin Concrete Pavement Guide</em>. Available: <span class="xref">Extracted Markdown</span></p><p class="ref" id="ref-18"><span class="ref-n">[18]</span> <em>Smooth Concrete Pavement Guidelines</em>. Available: <span class="xref">Extracted Markdown</span></p><p class="ref" id="ref-19"><span class="ref-n">[19]</span> <em>How to Reduce Tire-Pavement Noise</em>. Available: <span class="xref">Extracted Markdown</span></p><p class="ref" id="ref-20"><span class="ref-n">[20]</span> <em>Field Reference Manual for Quality Concrete Pavements</em>. Available: <span class="xref">Extracted Markdown</span></p><p class="ref" id="ref-21"><span class="ref-n">[21]</span> <em>Concrete Pavement Testing Guide</em>. Available: <span class="xref">Extracted Markdown</span></p><p class="ref" id="ref-22"><span class="ref-n">[22]</span> <em>Guide to Cement-Based Integrated Pavement Solutions</em>. Available: <span class="xref">Extracted Markdown</span></p><p class="ref" id="ref-23"><span class="ref-n">[23]</span> <em>Guide to Full-Depth Reclamation with Cement</em>. Available: <span class="xref">Extracted Markdown</span></p><p class="ref" id="ref-24"><span class="ref-n">[24]</span> <em>Recycled Concrete Aggregate Practitioner Guide</em>. Available: <span class="xref">Extracted Markdown</span></p><p class="ref" id="ref-25"><span class="ref-n">[25]</span> <em>Sustainable Concrete Pavement</em>. Available: <span class="xref">Extracted Markdown</span></p><p class="ref" id="ref-26"><span class="ref-n">[26]</span> <em>Ternary Mixture Manual</em>. Available: <span class="xref">Extracted Markdown</span></p><p class="ref" id="ref-27"><span class="ref-n">[27]</span> <em>Commentary on AASHTO R 101, Developing Performance Engineered Concrete Pavement Mixtures</em>. Available: <span class="xref">Extracted Markdown</span></p><p class="ref" id="ref-28"><span class="ref-n">[28]</span> <em>Guide to Life-Cycle Cost Analysis for Geotechnical Applications</em>. Available: <span class="xref">Extracted Markdown</span></p><p class="ref" id="ref-29"><span class="ref-n">[29]</span> <em>Concrete Pavement Preservation Workshop Reference Manual</em>. Available: <span class="xref">Extracted Markdown</span></p></div>
+<h3 id="standards-and-external-references-named-in-the-cited-guides">Standards and external references named in the cited guides</h3>
+<p>The cited guides refer, as applicable, to ASTM C33, C150, C595, C1157, C1609, C309, C1315, A1078, A615, D6690, D2628; AASHTO M 148, M 31, M 220, and M 301. The project contract and governing agency specifications determine applicability and acceptance requirements. <a class="cite" href="#ref-1">[1]</a>, <a class="cite" href="#ref-12">[12]</a>, <a class="cite" href="#ref-21">[21]</a></p>
+<h3 id="complete-corpus-audit">Complete corpus audit</h3>
+<p>All 42 extracted guide directories were reviewed for this page. A guide is cited in the body only where it supports a claim or workflow step. Equivalent web/tablet/language editions are retained in the audit so the source coverage is visible without treating duplicate text as independent evidence.</p>
+<div class="table-scroll"><table><thead><tr><th>Audit result</th><th>Guides reviewed</th><th>Treatment in this page</th></tr></thead><tbody><tr><td>Direct overlay authority or supporting overlay chapter</td><td><code>guide_to_concrete_overlays_4th_Ed</code>, <code>guide_to_concrete_overlays_4th_Ed_web</code>, <code>Overlays_Design_Guide_508</code>, <code>Overlays_3rd_edition_Spanish</code>, <code>overlay_construction_doc_dev_guide_w_cvr</code>, <code>concrete_overlay_repair_strategies_guide_web</code>, <code>overlays_parking_lots_guide_2nd_ed_web</code>, <code>US_geotextile_performance_w_cvr</code>, <code>concrete_pvmt_preservation_guide_3rd_edition</code>, <code>concrete_pvmt_preservation_guide_3rd_edition_web</code>, <code>thin_concrete_508_compliant_final</code>, <code>IPS</code></td><td>The main page selection, materials, configuration, repair, and performance content comes from these guides; alternate editions are not double-counted.</td></tr><tr><td>Cross-cutting technical evidence used</td><td><code>2016_joint_deterioration_in_pvmts_guide</code>, <code>2019-12_IMCP_manual</code>, <code>IMCP_manual</code>, <code>ACPTP-2022-4_QC_QA_of_concrete_airfield_pvmt_manual_w_cvr_508</code>, <code>Dowel-load-guide</code>, <code>IHRB_TR-640_foundation_layers_guide</code>, <code>Joint-Performance-Guide</code>, <code>optimum_joint_performance_guide_web</code>, <code>PDR_guide_Apr2012</code>, <code>QC_for_concrete_paving</code>, <code>QC_for_concrete_paving_web</code>, <code>concrete_pvmt_distress_assessments_and_solutions_guide_w_cvr</code>, <code>hif13059</code>, <code>testing_guide</code>, <code>smooth_concrete_pvmt_guidelines_w_cvr</code>, <code>How_to_Reduce_Tire-Pavement_Noise_final</code>, <code>Guide_to_FDR_with_Cement_Jan_2019_reprint</code>, <code>preservation_reference_manual</code>, <code>commentary_on_AASHTO_R_101_manual_web</code>, <code>RCA_practioner_guide_w_cvr</code>, <code>Sustainable_Concrete_Pavement_508</code>, <code>ternary_mix_manual-508-compliant-w-Iowa-DOT-statements</code>, <code>guide_to_LCC_for_geotech_apps</code>, <code>guide_to_LCC_for_geotech_apps_tablet</code></td><td>Used for QC, joints, load transfer, repairs, support, materials, mixture qualification, performance monitoring, texture/noise, alternatives, and life-cycle decisions. The body cites a representative extraction when duplicate formats contain the same material.</td></tr><tr><td>Reviewed; no discrete overlay recommendation carried into this version</td><td><code>2019_hydration_poster</code>, <code>IADOT_InTrans_RB33_014_Reeder_Implementation_Manual_3D_Engineered_Models_Highway_Const_2015_Final</code>, <code>concrete_trails_guide</code>, <code>concrete_trails_guide_tablet</code>, <code>guide_to_CSS</code>, <code>guide_to_CSS_tablet</code></td><td>These guides add general construction, delivery, or application context but no overlay-specific rule that would strengthen this page without overgeneralizing.</td></tr></tbody></table></div>
+</article>
+</main>
+</div>
+
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">&times;</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var t = document.getElementById('navToggle'), s = document.getElementById('sidebar');
+  var mq = window.matchMedia('(max-width: 760px)');
+  function inert(){ if(s){ if(mq.matches && !s.classList.contains('open')) s.setAttribute('inert',''); else s.removeAttribute('inert'); } }
+  inert(); if(mq.addEventListener) mq.addEventListener('change', inert);
+  if(t&&s){ t.addEventListener('click',function(){ var o=s.classList.toggle('open'); t.setAttribute('aria-expanded',o?'true':'false'); if(o){s.removeAttribute('inert');} else {inert(); t.focus();} });
+    s.addEventListener('click',function(e){ if(e.target.closest('a')&&mq.matches){ s.classList.remove('open'); t.setAttribute('aria-expanded','false'); inert(); } }); }
+})();
+</script>
+<script>
+(function () {
+  var lb,img,cap;
+  function capFor(el){ var p=el.closest('p'), em=p&&p.querySelector('em'); return (em?em.textContent.trim():'')||el.getAttribute('alt')||''; }
+  function open(el){ if(!lb)return; img.setAttribute('src',el.getAttribute('src')); var c=capFor(el); img.setAttribute('alt',c); cap.textContent=c; cap.style.display=c?'':'none'; lb.classList.add('open'); lb.setAttribute('aria-hidden','false'); }
+  function close(){ if(!lb)return; lb.classList.remove('open'); lb.setAttribute('aria-hidden','true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded',function(){ lb=document.getElementById('lightbox'); if(!lb)return; img=lb.querySelector('img'); cap=lb.querySelector('.lb-cap'); lb.addEventListener('click',close);
+    document.querySelectorAll('article img').forEach(function(el){ el.style.cursor='zoom-in'; el.addEventListener('click',function(){open(el);}); });
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape') close(); }); });
+})();
+</script>
+
+</body>
+</html>
