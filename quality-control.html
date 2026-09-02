@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quality Control</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-16: per-page Tally feedback embed (md->html reverse builder) */
+.comments { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+.comments h2 { color: var(--accent); border: none; margin: 0 0 .75rem; font-size: 1.1rem; }
+.comments iframe { width: 100%; border: 0; min-height: 320px; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /Users/igor/dev/llm/ak-llm-wiki/llm-wiki-tools/hierarchy_v2_guides/16-guides-concept-visual -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">75 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="aggregate-management.html">Aggregate Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="aggregate-classification.html">Aggregate Classification</a></li><li><a href="aggregate-management-3-1.html">Aggregate Management</a></li><li><a href="quality-control-3-2.html">Quality Control</a></li><li><a href="aggregate-impact.html">Aggregate Impact</a></li><li><a href="mixture-design.html">Mixture Design</a></li></ul></details></li><li><a href="cementitious-materials.html">Cementitious Materials</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="cement-chemistry.html">Cement Chemistry</a></li><li><a href="concrete-mixture-design.html">Concrete Mixture Design</a></li><li><a href="sustainable-scms.html">Sustainable SCMs</a></li><li><a href="cement-production.html">Cement Production</a></li><li><a href="concrete-durability.html">Concrete Durability</a></li></ul></details></li><li><a href="concrete-production.html">Concrete Production</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-production-15.html">Concrete Production</a></li></ul></details></li><li><a href="cracking-mitigation.html">Cracking Mitigation</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-cracking.html">Concrete Cracking</a></li><li><a href="moisture-management.html">Moisture Management</a></li><li><a href="sealant-application.html">Sealant Application</a></li><li><a href="temperature-management.html">Temperature Management</a></li></ul></details></li><li><a href="diamond-grinding.html">Diamond Grinding</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="diamond-grinding-5.html">Diamond Grinding</a></li></ul></details></li><li><a href="drainage-management.html">Drainage Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="drainage-management-7.html">Drainage Management</a></li></ul></details></li><li><a href="joint-sealing.html">Joint Sealing</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="joint-maintenance.html">Joint Maintenance</a></li><li><a href="sealant-installation.html">Sealant Installation</a></li><li><a href="pavement-maintenance.html">Pavement Maintenance</a></li><li><a href="sealant-performance.html">Sealant Performance</a></li></ul></details></li><li><a href="material-testing.html">Material Testing</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-testing.html">Concrete Testing</a></li><li><a href="concrete-durability-9-1.html">Concrete Durability</a></li><li><a href="concrete-strength.html">Concrete Strength</a></li><li><a href="concrete-standards.html">Concrete Standards</a></li><li><a href="material-testing-9-4.html">Material Testing</a></li><li><a href="maturity-methods.html">Maturity Methods</a></li></ul></details></li><li><a href="other.html">Other</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="other-17.html">Other</a></li></ul></details></li><li><a href="pavement-design.html">Pavement Design</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="overlay-technology.html">Overlay Technology</a></li><li><a href="pavement-types.html">Pavement Types</a></li><li><a href="construction-insights.html">Construction Insights</a></li><li><a href="recycling-innovation.html">Recycling Innovation</a></li></ul></details></li><li><a href="pavement-management-14.html">Pavement Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-smoothness.html">Pavement Smoothness</a></li><li><a href="pavement-systems.html">Pavement Systems</a></li><li><a href="subgrade-insights.html">Subgrade Insights</a></li><li><a href="excavation-safety.html">Excavation Safety</a></li><li><a href="slab-jacking.html">Slab Jacking</a></li></ul></details></li><li><a href="pavement-management.html">Pavement Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-evaluation.html">Pavement Evaluation</a></li><li><a href="preservation-strategies.html">Preservation Strategies</a></li><li><a href="pavement-design-8-2.html">Pavement Design</a></li><li><a href="concrete-production-8-3.html">Concrete Production</a></li><li><a href="design-methodologies.html">Design Methodologies</a></li><li><a href="design-considerations.html">Design Considerations</a></li></ul></details></li><li><a href="pavement-repair.html">Pavement Repair</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="slab-stabilization.html">Slab Stabilization</a></li><li><a href="pavement-repairs.html">Pavement Repairs</a></li><li><a href="dowel-bar-retrofit.html">Dowel Bar Retrofit</a></li></ul></details></li><li><a href="paving-operations.html">Paving Operations</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="paving-operations-12.html">Paving Operations</a></li></ul></details></li><li><a href="quality-assurance.html">Quality Assurance</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="quality-control-1-0.html">Quality Control</a></li><li><a href="project-management.html">Project Management</a></li><li><a href="quality-assurance-1-2.html">Quality Assurance</a></li></ul></details></li><li><a href="quality-control.html" class="active" aria-current="page">Quality Control</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-assessment.html">Pavement Assessment</a></li><li><a href="mixture-management.html">Mixture Management</a></li><li><a href="concrete-sampling.html">Concrete Sampling</a></li><li><a href="concrete-strength-10-3.html">Concrete Strength</a></li><li><a href="mixture-design-10-4.html">Mixture Design</a></li></ul></details></li><li><a href="reinforcement-techniques.html">Reinforcement Techniques</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="reinforcement-techniques-16.html">Reinforcement Techniques</a></li></ul></details></li><li><a href="surface-textures.html">Surface Textures</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="surface-textures-11.html">Surface Textures</a></li></ul></details></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Quality Control</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=quality">quality</a><a class="tag" href="index.html?q=control">control</a></div><div>Created 2026-09-01 · Updated 2026-09-02</div></div>
+<p>Quality control is the systematic practice of verifying that a product or process conforms to defined specifications by using inspection, testing and statistical evaluation methods [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. In concrete production, this involves a comprehensive program that ensures every batch meets predefined performance and safety requirements despite the inherent variability of raw materials and environmental conditions [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. The process relies on establishing clear specifications early, conducting representative sampling to infer properties of the whole population, and continuously monitoring key parameters such as moisture content, temperature, and workability during production [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Statistical tools are employed to distinguish between random variation and assignable causes of deviation, triggering corrective actions when results fall outside established tolerance limits [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Ultimately, quality control translates laboratory design expectations into reliable field performance by integrating preparatory planning, ongoing oversight, and final acceptance testing to ensure uniformity and durability [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p>Quality Control in airport pavements relies on a systematic approach to verify that materials and construction methods meet rigorous standards for durability and safety. <a href="mixture-design-10-4.html">Mixture Design</a> establishes the foundation by selecting material proportions to meet specific performance requirements, while <a href="mixture-management.html">Mixture Management</a> ensures uniformity during production by controlling blends so each batch satisfies predetermined specifications. <a href="concrete-sampling.html">Concrete Sampling</a> provides the physical evidence needed to confirm that produced concrete meets these criteria, and <a href="concrete-strength-10-3.html">Concrete Strength</a> serves as the primary metric for verifying compliance with safety standards. <a href="pavement-assessment.html">Pavement Assessment</a> completes the cycle by evaluating condition and performance metrics such as strength, thickness, and smoothness to verify overall uniformity.</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#key-findings">Key findings</a></li><li><a href="#statistical-process-control-and-material-uniformity-management">Statistical Process Control and Material Uniformity Management</a></li><li><a href="#related-concepts">Related concepts</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (2)</summary><div class="sources-body"><a href="#ref-1">Best Practices Manual: Quality Control and Quality Acceptance of Concrete Airport Pavement (2025)</a>, <a href="#ref-2">Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL (2019)</a></div></details>
+<details class="subconcepts-toggle"><summary>Sub-concepts (5)</summary><div class="subconcepts-body"><a href="pavement-assessment.html">Pavement Assessment</a> · <a href="mixture-management.html">Mixture Management</a> · <a href="concrete-sampling.html">Concrete Sampling</a> · <a href="concrete-strength-10-3.html">Concrete Strength</a> · <a href="mixture-design-10-4.html">Mixture Design</a></div></details>
+<h2 id="key-findings">Key findings</h2>
+<ul>
+<li>Identified inherent variability in raw materials and mixing conditions as the central challenge to pavement concrete performance, establishing batch-to-batch uniformity as the decisive factor for durability [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Demonstrated that mass-based batching significantly reduces errors associated with aggregate bulking compared to volume-based dosing methods [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Observed that frequent adjustments of mixture composition between batches dramatically increase the risk of poor finishes, reduced strength, cracking, and durability failures [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Established quality control as a system-wide discipline requiring long-lead aggregate sampling and accredited mixture designs to prevent schedule overruns and non-conforming mixes [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Defined a coordinated four-phase framework—material submittals, laboratory proportioning, trial batching with control-strip calibration, and continuous on-site monitoring—to align design intent with field realities [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Enforced statistical process control by treating assignable-cause variation as an out-of-control condition requiring immediate halt and correction, while accepting only chance-cause variation [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Revealed a trade-off between production flexibility and strict specification compliance, where changes in material source trigger mandatory new design studies rather than simple adjustments [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Linked contractor payment to the lowest-performing characteristic based on statistically derived percent-within-limits indices, reinforcing financial incentives for consistent multi-dimensional quality control [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+</ul>
+<h2 id="statistical-process-control-and-material-uniformity-management">Statistical Process Control and Material Uniformity Management</h2>
+<p><small>Evidence: 2 reports (2 primary)</small></p>
+<p>Statistical process control in concrete production relies on distinguishing between inherent random variation and assignable causes of deviation to maintain material uniformity across batches [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Effective management requires continuous monitoring of key parameters such as moisture content, temperature, and mix proportions through mass-based batching rather than volume measurements to minimize error [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Control charts and acceptance sampling metrics are employed to quantify process stability and trigger corrective actions when performance falls outside predefined tolerance limits [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p>The following figure illustrates a sample control chart used to monitor concrete unit weight.</p>
+<p><img alt="Sample control chart: concrete unit weight" src="assets/quality-control/93a2e121dc67f924d43902f76a0833541a2cecb45e94fbda3ed886321434c03c.jpg" />
+<em>Sample control chart: concrete unit weight</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays a statistical process control chart tracking the unit weight of concrete samples over time, featuring horizontal lines that represent one and two standard deviations from the mean as well as upper and lower three-sigma control limits.</p>
+<p><strong>Research problem</strong> — The inability to guarantee consistent concrete uniformity amidst fluctuating raw material properties and plant conditions creates a critical gap in maintaining pavement performance, as batch-to-batch variability leads to premature distress and compromised durability [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Achieving the target air-void system remains a persistent challenge due to the complex interplay of numerous variables affecting the air content, which directly impacts workability and compliance with specifications [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. The absence of a disciplined, cross-disciplinary statistical control framework allows production processes to drift outside required tolerances, resulting in costly rework, disputes, and jeopardized runway safety [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p>The following figure illustrates how even an in-control process can exhibit variation due to assignable causes.</p>
+<p><img alt="Variation observed in sublots sampled from an in-control pro" src="assets/quality-control/7990c851483fd9dcb3066bddcb5e105a425997fbcff1ad540ff009c349f7079c.jpg" />
+<em>Variation observed in sublots sampled from an in-control process experiencing assignable cause variability.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays a sequence of three bell-shaped curves arranged along axes labeled &ldquo;Sublot Variability&rdquo; and &ldquo;Time,&rdquo; illustrating how the distribution of measurements changes over time. The first curve is wide with a low peak, while subsequent curves show significant shifts in both location (mean) and shape (standard deviation), visually representing &ldquo;unacceptably different means and standard deviations&rdquo; caused by assignable cause variability. This visualization demonstrates the statistical concept of a process becoming out of control due to excessive, undesirable variability in quality measurements.</p>
+<p><strong>State of the art</strong> — The current state of the art in quality control prioritizes batch-to-batch uniformity by treating the plant as a critical linchpin, utilizing continuous monitoring and real-time feedback loops to adjust variables such as air-void content and water-cement ratios within specification limits [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Statistical acceptance frameworks, such as the FAA Percent Within Limits methodology, serve as the cornerstone of modern regimes by evaluating lots as statistical units to distinguish natural variation from process drift through control-chart analysis and predefined tolerance limits [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Industry consensus has shifted toward holistic, data-driven programs that integrate rigorous mix-design accreditation, trial-batch validation, and continuous field monitoring to align technical performance with contractual incentives for reduced variability [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p>The figure below illustrates how contractor risk is quantified within this framework by analyzing strength test results.</p>
+<p><img alt="Contractor's risk in FAA's PWL acceptance approach, using st" src="assets/quality-control/57de36826a45027f7dc05184384f444de3eb0d2e3a10b8debf1d3608de6a0dd1.jpg" />
+<em>Contractor&rsquo;s risk in FAA&rsquo;s PWL acceptance approach, using strength test results as an example (Johnson 2019).</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays a bell-shaped curve representing the variation in quality of material within a lot. An arrow indicates that there is a probability samples will be taken from the area below this limit, illustrating the risk of rejecting acceptable material when lot quality is at the AQL.</p>
+<p><strong>Findings from the reports</strong></p>
+<ul>
+<li>Identified inherent variability in raw materials and mixing conditions as the central challenge to pavement concrete quality, establishing batch-to-batch uniformity as the decisive factor for performance [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Demonstrated that mass-based batching significantly reduces errors associated with aggregate bulking compared to volume-based dosing methods [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Observed that frequent adjustments of mixture composition between batches dramatically increase the risk of poor finishes, reduced strength, cracking, and durability failures [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Distinguished between stable processes driven by chance-cause variation and out-of-control conditions signaled by assignable causes in statistical process control analysis [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Revealed that aggregate variability during paving operations frequently shifts coarseness and workability factors, necessitating daily sieve analyses and production stoppages when limits are exceeded [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Showed that standard ASTM C136 testing lags often mask emerging out-of-control conditions because measured aggregate properties frequently exceed tighter recommended action limits [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Established that contractor payment factors are determined by the lowest-performing characteristic among strength, thickness, and smoothness, creating financial incentives for multi-dimensional consistency [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Defined quality control as a system-wide discipline requiring long-lead aggregate sampling, accredited mixture designs, and coordinated phases from material submittal through continuous on-site monitoring [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Highlighted the trade-off between production flexibility and strict specification compliance when changes in material source trigger mandatory new design studies [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+</ul>
+<p><strong>Novelty &amp; rigor</strong> — The research introduces an integrated, stage-wide monitoring system that couples texture timing decisions to observable bleed-water behavior and augments aggregate-gradation surveillance with rapid statistical control tools [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. It establishes a dedicated control-chart framework for aggregate factors with explicit action limits tighter than current industry tolerances, utilizing fast-track moisture-corrected sieve analysis to provide near-real-time detection of gradation drift [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. The approach embeds a software-driven acceptance engine that automatically applies statistical percent-within-limits metrics to translate uniformity into contractual financial incentives, creating a dynamic regime that transcends static specification-only approaches [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p>The figure below illustrates how these statistical control limits are applied to production data within the CF and WF parallelogram framework.</p>
+<p><img alt="CF and WF parallelogram showing the allowable limits box adj" src="assets/quality-control/dd276ffc0c75347d213f8a092db3e736bd5aab1d61a9666fd4868aa78a68f303.jpg" />
+<em>CF and WF parallelogram showing the allowable limits box adjusted to tolerance limits with production paving data.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays a scatter plot of Workability Factor versus Coarseness Factor, bounded by red lines that define an action limit envelope for concrete mixture design.</p>
+<p><strong>Reported values</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Context</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>aggregate planning lead time</td>
+<td>120 days</td>
+<td>planning for acquisition of aggregates, sampling stockpiles, testing, approval, and performing the study</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>beam specimen transport time limit</td>
+<td>4 hours</td>
+<td>FAA P-501 limitation on transportation time for beam specimens</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>Coarseness Factor action limit</td>
+<td>±3.5</td>
+<td>FAA</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>Coarseness Factor action limit</td>
+<td>±5</td>
+<td>UFGS Table 18</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>Coarseness Factor change</td>
+<td>±5</td>
+<td>during a paving day (Air Force 1996)</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>Coarseness Factor limit</td>
+<td>±2.5</td>
+<td>TSPWG reference</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>coarseness factor variability</td>
+<td>±5</td>
+<td>expected change during a paving day identified by Air Force research in 1996</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>curing compound application rate (FAA)</td>
+<td>1 gallon per 150 square feet gallon/150 sq ft</td>
+<td>FAA requirement for curing compound volume</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>curing duration for intermediate lanes (DOD)</td>
+<td>7 days</td>
+<td>DOD’s UFGS paving intermediate lanes after curing</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>curing duration for surrounding lanes</td>
+<td>7 days</td>
+<td>FAA requirement for curing surrounding lanes before loading</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>Deviation above tolerance</td>
+<td>7%</td>
+<td>Lot B measurements</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>elevation deviation</td>
+<td>3/8 in</td>
+<td>Lot A surveyed elevation points from plan grade</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>Flexural strength PWL</td>
+<td>100%</td>
+<td>Lot A test results</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>air content</td>
+<td>5 percent%</td>
+<td>cold climates behind the paver</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+<tr>
+<td>water-cement ratio</td>
+<td>0.38 to 0.42</td>
+<td>pavements in cold climates</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+</tbody>
+</table>
+<p><small>18 more distinct values omitted here; the full span-verified set is in the quantities sidecar.</small></p>
+<p>Across the reviewed reports, statistical process control is established as a system-wide discipline that requires distinguishing between acceptable chance-cause variation and assignable causes to maintain material uniformity throughout construction. The collective evidence indicates that while strength metrics often remain within high percent-within-limits thresholds, variability in aggregate properties and placement tolerances frequently drives payment deductions for thickness and smoothness deficiencies. Reports converge on the necessity of mass-based batching and real-time monitoring of fresh concrete properties to mitigate the economic risks associated with frequent mixture adjustments and out-of-control conditions. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The practical application of these monitoring principles is illustrated by the figure below.</p>
+<p><img alt="Weighing the air pressure pot to use in calculating the conc" src="assets/quality-control/ea7e6e0b31bfaff44d00e30e1dd39fc5eee3957ad8beb9b49917cd25c9ec3b93.jpg" />
+<em>Weighing the air pressure pot to use in calculating the concrete unit weight (Fick 2008).</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The image displays a white cylindrical container filled with fresh concrete placed on a digital platform scale. A control unit is connected to the scale, and the side of the container bears handwritten markings indicating a volume measurement. This procedure supports quality control by monitoring fresh concrete properties, as variations in unit weight can indicate issues with water or air content during production.</p>
+<p><strong>Implications</strong> — Quality control must evolve from a peripheral, post-construction inspection into an integral, system-wide discipline that embeds continuous monitoring and statistical process control throughout every project phase [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Achieving consistent material uniformity requires enforcing mass-based batching and real-time adjustment of mix properties to counteract inherent variability in raw materials and plant conditions [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Contractors must balance economic pressures with long-term performance by adopting proactive risk-mitigation strategies, such as early statistical trial mixes and documented iterative adjustments, to ensure specification compliance [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p>The figure below illustrates the sequential steps for adjusting concrete mixture proportions as part of this proactive process control strategy.</p>
+<p><img alt="Sequential steps for adjusting concrete mixture proportions" src="assets/quality-control/466a782c2f52e63d0051b8e64262228526688896b9de50921189005edac54991.jpg" />
+<em>Sequential steps for adjusting concrete mixture proportions as part of proactive process control.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays a four-stage workflow diagram illustrating the progression from laboratory design to final production management. The process begins with Laboratory Developed Mixture Design, followed by Contractor Full-Scale Test Batches for validating performance in a field setting. This is succeeded by Control Strip - Test Section steps used for fine tuning the mixture before moving to Production Managing.</p>
+<p><strong>Limitations</strong> — Inherent variability in raw materials and on-site conditions prevents guaranteed batch-to-batch uniformity, even with diligent monitoring [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Practical field constraints limit the ability to quickly retune equipment during mix shifts, increasing the risk of poor finishes and durability issues when frequent adjustments are made [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Pre-bid conclusions derived from limited-size trial mixes are inherently uncertain due to test precision limits and between-batch variability [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Controlling the air-void system remains particularly difficult because numerous variables influence entrained air, making target air content one of the most challenging quality control parameters to meet consistently [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Structural constraints such as strict design age limits and extended planning horizons reduce the margin for unexpected material changes during the approval process [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Current specifications permit higher aggregate variability than research-based recommendations, increasing the risk that uncontrolled gradations will produce out-of-tolerance mixes [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Quality control functions as a supplemental monitoring tool rather than an acceptance criterion, meaning process-control results guide corrective actions but do not independently determine lot acceptance [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p>The following figure illustrates the various sources of construction variability that contribute to these quality control challenges.</p>
+<p><img alt="Sources of construction variability (Dvorak 2019)." src="assets/quality-control/ecaba1597fbbfd7510f5fb757ea331eaff15d686350cf6b8ed472af052ffbd45.jpg" />
+<em>Sources of construction variability (Dvorak 2019).</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays four separate bell-shaped curves labeled Material, Process, Sampling, and Testing. Below these individual distributions is a single, wider curve labeled Composite Variability. The figure illustrates how variability contributed by each of these four separate sources results in a composite variability for a construction product or process.</p>
+<h2 id="related-concepts">Related concepts</h2>
+<p><strong>In this hierarchy</strong></p>
+<ul>
+<li>Child: <a href="pavement-assessment.html">Pavement Assessment</a></li>
+<li>Child: <a href="mixture-management.html">Mixture Management</a></li>
+<li>Child: <a href="concrete-sampling.html">Concrete Sampling</a></li>
+<li>Child: <a href="concrete-strength-10-3.html">Concrete Strength</a></li>
+<li>Child: <a href="mixture-design-10-4.html">Mixture Design</a></li>
+</ul>
+<p><strong>Related by shared evidence</strong></p>
+<ul>
+<li><a href="aggregate-management.html">Aggregate Management</a> — shares 3 reports</li>
+<li><a href="cement-chemistry.html">Cement Chemistry</a> — shares 3 reports</li>
+<li><a href="cementitious-materials.html">Cementitious Materials</a> — shares 3 reports</li>
+<li><a href="concrete-cracking.html">Concrete Cracking</a> — shares 3 reports</li>
+<li><a href="concrete-mixture-design.html">Concrete Mixture Design</a> — shares 3 reports</li>
+<li><a href="concrete-production-8-3.html">Concrete Production</a> — shares 3 reports</li>
+<li><a href="concrete-strength-10-3.html">Concrete Strength</a> — shares 3 reports</li>
+<li><a href="concrete-testing.html">Concrete Testing</a> — shares 3 reports</li>
+</ul>
+<p><strong>Similar topics</strong></p>
+<ul>
+<li><a href="quality-assurance.html">Quality Assurance</a></li>
+<li><a href="concrete-production.html">Concrete Production</a></li>
+<li><a href="paving-operations.html">Paving Operations</a></li>
+<li><a href="mixture-management.html">Mixture Management</a></li>
+<li><a href="quality-assurance-1-2.html">Quality Assurance</a></li>
+<li><a href="quality-control-3-2.html">Quality Control</a></li>
+<li><a href="material-testing.html">Material Testing</a></li>
+<li><a href="pavement-management.html">Pavement Management</a></li>
+</ul>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1">Best Practices Manual: Quality Control and Quality Acceptance of Concrete Airport Pavement (2025)</li><li id="ref-2">Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL (2019)</li>
+</ol>
+</section></article>
+<section class="comments" aria-labelledby="comments-heading">
+<h2 id="comments-heading">Feedback on this page</h2>
+<iframe data-tally-src="https://tally.so/embed/q4qql9?url=https%3A%2F%2Fig0r.github.io%2Fcnrt-guides-wiki-stage%2Fquality-control.html&amp;hideTitle=1&amp;transparentBackground=1&amp;dynamicHeight=1" loading="lazy" width="100%" frameborder="0" title="Feedback form for this page"></iframe>
+<script async src="https://tally.so/widgets/embed.js"></script>
+</section>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slab Jacking</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-16: per-page Tally feedback embed (md->html reverse builder) */
+.comments { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+.comments h2 { color: var(--accent); border: none; margin: 0 0 .75rem; font-size: 1.1rem; }
+.comments iframe { width: 100%; border: 0; min-height: 320px; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /Users/igor/dev/llm/ak-llm-wiki/llm-wiki-tools/hierarchy_v2_guides/16-guides-concept-visual -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">75 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="aggregate-management.html">Aggregate Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="aggregate-classification.html">Aggregate Classification</a></li><li><a href="aggregate-management-3-1.html">Aggregate Management</a></li><li><a href="quality-control-3-2.html">Quality Control</a></li><li><a href="aggregate-impact.html">Aggregate Impact</a></li><li><a href="mixture-design.html">Mixture Design</a></li></ul></details></li><li><a href="cementitious-materials.html">Cementitious Materials</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="cement-chemistry.html">Cement Chemistry</a></li><li><a href="concrete-mixture-design.html">Concrete Mixture Design</a></li><li><a href="sustainable-scms.html">Sustainable SCMs</a></li><li><a href="cement-production.html">Cement Production</a></li><li><a href="concrete-durability.html">Concrete Durability</a></li></ul></details></li><li><a href="concrete-production.html">Concrete Production</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-production-15.html">Concrete Production</a></li></ul></details></li><li><a href="cracking-mitigation.html">Cracking Mitigation</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-cracking.html">Concrete Cracking</a></li><li><a href="moisture-management.html">Moisture Management</a></li><li><a href="sealant-application.html">Sealant Application</a></li><li><a href="temperature-management.html">Temperature Management</a></li></ul></details></li><li><a href="diamond-grinding.html">Diamond Grinding</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="diamond-grinding-5.html">Diamond Grinding</a></li></ul></details></li><li><a href="drainage-management.html">Drainage Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="drainage-management-7.html">Drainage Management</a></li></ul></details></li><li><a href="joint-sealing.html">Joint Sealing</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="joint-maintenance.html">Joint Maintenance</a></li><li><a href="sealant-installation.html">Sealant Installation</a></li><li><a href="pavement-maintenance.html">Pavement Maintenance</a></li><li><a href="sealant-performance.html">Sealant Performance</a></li></ul></details></li><li><a href="material-testing.html">Material Testing</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-testing.html">Concrete Testing</a></li><li><a href="concrete-durability-9-1.html">Concrete Durability</a></li><li><a href="concrete-strength.html">Concrete Strength</a></li><li><a href="concrete-standards.html">Concrete Standards</a></li><li><a href="material-testing-9-4.html">Material Testing</a></li><li><a href="maturity-methods.html">Maturity Methods</a></li></ul></details></li><li><a href="other.html">Other</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="other-17.html">Other</a></li></ul></details></li><li><a href="pavement-design.html">Pavement Design</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="overlay-technology.html">Overlay Technology</a></li><li><a href="pavement-types.html">Pavement Types</a></li><li><a href="construction-insights.html">Construction Insights</a></li><li><a href="recycling-innovation.html">Recycling Innovation</a></li></ul></details></li><li><a href="pavement-management-14.html">Pavement Management</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-smoothness.html">Pavement Smoothness</a></li><li><a href="pavement-systems.html">Pavement Systems</a></li><li><a href="subgrade-insights.html">Subgrade Insights</a></li><li><a href="excavation-safety.html">Excavation Safety</a></li><li><a href="slab-jacking.html" class="active" aria-current="page">Slab Jacking</a></li></ul></details></li><li><a href="pavement-management.html">Pavement Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-evaluation.html">Pavement Evaluation</a></li><li><a href="preservation-strategies.html">Preservation Strategies</a></li><li><a href="pavement-design-8-2.html">Pavement Design</a></li><li><a href="concrete-production-8-3.html">Concrete Production</a></li><li><a href="design-methodologies.html">Design Methodologies</a></li><li><a href="design-considerations.html">Design Considerations</a></li></ul></details></li><li><a href="pavement-repair.html">Pavement Repair</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="slab-stabilization.html">Slab Stabilization</a></li><li><a href="pavement-repairs.html">Pavement Repairs</a></li><li><a href="dowel-bar-retrofit.html">Dowel Bar Retrofit</a></li></ul></details></li><li><a href="paving-operations.html">Paving Operations</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="paving-operations-12.html">Paving Operations</a></li></ul></details></li><li><a href="quality-assurance.html">Quality Assurance</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="quality-control-1-0.html">Quality Control</a></li><li><a href="project-management.html">Project Management</a></li><li><a href="quality-assurance-1-2.html">Quality Assurance</a></li></ul></details></li><li><a href="quality-control.html">Quality Control</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-assessment.html">Pavement Assessment</a></li><li><a href="mixture-management.html">Mixture Management</a></li><li><a href="concrete-sampling.html">Concrete Sampling</a></li><li><a href="concrete-strength-10-3.html">Concrete Strength</a></li><li><a href="mixture-design-10-4.html">Mixture Design</a></li></ul></details></li><li><a href="reinforcement-techniques.html">Reinforcement Techniques</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="reinforcement-techniques-16.html">Reinforcement Techniques</a></li></ul></details></li><li><a href="surface-textures.html">Surface Textures</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="surface-textures-11.html">Surface Textures</a></li></ul></details></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">All concepts</a><span class="crumb-sep">›</span><a href="pavement-management-14.html">Pavement Management</a><span class="crumb-sep">›</span><span class="crumb-current">Slab Jacking</span></nav>
+<article><h1>Slab Jacking</h1>
+<div class="meta"><div class="part-of">Part of: <a href="pavement-management-14.html">Pavement Management</a> <span class="edge edge-taxonomic" title="Slab Jacking is a topic under Pavement Management.">is-subtopic-of</span></div><div class="edge-reading">Slab Jacking is a topic under Pavement Management.</div><div><a class="tag" href="index.html?q=slab-jacking">slab-jacking</a><a class="tag" href="index.html?q=pavement-stabilization">pavement-stabilization</a><a class="tag" href="index.html?q=monitoring-techniques">monitoring-techniques</a><a class="tag" href="index.html?q=laser-technology">laser-technology</a><a class="tag" href="index.html?q=construction-best-practices">construction-best-practices</a></div><div>Created 2026-09-01 · Updated 2026-09-02</div></div>
+<p>Slab jacking is a pavement preservation technique designed to restore the original elevation and underlying support of concrete slabs that have settled due to voids or loss of bearing capacity. The process involves drilling access holes in the slab and injecting a flowable material, such as cement grout or polyurethane foam, beneath it under pressure to fill voids and provide renewed structural support [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Operators gradually lift the slab back to its design level by adding small increments of material at each injection point, a method that minimizes differential stresses and prevents cracking during the elevation adjustment [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#key-findings">Key findings</a></li><li><a href="#slab-jacking-elevation-control">Slab Jacking Elevation Control</a></li><li><a href="#related-concepts">Related concepts</a></li><li><a href="#source-coverage">Source coverage</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (2)</summary><div class="sources-body"><a href="#ref-1">Concrete Pavement Preservation Guide (Third Edition) (2022)</a>, <a href="#ref-2">Best Practices Manual: Quality Control and Quality Acceptance of Concrete Airport Pavement (2025)</a></div></details>
+
+<h2 id="key-findings">Key findings</h2>
+<ul>
+<li>Established that limiting lift increments to no more than 0.25 inches per hole and keeping adjacent slabs within the same plane prevents cracking and maintains slab integrity [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Showed that initiating pumping at the center of a dip and expanding outward in a balanced pattern avoids premature flattening and reduces excessive strain on individual points [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Reported that plugging injection holes with tapered wood plugs retains pressure during cement grout injection, while excess material is trimmed flush and openings are patched [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+</ul>
+<h2 id="slab-jacking-elevation-control">Slab Jacking Elevation Control</h2>
+<p>Slab jacking is a pavement preservation technique that restores the original elevation of a concrete slab that has settled due to loss of underlying support [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. The process involves injecting flowable material beneath the slab under pressure, which fills voids and provides renewed bearing capacity while gradually lifting the slab back to its design level [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Operators monitor surface elevation with reference lines or laser levels, adding only small increments at each hole so that no portion of the slab exceeds a minimal difference from any other part during the lift [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. This incremental approach minimizes differential stresses that could cause cracking [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p>The figure below illustrates the effectiveness of this technique by showing a bridge approach slab&rsquo;s profile before and after the elevation restoration process.</p>
+<p><img alt="Bridge approach slab profile before and after slab jacking." src="assets/slab-jacking/8a66c9dbcd492e5debedcf29c52c422d71f1aae79102f987698431396f71c6af.jpg" />
+<em>Bridge approach slab profile before and after slab jacking.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays a pavement profile graph comparing the elevation of a bridge approach slab before (solid line) and after (dashed line) a slab jacking operation. Before the intervention, the profile shows significant settlement with a deep depression near the beginning of the bridge structure; after the process, the elevation is restored to align closely with the approach slab level.</p>
+<p><strong>Research problem</strong> — Research must determine how to control slab elevation during jacking to restore support without inducing tensile strains that cause cracking [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. The problem involves defining safe limits for lift increments and differential heights to prevent new damage while correcting settlements caused by poor foundation support [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p><strong>State of the art</strong> — Current industry practice for slab jacking elevation control integrates traditional taut string line techniques with modern laser-level monitoring to ensure precision [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. While string lines can maintain final elevations within approximately 0.25 inches, many contractors now prefer laser levels that establish profile points every five feet for faster and more accurate checks [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Regardless of the monitoring device employed, standard specifications restrict lift at any single injection hole to no more than 0.25 inches while maintaining the entire slab plane within that same tolerance throughout the operation [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p>The following figure illustrates the string line method commonly employed for this elevation control.</p>
+<p><img alt="String line method of slab jacking" src="assets/slab-jacking/9c2b1ba670317ef40eb5595d8c9535515630e2102f8adcab20a6053a72d5f3b4.jpg" />
+<em>String line method of slab jacking</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure illustrates the taut string line method used to control the pumping sequence and achieve proper grade during slab jacking. A horizontal reference line is secured by nails at both ends and spans across a depressed concrete slab profile. Wooden separator blocks are positioned along the bottom of the slab to maintain specific spacing intervals between measurement points.</p>
+<p><strong>Findings from the reports</strong></p>
+<ul>
+<li>Slab jacking restored depressed pavement to its original grade while maintaining elevation differences within a tolerance of approximately 0.25 to 0.38 inches [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Limiting each injection hole&rsquo;s lift to no more than 0.25 inch and keeping adjacent slabs within the same plane prevented cracking and maintained slab integrity [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Both traditional string-line monitoring and modern laser systems successfully achieved final profiles that fell inside acceptable tolerances [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Pumping initiated at the center of a dip and expanded outward in a balanced pattern to avoid premature flattening and excessive strain on single points [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Holes were plugged with tapered wood plugs after cement grout injection to retain pressure, followed by trimming excess material and patching the openings [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+</ul>
+<p><strong>Novelty &amp; rigor</strong> — The approach introduces laser-level monitoring to replace traditional taut-string lines, enabling precise elevation reference points before injection and real-time observation during the process [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. It codifies a strict incremental lift strategy that limits movement to a quarter inch per hole while enforcing a prescribed pumping sequence starting from the center of the dip and alternating outward to maintain planarity and prevent cracking [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p><strong>Reported values</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Context</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>elevation difference between slab parts</td>
+<td>0.25 in.</td>
+<td>between any part of the slab or an adjacent slab</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>elevation plane consistency</td>
+<td>0.25 in.</td>
+<td>entire working slab and all those adjacent to it</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>maximum lift per hole</td>
+<td>0.25 in.</td>
+<td>pumping in any one hole</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>profile tolerance</td>
+<td>0.25 to 0.38 in.</td>
+<td>slab jacking operation profiles</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Implications</strong> — Designers and contractors must specify strict limits on lift increments and mandate continuous elevation monitoring to prevent slab cracking during the repair process [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Construction practice should prioritize a center-out pumping sequence combined with high-precision laser leveling to ensure the repaired surface remains within acceptable tolerance limits [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p><strong>Limitations</strong> — The method requires strict control over lift increments, as exceeding small height tolerances per injection point can induce differential movement and cracking [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Achieving a uniform plane across the slab and adjacent areas demands continuous monitoring with precision leveling tools to prevent damage from sharp bends or rapid flattening [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. The pumping sequence must be carefully staged and adapted for each project to avoid localized strain, rather than following a fixed universal pattern [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p>The following figure illustrates the specific order of grout pumping required to effectively correct slab settlement.</p>
+<p><img alt="Plan view of a concrete slab showing the numbered sequence f" src="assets/slab-jacking/b667449ccc4ad65a932994295df886aa3c813251945562165fdde937aaa761d4.jpg" />
+<em>Plan view of a concrete slab showing the numbered sequence for grout pumping to correct settlement.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays a plan view of a pavement section with blue circles representing injection points and red triangles marking the edges. Numbers adjacent to the injection points indicate a specific pumping sequence, starting at the center and moving outward in stages.</p>
+<p><small>Evidence: 1 report (1 primary)</small></p>
+<h2 id="related-concepts">Related concepts</h2>
+<p><strong>In this hierarchy</strong></p>
+<ul>
+<li>Parent: <a href="pavement-management-14.html">Pavement Management</a></li>
+<li>Sibling: <a href="excavation-safety.html">Excavation Safety</a></li>
+<li>Sibling: <a href="pavement-smoothness.html">Pavement Smoothness</a></li>
+<li>Sibling: <a href="pavement-systems.html">Pavement Systems</a></li>
+<li>Sibling: <a href="subgrade-insights.html">Subgrade Insights</a></li>
+</ul>
+<p><strong>Related by shared evidence</strong></p>
+<ul>
+<li><a href="aggregate-management.html">Aggregate Management</a> — shares 2 reports</li>
+<li><a href="cement-chemistry.html">Cement Chemistry</a> — shares 2 reports</li>
+<li><a href="cementitious-materials.html">Cementitious Materials</a> — shares 2 reports</li>
+<li><a href="concrete-mixture-design.html">Concrete Mixture Design</a> — shares 2 reports</li>
+<li><a href="concrete-production-8-3.html">Concrete Production</a> — shares 2 reports</li>
+<li><a href="concrete-strength.html">Concrete Strength</a> — shares 2 reports</li>
+<li><a href="concrete-testing.html">Concrete Testing</a> — shares 2 reports</li>
+<li><a href="cracking-mitigation.html">Cracking Mitigation</a> — shares 2 reports</li>
+</ul>
+<p><strong>Similar topics</strong></p>
+<ul>
+<li><a href="slab-stabilization.html">Slab Stabilization</a></li>
+<li><a href="pavement-management-14.html">Pavement Management</a></li>
+<li><a href="paving-operations-12.html">Paving Operations</a></li>
+<li><a href="pavement-smoothness.html">Pavement Smoothness</a></li>
+<li><a href="pavement-repair.html">Pavement Repair</a></li>
+<li><a href="pavement-maintenance.html">Pavement Maintenance</a></li>
+<li><a href="joint-maintenance.html">Joint Maintenance</a></li>
+<li><a href="pavement-assessment.html">Pavement Assessment</a></li>
+</ul>
+<h2 id="source-coverage">Source coverage</h2>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Slab Jacking Elevation Control</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><small>⚠ 1 listed source not cited anywhere on this page: [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</small></p>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1">Concrete Pavement Preservation Guide (Third Edition) (2022)</li><li id="ref-2">Best Practices Manual: Quality Control and Quality Acceptance of Concrete Airport Pavement (2025)</li>
+</ol>
+</section></article>
+<section class="comments" aria-labelledby="comments-heading">
+<h2 id="comments-heading">Feedback on this page</h2>
+<iframe data-tally-src="https://tally.so/embed/q4qql9?url=https%3A%2F%2Fig0r.github.io%2Fcnrt-guides-wiki-stage%2Fslab-jacking.html&amp;hideTitle=1&amp;transparentBackground=1&amp;dynamicHeight=1" loading="lazy" width="100%" frameborder="0" title="Feedback form for this page"></iframe>
+<script async src="https://tally.so/widgets/embed.js"></script>
+</section>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

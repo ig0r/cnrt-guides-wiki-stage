@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concrete Sampling</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-16: per-page Tally feedback embed (md->html reverse builder) */
+.comments { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+.comments h2 { color: var(--accent); border: none; margin: 0 0 .75rem; font-size: 1.1rem; }
+.comments iframe { width: 100%; border: 0; min-height: 320px; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /Users/igor/dev/llm/ak-llm-wiki/llm-wiki-tools/hierarchy_v2_guides/16-guides-concept-visual -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">75 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="aggregate-management.html">Aggregate Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="aggregate-classification.html">Aggregate Classification</a></li><li><a href="aggregate-management-3-1.html">Aggregate Management</a></li><li><a href="quality-control-3-2.html">Quality Control</a></li><li><a href="aggregate-impact.html">Aggregate Impact</a></li><li><a href="mixture-design.html">Mixture Design</a></li></ul></details></li><li><a href="cementitious-materials.html">Cementitious Materials</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="cement-chemistry.html">Cement Chemistry</a></li><li><a href="concrete-mixture-design.html">Concrete Mixture Design</a></li><li><a href="sustainable-scms.html">Sustainable SCMs</a></li><li><a href="cement-production.html">Cement Production</a></li><li><a href="concrete-durability.html">Concrete Durability</a></li></ul></details></li><li><a href="concrete-production.html">Concrete Production</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-production-15.html">Concrete Production</a></li></ul></details></li><li><a href="cracking-mitigation.html">Cracking Mitigation</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-cracking.html">Concrete Cracking</a></li><li><a href="moisture-management.html">Moisture Management</a></li><li><a href="sealant-application.html">Sealant Application</a></li><li><a href="temperature-management.html">Temperature Management</a></li></ul></details></li><li><a href="diamond-grinding.html">Diamond Grinding</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="diamond-grinding-5.html">Diamond Grinding</a></li></ul></details></li><li><a href="drainage-management.html">Drainage Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="drainage-management-7.html">Drainage Management</a></li></ul></details></li><li><a href="joint-sealing.html">Joint Sealing</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="joint-maintenance.html">Joint Maintenance</a></li><li><a href="sealant-installation.html">Sealant Installation</a></li><li><a href="pavement-maintenance.html">Pavement Maintenance</a></li><li><a href="sealant-performance.html">Sealant Performance</a></li></ul></details></li><li><a href="material-testing.html">Material Testing</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-testing.html">Concrete Testing</a></li><li><a href="concrete-durability-9-1.html">Concrete Durability</a></li><li><a href="concrete-strength.html">Concrete Strength</a></li><li><a href="concrete-standards.html">Concrete Standards</a></li><li><a href="material-testing-9-4.html">Material Testing</a></li><li><a href="maturity-methods.html">Maturity Methods</a></li></ul></details></li><li><a href="other.html">Other</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="other-17.html">Other</a></li></ul></details></li><li><a href="pavement-design.html">Pavement Design</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="overlay-technology.html">Overlay Technology</a></li><li><a href="pavement-types.html">Pavement Types</a></li><li><a href="construction-insights.html">Construction Insights</a></li><li><a href="recycling-innovation.html">Recycling Innovation</a></li></ul></details></li><li><a href="pavement-management-14.html">Pavement Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-smoothness.html">Pavement Smoothness</a></li><li><a href="pavement-systems.html">Pavement Systems</a></li><li><a href="subgrade-insights.html">Subgrade Insights</a></li><li><a href="excavation-safety.html">Excavation Safety</a></li><li><a href="slab-jacking.html">Slab Jacking</a></li></ul></details></li><li><a href="pavement-management.html">Pavement Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-evaluation.html">Pavement Evaluation</a></li><li><a href="preservation-strategies.html">Preservation Strategies</a></li><li><a href="pavement-design-8-2.html">Pavement Design</a></li><li><a href="concrete-production-8-3.html">Concrete Production</a></li><li><a href="design-methodologies.html">Design Methodologies</a></li><li><a href="design-considerations.html">Design Considerations</a></li></ul></details></li><li><a href="pavement-repair.html">Pavement Repair</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="slab-stabilization.html">Slab Stabilization</a></li><li><a href="pavement-repairs.html">Pavement Repairs</a></li><li><a href="dowel-bar-retrofit.html">Dowel Bar Retrofit</a></li></ul></details></li><li><a href="paving-operations.html">Paving Operations</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="paving-operations-12.html">Paving Operations</a></li></ul></details></li><li><a href="quality-assurance.html">Quality Assurance</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="quality-control-1-0.html">Quality Control</a></li><li><a href="project-management.html">Project Management</a></li><li><a href="quality-assurance-1-2.html">Quality Assurance</a></li></ul></details></li><li><a href="quality-control.html">Quality Control</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-assessment.html">Pavement Assessment</a></li><li><a href="mixture-management.html">Mixture Management</a></li><li><a href="concrete-sampling.html" class="active" aria-current="page">Concrete Sampling</a></li><li><a href="concrete-strength-10-3.html">Concrete Strength</a></li><li><a href="mixture-design-10-4.html">Mixture Design</a></li></ul></details></li><li><a href="reinforcement-techniques.html">Reinforcement Techniques</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="reinforcement-techniques-16.html">Reinforcement Techniques</a></li></ul></details></li><li><a href="surface-textures.html">Surface Textures</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="surface-textures-11.html">Surface Textures</a></li></ul></details></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">All concepts</a><span class="crumb-sep">›</span><a href="quality-control.html">Quality Control</a><span class="crumb-sep">›</span><span class="crumb-current">Concrete Sampling</span></nav>
+<article><h1>Concrete Sampling</h1>
+<div class="meta"><div class="part-of">Part of: <a href="quality-control.html">Quality Control</a> <span class="edge edge-taxonomic" title="Concrete Sampling is a topic under Quality Control.">is-subtopic-of</span></div><div class="edge-reading">Concrete Sampling is a topic under Quality Control.</div><div><a class="tag" href="index.html?q=concrete-sampling">concrete-sampling</a><a class="tag" href="index.html?q=quality-assurance">quality-assurance</a><a class="tag" href="index.html?q=random-sampling">random-sampling</a><a class="tag" href="index.html?q=astm-guidelines">astm-guidelines</a><a class="tag" href="index.html?q=pavement-construction">pavement-construction</a></div><div>Created 2026-09-01 · Updated 2026-09-02</div></div>
+<p>Concrete sampling is the practice of extracting a small portion of a concrete batch or lot to infer the properties of the entire material population. Engineers apply statistical principles, primarily random selection, to ensure each unit has an equal chance of being chosen, thereby avoiding bias and providing a sound basis for acceptance decisions and quality control monitoring [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. A representative test specimen is typically created by combining portions taken from several locations within the batch into a composite sample that is then cast into specimens [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. The procedure requires performing sampling as close to the point of discharge as practicable and placing the material in clean, non-contaminating containers to preserve its original characteristics [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#key-findings">Key findings</a></li><li><a href="#concrete-sampling-and-strength-verification">Concrete Sampling And Strength Verification</a></li><li><a href="#related-concepts">Related concepts</a></li><li><a href="#source-coverage">Source coverage</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (1)</summary><div class="sources-body"><a href="#ref-1">Best Practices Manual: Quality Control and Quality Acceptance of Concrete Airport Pavement (2025)</a></div></details>
+
+<h2 id="key-findings">Key findings</h2>
+<ul>
+<li>Established that random sampling is mandatory for FAA and DOD acceptance decisions and pay-factor calculations, whereas biased samples are restricted to troubleshooting and prohibited from formal acceptance or statistical control-chart analysis [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Demonstrated that early-age concrete strength can be estimated using the maturity method or embedded sensors when no single standard governs specimens, provided the approach is documented and approved in the Construction Quality Control Plan [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Identified specific minimum field-cured flexural strength thresholds required to permit construction traffic before the default seven-day cure period: 450 psi for FAA projects and 550 psi for DOD projects [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Required that QC managers verify field-cured concrete flexural strength and confirm load-stress calculations show no fatigue risk before allowing construction traffic on early-age pavement [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+</ul>
+<h2 id="concrete-sampling-and-strength-verification">Concrete Sampling And Strength Verification</h2>
+<p>Concrete sampling involves extracting a representative portion of a concrete batch or lot to infer the properties of the entire material population [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Engineers apply statistical principles, such as random selection, to avoid bias and ensure that test data accurately reflect in-place conditions for quality control purposes [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. To create a representative specimen, portions are typically collected from multiple locations within the batch, combined into a composite sample, and preserved in clean containers to maintain original characteristics [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p>The following figure illustrates the practical application of these principles through uniformity testing.</p>
+<p><img alt="Field technicians conducting uniformity testing on a concret" src="assets/concrete-sampling/2a9b0687ac6456fe0d2f6580daf8ea31c4066d669e83265f65ec907bdeb760ff.jpg" />
+<em>Field technicians conducting uniformity testing on a concrete batch at an active construction site.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The image depicts several workers in safety vests and hard hats operating portable tables equipped with various tools, buckets, and containers in an outdoor industrial setting.</p>
+<p><strong>Research problem</strong> — The absence of accepted standards for curing field-cured specimens creates ambiguity in early-age flexural strength results, preventing quality control managers from reliably determining when construction traffic can be placed without risking pavement fatigue life [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Inadequate sampling plans and the lack of a clear lot framework fail to statistically characterize material variability in large paving projects, increasing the risk of non-conforming pavement and costly rework due to unquantified inherent variations [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Technician practices that rely on biased human criteria rather than random sampling requirements compromise the representativeness of beam specimens, undermining the reliability of flexural strength tests and exposing contractors to significant financial risk [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p><strong>State of the art</strong> — While traditional core testing remains mandatory with specific minimum strength thresholds, the industry is increasingly adopting maturity-based estimation and embedded sensors for early-age strength prediction [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p><strong>Findings from the reports</strong></p>
+<ul>
+<li>Established that random sampling is mandatory for FAA and DOD acceptance decisions and pay-factor calculations, whereas biased samples are restricted to troubleshooting and prohibited from formal acceptance or statistical control-chart analysis [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Demonstrated that early-age concrete strength can be estimated using the maturity method or embedded sensors when no single standard governs specimens, provided the approach is documented and approved in the Construction Quality Control Plan [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Identified specific minimum field-cured flexural strength thresholds required to permit construction traffic before the default seven-day cure period: 450 psi for FAA projects and 550 psi for DOD projects [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Required that QC managers verify field-cured concrete flexural strength and confirm load-stress calculations show no fatigue risk before allowing construction traffic on early-age pavement [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+</ul>
+<p><strong>Novelty &amp; rigor</strong> — The novelty lies in integrating concrete-maturity-based strength estimation with embedded sensors into traditional acceptance criteria, thereby eliminating reliance on conventional cured specimens that fail to reflect actual field curing conditions [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Reproducibility is ensured through a tightly controlled sampling routine that mandates random location selection and the composition of at least five portions into a single test sample, accompanied by exhaustive documentation of time, location, and lot identifiers to guarantee traceability [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p><strong>Reported values</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Context</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>curing time</td>
+<td>7 days</td>
+<td>FAA surrounding lanes before loading</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>early age testing time</td>
+<td>3 days or less</td>
+<td>measured strength comparison to calculated minimum required strength</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>flexural beam strength</td>
+<td>550 psi</td>
+<td>DOD field cured concrete before paving intermediate lanes</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>flexural strength</td>
+<td>450 psi</td>
+<td>FAA field-cured concrete before loading</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Implications</strong> — Practitioners must implement documented procedures for early-age strength verification that prioritize maturity-based estimates or validated sensors over raw field-cured test results, given the absence of standard protocols for such specimens [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Expedited construction schedules relying on early-strength data require rigorous structural evaluation and integration into quality control plans to ensure safety and compliance [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Quality assurance strategies should treat sampling as a front-end process-control activity using random, statistically representative samples rather than selective testing, thereby reducing variability and enhancing project profitability [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p><strong>Limitations</strong> — Field-cured specimens lack an established standard, which leaves strength values open to interpretation [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Standard cure protocols do not mimic actual pavement curing conditions, requiring early-age strength estimates to be documented and approved before influencing traffic decisions [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Extra process-control sampling is intended only for variability management and troubleshooting rather than acceptance testing, meaning biased or selective samples cannot support acceptance decisions or statistical tools like control charts [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p>The following figure illustrates how such process-control sampling is visualized through a run chart of flexural strength data.</p>
+<p><img alt="Run chart (or strip chart) for the flexural strength of a co" src="assets/concrete-sampling/65b6b5f732bf4bf3128fa3ff7522bf1c0584a7cb57c448a391914094210280d8.jpg" />
+<em>Run chart (or strip chart) for the flexural strength of a concrete mixture.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays a run chart plotting individual data points representing flexural strength measurements over a sequence of numbered samples. This visualization serves as an essential process improvement tool that enables contractors to understand the variability within a process, encompassing both its present performance and discernible trends over time. By plotting these measurements over a period, the chart provides a visual basis for monitoring quality control.</p>
+<p><small>Evidence: 1 report (1 primary)</small></p>
+<h2 id="related-concepts">Related concepts</h2>
+<p><strong>In this hierarchy</strong></p>
+<ul>
+<li>Parent: <a href="quality-control.html">Quality Control</a></li>
+<li>Sibling: <a href="concrete-strength-10-3.html">Concrete Strength</a></li>
+<li>Sibling: <a href="mixture-design-10-4.html">Mixture Design</a></li>
+<li>Sibling: <a href="mixture-management.html">Mixture Management</a></li>
+<li>Sibling: <a href="pavement-assessment.html">Pavement Assessment</a></li>
+</ul>
+<p><strong>Related by shared evidence</strong></p>
+<ul>
+<li><a href="aggregate-impact.html">Aggregate Impact</a> — shares 1 report</li>
+<li><a href="aggregate-management.html">Aggregate Management</a> — shares 1 report</li>
+<li><a href="aggregate-management-3-1.html">Aggregate Management</a> — shares 1 report</li>
+<li><a href="cement-chemistry.html">Cement Chemistry</a> — shares 1 report</li>
+<li><a href="cementitious-materials.html">Cementitious Materials</a> — shares 1 report</li>
+<li><a href="concrete-cracking.html">Concrete Cracking</a> — shares 1 report</li>
+<li><a href="concrete-mixture-design.html">Concrete Mixture Design</a> — shares 1 report</li>
+<li><a href="concrete-production-8-3.html">Concrete Production</a> — shares 1 report</li>
+</ul>
+<p><strong>Similar topics</strong></p>
+<ul>
+<li><a href="quality-control.html">Quality Control</a></li>
+<li><a href="concrete-strength-10-3.html">Concrete Strength</a></li>
+<li><a href="concrete-production-15.html">Concrete Production</a></li>
+<li><a href="quality-assurance.html">Quality Assurance</a></li>
+<li><a href="quality-assurance-1-2.html">Quality Assurance</a></li>
+<li><a href="quality-control-3-2.html">Quality Control</a></li>
+<li><a href="concrete-testing.html">Concrete Testing</a></li>
+<li><a href="aggregate-management-3-1.html">Aggregate Management</a></li>
+</ul>
+<h2 id="source-coverage">Source coverage</h2>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Concrete Sampling And Strength Verification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+<td>✓</td>
+</tr>
+</tbody>
+</table>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1">Best Practices Manual: Quality Control and Quality Acceptance of Concrete Airport Pavement (2025)</li>
+</ol>
+</section></article>
+<section class="comments" aria-labelledby="comments-heading">
+<h2 id="comments-heading">Feedback on this page</h2>
+<iframe data-tally-src="https://tally.so/embed/q4qql9?url=https%3A%2F%2Fig0r.github.io%2Fcnrt-guides-wiki-stage%2Fconcrete-sampling.html&amp;hideTitle=1&amp;transparentBackground=1&amp;dynamicHeight=1" loading="lazy" width="100%" frameborder="0" title="Feedback form for this page"></iframe>
+<script async src="https://tally.so/widgets/embed.js"></script>
+</section>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

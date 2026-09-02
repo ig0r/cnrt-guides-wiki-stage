@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concrete Durability</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-16: per-page Tally feedback embed (md->html reverse builder) */
+.comments { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+.comments h2 { color: var(--accent); border: none; margin: 0 0 .75rem; font-size: 1.1rem; }
+.comments iframe { width: 100%; border: 0; min-height: 320px; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /Users/igor/dev/llm/ak-llm-wiki/llm-wiki-tools/hierarchy_v2_guides/16-guides-concept-visual -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">75 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="aggregate-management.html">Aggregate Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="aggregate-classification.html">Aggregate Classification</a></li><li><a href="aggregate-management-3-1.html">Aggregate Management</a></li><li><a href="quality-control-3-2.html">Quality Control</a></li><li><a href="aggregate-impact.html">Aggregate Impact</a></li><li><a href="mixture-design.html">Mixture Design</a></li></ul></details></li><li><a href="cementitious-materials.html">Cementitious Materials</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="cement-chemistry.html">Cement Chemistry</a></li><li><a href="concrete-mixture-design.html">Concrete Mixture Design</a></li><li><a href="sustainable-scms.html">Sustainable SCMs</a></li><li><a href="cement-production.html">Cement Production</a></li><li><a href="concrete-durability.html">Concrete Durability</a></li></ul></details></li><li><a href="concrete-production.html">Concrete Production</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-production-15.html">Concrete Production</a></li></ul></details></li><li><a href="cracking-mitigation.html">Cracking Mitigation</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-cracking.html">Concrete Cracking</a></li><li><a href="moisture-management.html">Moisture Management</a></li><li><a href="sealant-application.html">Sealant Application</a></li><li><a href="temperature-management.html">Temperature Management</a></li></ul></details></li><li><a href="diamond-grinding.html">Diamond Grinding</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="diamond-grinding-5.html">Diamond Grinding</a></li></ul></details></li><li><a href="drainage-management.html">Drainage Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="drainage-management-7.html">Drainage Management</a></li></ul></details></li><li><a href="joint-sealing.html">Joint Sealing</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="joint-maintenance.html">Joint Maintenance</a></li><li><a href="sealant-installation.html">Sealant Installation</a></li><li><a href="pavement-maintenance.html">Pavement Maintenance</a></li><li><a href="sealant-performance.html">Sealant Performance</a></li></ul></details></li><li><a href="material-testing.html">Material Testing</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-testing.html">Concrete Testing</a></li><li><a href="concrete-durability-9-1.html" class="active" aria-current="page">Concrete Durability</a></li><li><a href="concrete-strength.html">Concrete Strength</a></li><li><a href="concrete-standards.html">Concrete Standards</a></li><li><a href="material-testing-9-4.html">Material Testing</a></li><li><a href="maturity-methods.html">Maturity Methods</a></li></ul></details></li><li><a href="other.html">Other</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="other-17.html">Other</a></li></ul></details></li><li><a href="pavement-design.html">Pavement Design</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="overlay-technology.html">Overlay Technology</a></li><li><a href="pavement-types.html">Pavement Types</a></li><li><a href="construction-insights.html">Construction Insights</a></li><li><a href="recycling-innovation.html">Recycling Innovation</a></li></ul></details></li><li><a href="pavement-management-14.html">Pavement Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-smoothness.html">Pavement Smoothness</a></li><li><a href="pavement-systems.html">Pavement Systems</a></li><li><a href="subgrade-insights.html">Subgrade Insights</a></li><li><a href="excavation-safety.html">Excavation Safety</a></li><li><a href="slab-jacking.html">Slab Jacking</a></li></ul></details></li><li><a href="pavement-management.html">Pavement Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-evaluation.html">Pavement Evaluation</a></li><li><a href="preservation-strategies.html">Preservation Strategies</a></li><li><a href="pavement-design-8-2.html">Pavement Design</a></li><li><a href="concrete-production-8-3.html">Concrete Production</a></li><li><a href="design-methodologies.html">Design Methodologies</a></li><li><a href="design-considerations.html">Design Considerations</a></li></ul></details></li><li><a href="pavement-repair.html">Pavement Repair</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="slab-stabilization.html">Slab Stabilization</a></li><li><a href="pavement-repairs.html">Pavement Repairs</a></li><li><a href="dowel-bar-retrofit.html">Dowel Bar Retrofit</a></li></ul></details></li><li><a href="paving-operations.html">Paving Operations</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="paving-operations-12.html">Paving Operations</a></li></ul></details></li><li><a href="quality-assurance.html">Quality Assurance</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="quality-control-1-0.html">Quality Control</a></li><li><a href="project-management.html">Project Management</a></li><li><a href="quality-assurance-1-2.html">Quality Assurance</a></li></ul></details></li><li><a href="quality-control.html">Quality Control</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-assessment.html">Pavement Assessment</a></li><li><a href="mixture-management.html">Mixture Management</a></li><li><a href="concrete-sampling.html">Concrete Sampling</a></li><li><a href="concrete-strength-10-3.html">Concrete Strength</a></li><li><a href="mixture-design-10-4.html">Mixture Design</a></li></ul></details></li><li><a href="reinforcement-techniques.html">Reinforcement Techniques</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="reinforcement-techniques-16.html">Reinforcement Techniques</a></li></ul></details></li><li><a href="surface-textures.html">Surface Textures</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="surface-textures-11.html">Surface Textures</a></li></ul></details></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">All concepts</a><span class="crumb-sep">›</span><a href="material-testing.html">Material Testing</a><span class="crumb-sep">›</span><span class="crumb-current">Concrete Durability</span></nav>
+<article><h1>Concrete Durability</h1>
+<div class="meta"><div class="part-of">Part of: <a href="material-testing.html">Material Testing</a> <span class="edge edge-taxonomic" title="Concrete Durability is a topic under Material Testing.">is-subtopic-of</span></div><div class="edge-reading">Concrete Durability is a topic under Material Testing.</div><div><a class="tag" href="index.html?q=concrete-properties">concrete-properties</a><a class="tag" href="index.html?q=air-content">air-content</a><a class="tag" href="index.html?q=workability">workability</a><a class="tag" href="index.html?q=permeability">permeability</a><a class="tag" href="index.html?q=durability-assessment">durability-assessment</a></div><div>Created 2026-09-01 · Updated 2026-09-02</div></div>
+<p>Concrete durability is the capacity of concrete to retain its intended performance over time despite exposure to aggressive environmental and service stresses. This longevity is fundamentally governed by the material&rsquo;s resistance to physical deterioration, such as cracking and freeze-thaw cycling, and chemical attacks that degrade the matrix and reinforcement [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. The primary mechanism for achieving this resistance involves maintaining low permeability within the pore system to limit the ingress of harmful ions, water, and gases [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. A stable internal air-void structure is also essential, as entrained microscopic bubbles relieve hydraulic pressure during freezing events, thereby reducing cracking and scaling [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#key-findings">Key findings</a></li><li><a href="#fundamental-durability-mechanisms-assessment">Fundamental Durability Mechanisms &amp;amp; Assessment</a></li><li><a href="#related-concepts">Related concepts</a></li><li><a href="#source-coverage">Source coverage</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (2)</summary><div class="sources-body"><a href="#ref-1">Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL (2019)</a>, <a href="#ref-2">Concrete Pavement Preservation Guide (Third Edition) (2022)</a></div></details>
+
+<h2 id="key-findings">Key findings</h2>
+<ul>
+<li>Identified the air-void spacing factor as the decisive metric for freeze-thaw durability, requiring it to remain below 0.008 inches [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Demonstrated that a Super-Air Meter (SAM) number of ≤0.20 lb/in² reliably indicates compliance with the required spacing factor limit [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+</ul>
+<h2 id="fundamental-durability-mechanisms-assessment">Fundamental Durability Mechanisms &amp; Assessment</h2>
+<p>Concrete durability is the capacity of the material to retain its intended performance over time despite exposure to aggressive environmental conditions and service stresses [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. The longevity of concrete is primarily governed by transport properties within the pore system, where low permeability restricts the ingress of harmful ions, water, and gases that drive chemical attack [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Physical deterioration mechanisms such as freeze-thaw damage are mitigated by pore connectivity characteristics and a stable internal air-void structure that relieves hydraulic pressure during freezing cycles [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p>The following figure illustrates how cement hydration processes directly influence these hardened concrete properties.</p>
+<p><img alt="Implications of Cement Hydration for Hardened Concrete Prope" src="assets/concrete-durability-9-1/65a04f4725023d028e5207e1bb9406d6781990d3fae2f39f397469f5d24cc358.jpg" />
+<em>Implications of Cement Hydration for Hardened Concrete Properties</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure illustrates the five stages of cement hydration—Mixing, Dormancy, Hardening, Cooling, and Densification—mapped against a heat evolution curve over time. It highlights that the air-void system develops during mixing but requires stability to prevent bubble breakage during handling, which is essential for concrete durability. The diagram indicates that while the air-void structure forms early, its stability depends on chemical admixtures and handling practices to ensure long-term resistance to physical deterioration.</p>
+<p><strong>Research problem</strong> — Current laboratory test methods for evaluating the concrete air-void system lack field validation and reliable correlation with actual in-service performance, creating uncertainty regarding freeze-thaw resistance and chloride ingress [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Existing assessment protocols fail to adequately characterize the specific microstructural features of the air-void system necessary for durability, while also lacking robust means to quantify transport properties that drive degradation mechanisms like reinforcement corrosion [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. There is a need for effective non-destructive techniques to detect internal voids and cracks that compromise structural integrity, enabling timely repair interventions before damage propagation leads to premature failure [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p>The following figure illustrates corner cracking in jointed concrete pavement, a common manifestation of durability issues discussed above.</p>
+<p><img alt="Corner cracking in jointed concrete pavement" src="assets/concrete-durability-9-1/73aed2994adf9b85d882a93e5b96b88aa047adbbeaddeb82cd6dbc9ee590d50c.jpg" />
+<em>Corner cracking in jointed concrete pavement</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The image displays a close-up view of a concrete surface featuring distinct cracks originating from the corner where two joints intersect. This visual evidence illustrates structural distress caused by load-related cracking, which compromises the material&rsquo;s capacity to retain its intended performance over time despite exposure to service stresses. Such deterioration represents a failure in durability, as the physical damage allows for potential ingress of harmful agents that degrade the matrix and reinforcement.</p>
+<p><strong>State of the art</strong> — Current durability assessment relies on electrical methods, including the established rapid chloride penetrability test and more recently adopted resistivity tests that offer greater efficiency [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Researchers normalize electrical results using the formation factor to account for specimen geometry and saturation effects on pore volume, connectivity, and conductivity [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Freeze-thaw resistance is evaluated through air-void system analysis, with the Super Air Meter increasingly used as a rapid proxy for spacing factor that correlates well with traditional durability criteria [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Non-destructive ultrasonic pulse velocity testing serves as a widely accepted diagnostic tool to infer internal voids or cracks and guide repair decisions in pavement evaluation [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p>The figure below illustrates the Wenner resistivity test used to measure these electrical properties.</p>
+<p><img alt="Wenner resistivity test" src="assets/concrete-durability-9-1/763ac63cfe0d3f48bcf4528c1556664055acd65897ec4dfc5d21375a0c37d426.jpg" />
+<em>Wenner resistivity test</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The image displays a handheld digital meter with four probes pressed against the top surface of a cylindrical concrete specimen resting on a support block. This apparatus is used for resistivity tests, which are electrical methods adopted to assess durability more efficiently than rapid chloride penetrability tests. These electrical measurements characterize the pore structure of concrete because they are dependent on pore geometry, connectivity, and conductivity.</p>
+<p><strong>Findings from the reports</strong></p>
+<ul>
+<li>The Super Air Meter (SAM) number demonstrated a stronger correlation with freeze-thaw durability than the traditional air-void spacing factor measured by ASTM C457 [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Round-robin testing revealed that the repeatability of the SAM test was comparable to that of ASTM C457 and ASTM C666 [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>A SAM number of 0.2 or less reliably indicated that the air-void spacing factor met the required limit for acceptable freeze-thaw performance [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>The manual recommended a minimum SAM number of 0.2 combined with at least 4% entrained air to ensure adequate frost resistance [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+</ul>
+<p><strong>Novelty &amp; rigor</strong> — The research introduces a field-friendly assessment protocol that utilizes sequential pressures in the Super Air Meter to generate a SAM number, which serves as a rapid indicator of air-void quality and freeze-thaw resistance distinct from traditional single-pressure methods [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. This approach is uniquely integrated with advanced electrical-property normalization via the formation factor, allowing for the characterization of pore-volume connectivity independent of geometric or saturation variables [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p>The following figure illustrates the Super Air Meter used to generate these measurements.</p>
+<p><img alt="A Super Air Meter device being used to assess the air-void s" src="assets/concrete-durability-9-1/bc24d99f8500edd85a1f9dd28b846d5f8893df67608b9e7da2d15b5b388edf56.jpg" />
+<em>A Super Air Meter device being used to assess the air-void structure of concrete.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The image displays a Super Air Meter, an apparatus consisting of a metal bowl and cover clamped together with a pressure gauge mounted on top.</p>
+<p><strong>Reported values</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Context</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>air content</td>
+<td>3 percent%</td>
+<td>freeze–thaw durability in ASTM C666 (Ley et al. 2017)</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>air content</td>
+<td>at least 4 percent%</td>
+<td>concrete (AASHTO PP 84)</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>air content</td>
+<td>greater than 5.0 percent%</td>
+<td>samples taken behind the paver for freeze/thaw protection</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>durability factor</td>
+<td>70 percent%</td>
+<td>common failure criteria (T 161 DF)</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>SAM number</td>
+<td>0.2</td>
+<td>minimum for acceptable frost resistance (AASHTO PP 84)</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>SAM number</td>
+<td>0.20 lb/in2 lb/in²</td>
+<td>correlation to spacing factor</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>spacing factor</td>
+<td>0.008 in.</td>
+<td>correlation to SAM number 0.20 lb/in2 or less</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>spacing factor</td>
+<td>less than 0.008 in.</td>
+<td>general requirement for freeze-thaw resistance control</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Implications</strong> — Designers and specifiers should prioritize the air-void spacing factor over total air content when defining freeze-thaw durability requirements, as the former is the primary determinant of long-term performance [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Construction quality control protocols must integrate regular SAM testing alongside on-site air content verification to ensure the microstructure remains within acceptable limits throughout placement [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p>The following figure illustrates how nominal maximum aggregate size influences these durability parameters.</p>
+<p><img alt="Target total air content requirements for concretes using di" src="assets/concrete-durability-9-1/2c1807d4ff6ab15e977dc3b7b9373a22da0dc52abe27a5c79e3bdf53b48df75e.jpg" />
+<em>Target total air content requirements for concretes using different sizes of aggregate.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure plots the target air content percentage against nominal maximum aggregate size, showing that required air content decreases as aggregate size increases. Four distinct curves represent different exposure conditions: severe exposure (deicers), moderate exposure, mild exposure, and non-air-entrained concrete. Concrete that will be exposed to cycles of freezing and thawing should be adequately air entrained, with the amount required being a function of the severity of exposure and the maximum size of aggregate used.</p>
+<p><strong>Limitations</strong> — Standard air-content tests fail to guarantee frost resistance because they do not account for bubble size and spacing, which are critical for durability [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Post-placement vibration reduces measured air content without necessarily compromising freeze-thaw protection, limiting the predictive value of such measurements for long-term performance [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Conclusions based on air-void spacing factors are sensitive to variables like cement chemistry and mixing time, requiring caution when interpreting threshold-based assessments [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p><small>Evidence: 2 reports (1 primary)</small></p>
+<h2 id="related-concepts">Related concepts</h2>
+<p><strong>In this hierarchy</strong></p>
+<ul>
+<li>Parent: <a href="material-testing.html">Material Testing</a></li>
+<li>Sibling: <a href="concrete-standards.html">Concrete Standards</a></li>
+<li>Sibling: <a href="concrete-strength.html">Concrete Strength</a></li>
+<li>Sibling: <a href="concrete-testing.html">Concrete Testing</a></li>
+<li>Sibling: <a href="material-testing-9-4.html">Material Testing</a></li>
+<li>Sibling: <a href="maturity-methods.html">Maturity Methods</a></li>
+</ul>
+<p><strong>Related by shared evidence</strong></p>
+<ul>
+<li><a href="aggregate-management.html">Aggregate Management</a> — shares 2 reports</li>
+<li><a href="cement-chemistry.html">Cement Chemistry</a> — shares 2 reports</li>
+<li><a href="cementitious-materials.html">Cementitious Materials</a> — shares 2 reports</li>
+<li><a href="concrete-mixture-design.html">Concrete Mixture Design</a> — shares 2 reports</li>
+<li><a href="concrete-production.html">Concrete Production</a> — shares 2 reports</li>
+<li><a href="concrete-production-15.html">Concrete Production</a> — shares 2 reports</li>
+<li><a href="concrete-production-8-3.html">Concrete Production</a> — shares 2 reports</li>
+<li><a href="concrete-strength.html">Concrete Strength</a> — shares 2 reports</li>
+</ul>
+<p><strong>Similar topics</strong></p>
+<ul>
+<li><a href="concrete-testing.html">Concrete Testing</a></li>
+<li><a href="concrete-standards.html">Concrete Standards</a></li>
+<li><a href="moisture-management.html">Moisture Management</a></li>
+<li><a href="maturity-methods.html">Maturity Methods</a></li>
+<li><a href="design-considerations.html">Design Considerations</a></li>
+<li><a href="concrete-strength-10-3.html">Concrete Strength</a></li>
+<li><a href="concrete-strength.html">Concrete Strength</a></li>
+<li><a href="concrete-mixture-design.html">Concrete Mixture Design</a></li>
+</ul>
+<h2 id="source-coverage">Source coverage</h2>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Fundamental Durability Mechanisms &amp; Assessment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+<td>✓</td>
+</tr>
+</tbody>
+</table>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1">Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL (2019)</li><li id="ref-2">Concrete Pavement Preservation Guide (Third Edition) (2022)</li>
+</ol>
+</section></article>
+<section class="comments" aria-labelledby="comments-heading">
+<h2 id="comments-heading">Feedback on this page</h2>
+<iframe data-tally-src="https://tally.so/embed/q4qql9?url=https%3A%2F%2Fig0r.github.io%2Fcnrt-guides-wiki-stage%2Fconcrete-durability-9-1.html&amp;hideTitle=1&amp;transparentBackground=1&amp;dynamicHeight=1" loading="lazy" width="100%" frameborder="0" title="Feedback form for this page"></iframe>
+<script async src="https://tally.so/widgets/embed.js"></script>
+</section>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

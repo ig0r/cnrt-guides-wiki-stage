@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quality Assurance</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-16: per-page Tally feedback embed (md->html reverse builder) */
+.comments { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+.comments h2 { color: var(--accent); border: none; margin: 0 0 .75rem; font-size: 1.1rem; }
+.comments iframe { width: 100%; border: 0; min-height: 320px; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /Users/igor/dev/llm/ak-llm-wiki/llm-wiki-tools/hierarchy_v2_guides/16-guides-concept-visual -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">75 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="aggregate-management.html">Aggregate Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="aggregate-classification.html">Aggregate Classification</a></li><li><a href="aggregate-management-3-1.html">Aggregate Management</a></li><li><a href="quality-control-3-2.html">Quality Control</a></li><li><a href="aggregate-impact.html">Aggregate Impact</a></li><li><a href="mixture-design.html">Mixture Design</a></li></ul></details></li><li><a href="cementitious-materials.html">Cementitious Materials</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="cement-chemistry.html">Cement Chemistry</a></li><li><a href="concrete-mixture-design.html">Concrete Mixture Design</a></li><li><a href="sustainable-scms.html">Sustainable SCMs</a></li><li><a href="cement-production.html">Cement Production</a></li><li><a href="concrete-durability.html">Concrete Durability</a></li></ul></details></li><li><a href="concrete-production.html">Concrete Production</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-production-15.html">Concrete Production</a></li></ul></details></li><li><a href="cracking-mitigation.html">Cracking Mitigation</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-cracking.html">Concrete Cracking</a></li><li><a href="moisture-management.html">Moisture Management</a></li><li><a href="sealant-application.html">Sealant Application</a></li><li><a href="temperature-management.html">Temperature Management</a></li></ul></details></li><li><a href="diamond-grinding.html">Diamond Grinding</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="diamond-grinding-5.html">Diamond Grinding</a></li></ul></details></li><li><a href="drainage-management.html">Drainage Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="drainage-management-7.html">Drainage Management</a></li></ul></details></li><li><a href="joint-sealing.html">Joint Sealing</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="joint-maintenance.html">Joint Maintenance</a></li><li><a href="sealant-installation.html">Sealant Installation</a></li><li><a href="pavement-maintenance.html">Pavement Maintenance</a></li><li><a href="sealant-performance.html">Sealant Performance</a></li></ul></details></li><li><a href="material-testing.html">Material Testing</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-testing.html">Concrete Testing</a></li><li><a href="concrete-durability-9-1.html">Concrete Durability</a></li><li><a href="concrete-strength.html">Concrete Strength</a></li><li><a href="concrete-standards.html">Concrete Standards</a></li><li><a href="material-testing-9-4.html">Material Testing</a></li><li><a href="maturity-methods.html">Maturity Methods</a></li></ul></details></li><li><a href="other.html">Other</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="other-17.html">Other</a></li></ul></details></li><li><a href="pavement-design.html">Pavement Design</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="overlay-technology.html">Overlay Technology</a></li><li><a href="pavement-types.html">Pavement Types</a></li><li><a href="construction-insights.html">Construction Insights</a></li><li><a href="recycling-innovation.html">Recycling Innovation</a></li></ul></details></li><li><a href="pavement-management-14.html">Pavement Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-smoothness.html">Pavement Smoothness</a></li><li><a href="pavement-systems.html">Pavement Systems</a></li><li><a href="subgrade-insights.html">Subgrade Insights</a></li><li><a href="excavation-safety.html">Excavation Safety</a></li><li><a href="slab-jacking.html">Slab Jacking</a></li></ul></details></li><li><a href="pavement-management.html">Pavement Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-evaluation.html">Pavement Evaluation</a></li><li><a href="preservation-strategies.html">Preservation Strategies</a></li><li><a href="pavement-design-8-2.html">Pavement Design</a></li><li><a href="concrete-production-8-3.html">Concrete Production</a></li><li><a href="design-methodologies.html">Design Methodologies</a></li><li><a href="design-considerations.html">Design Considerations</a></li></ul></details></li><li><a href="pavement-repair.html">Pavement Repair</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="slab-stabilization.html">Slab Stabilization</a></li><li><a href="pavement-repairs.html">Pavement Repairs</a></li><li><a href="dowel-bar-retrofit.html">Dowel Bar Retrofit</a></li></ul></details></li><li><a href="paving-operations.html">Paving Operations</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="paving-operations-12.html">Paving Operations</a></li></ul></details></li><li><a href="quality-assurance.html" class="active" aria-current="page">Quality Assurance</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="quality-control-1-0.html">Quality Control</a></li><li><a href="project-management.html">Project Management</a></li><li><a href="quality-assurance-1-2.html">Quality Assurance</a></li></ul></details></li><li><a href="quality-control.html">Quality Control</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-assessment.html">Pavement Assessment</a></li><li><a href="mixture-management.html">Mixture Management</a></li><li><a href="concrete-sampling.html">Concrete Sampling</a></li><li><a href="concrete-strength-10-3.html">Concrete Strength</a></li><li><a href="mixture-design-10-4.html">Mixture Design</a></li></ul></details></li><li><a href="reinforcement-techniques.html">Reinforcement Techniques</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="reinforcement-techniques-16.html">Reinforcement Techniques</a></li></ul></details></li><li><a href="surface-textures.html">Surface Textures</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="surface-textures-11.html">Surface Textures</a></li></ul></details></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Quality Assurance</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=quality">quality</a><a class="tag" href="index.html?q=assurance">assurance</a></div><div>Created 2026-09-01 · Updated 2026-09-02</div></div>
+<p>Quality assurance is an organized, systematic framework of planned activities designed to provide confidence that products or services will meet defined performance specifications throughout their entire life cycle. It functions as a comprehensive umbrella under which all involved parties share responsibility for meeting quality objectives by coordinating planning, assigning roles, and maintaining records to support decision-making [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. The framework relies on pre-construction reviews of critical documentation and design criteria to establish a common understanding of standards among designers, contractors, and inspectors, thereby minimizing field misunderstandings [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Core mechanisms include continuous monitoring and documentation of processes using sampling, testing, and statistical tools like control charts to detect deviations that trigger investigation and corrective action [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. It distinguishes itself from final inspection by focusing on internal process verification across the entire production chain rather than solely on acceptance testing of measurable attributes [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p>Quality assurance defines the systematic framework of planned activities that provide confidence in meeting performance specifications throughout a concrete pavement’s life cycle. Quality control operationalizes this assurance by executing the specific planning, testing, monitoring, and inspection routines that verify airport construction conforms to predetermined standards. Project management supports these efforts by structuring the processes needed to balance scope, schedule, cost, and quality constraints during execution. <a href="quality-control-1-0.html">Quality Control</a> operationalizes Quality Assurance by executing the systematic planning, testing, monitoring, and inspection activities that verify airport concrete pavement construction conforms to predetermined specifications and performance standards. <a href="project-management.html">Project Management</a> ensures quality assurance in airport concrete pavement construction by structuring the planning, execution, and monitoring processes necessary to balance scope, schedule, cost, and quality constraints. <a href="quality-assurance-1-2.html">Quality Assurance</a> establishes the systematic framework of planned activities that provides confidence in meeting performance specifications throughout the concrete pavement&rsquo;s life cycle.</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#key-findings">Key findings</a></li><li><a href="#integrated-qa-frameworks-cross-cutting-practices">Integrated QA Frameworks &amp;amp; Cross-Cutting Practices</a></li><li><a href="#statistical-process-control-documentation-standards">Statistical Process Control &amp;amp; Documentation Standards</a></li><li><a href="#related-concepts">Related concepts</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (2)</summary><div class="sources-body"><a href="#ref-1">Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL (2019)</a>, <a href="#ref-2">Concrete Pavement Preservation Guide (Third Edition) (2022)</a></div></details>
+<details class="subconcepts-toggle"><summary>Sub-concepts (3)</summary><div class="subconcepts-body"><a href="quality-control-1-0.html">Quality Control</a> · <a href="project-management.html">Project Management</a> · <a href="quality-assurance-1-2.html">Quality Assurance</a></div></details>
+<h2 id="key-findings">Key findings</h2>
+<ul>
+<li>Demonstrated that reliable Quality Assurance requires a disciplined three-stage sequence of laboratory prequalification, field verification, and ongoing production monitoring to verify mix properties throughout construction [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Found that mandatory pre-construction reviews of all critical project documents by coordinated agency and contractor teams effectively curb field misunderstandings and reduce rework [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Observed that acceptance testing often omits difficult-to-measure factors such as air-void structure and permeability, creating a gap between standard metrics and long-term performance durability [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Showed that systematic record-keeping, including statistical control charts with sigma-based rules, is essential for detecting out-of-control conditions and applying corrective actions to maintain process stability [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Reported that preconstruction meetings are critical for establishing working criteria, goals, and response systems, ensuring contractors supply comprehensive QA plans before work begins [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Measured the impact of contractor diligence during execution, revealing that careful workmanship aligned with detailed checklists markedly lowers premature failures in critical applications like sealant installation [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Identified that acceptance criteria relying on statistical variability can unfairly penalize contractors unless they control all sources of variation, suggesting reduced variability through consistent personnel helps meet specifications [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Established that inspecting every piece of equipment before construction begins ensures tools meet performance and safety requirements, lowering the risk of on-site failures during execution [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+</ul>
+<h2 id="integrated-qa-frameworks-cross-cutting-practices">Integrated QA Frameworks &amp; Cross-Cutting Practices</h2>
+<p><small>Evidence: 2 reports (1 primary)</small></p>
+<p>Integrated QA frameworks establish a unified structure where all stakeholders share responsibility for quality objectives, coordinating planning, personnel certification, and comprehensive documentation to support decision-making throughout the project lifecycle [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Cross-cutting practices rely on collective reviews of critical documentation and design criteria before work begins to ensure a common understanding of standards, thereby minimizing field misunderstandings and reducing non-conformance risks [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. These frameworks distinguish themselves from final inspection by embedding continuous process monitoring and statistical control mechanisms that trigger corrective actions when deviations occur during production or construction phases [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p><strong>Research problem</strong> — Quality assurance activities are frequently fragmented across the project lifecycle due to misaligned responsibilities and weak inter-organizational communication, which prevents a cohesive approach from design through construction [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>] [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. The absence of systematic joint reviews for documentation and specifications creates field-level misunderstandings that lead to non-conforming work and costly rework [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Current acceptance criteria often penalize contractors for testing variability rather than actual performance, while inadequate data interpretation capabilities delay corrective actions and erode stakeholder trust in long-term durability [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p><strong>State of the art</strong> — The current state of quality assurance is defined by integrated frameworks that extend beyond isolated testing to encompass planned actions, independent verification, and dispute resolution mechanisms under a shared-responsibility model [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Modern practice relies on certified laboratories and personnel while utilizing statistical acceptance criteria like percent-within-limits specifications to tie compliance to test result distributions [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Continuous monitoring is achieved through control charts that apply mean lines, sigma bands, and out-of-control rules to detect drift and trigger corrective actions in real time [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p>The following figure illustrates a sample control chart for concrete unit weight.</p>
+<p><img alt="Sample control chart: concrete unit weight" src="assets/quality-assurance/93a2e121dc67f924d43902f76a0833541a2cecb45e94fbda3ed886321434c03c.jpg" />
+<em>Sample control chart: concrete unit weight</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays a statistical process control chart tracking the variation of concrete unit weight across sequential sample IDs. It features horizontal reference lines for upper and lower control limits at three standard deviations, as well as intermediate bands at one and two standard deviations from the mean.</p>
+<p><strong>Findings from the reports</strong></p>
+<ul>
+<li>Identified mandatory pre-construction reviews of critical project documents as a foundational QA practice to build confidence that repaired structures will meet performance requirements throughout their service life [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Demonstrated that coordinated collective examinations of documentation, scope, and material selections between agency and contractor teams curb field misunderstandings among designers, builders, and inspectors [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Observed that joint reviews of intended procedures and specifications reduce rework and compliance issues by aligning expectations across all project stakeholders before construction begins [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Established that inspecting every piece of equipment slated for use prior to construction ensures tools meet performance and safety requirements, thereby lowering the risk of on-site failures [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Found that contractor diligence during execution, particularly in sealant application, remains a decisive factor in preventing premature joint or crack-sealing failures [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Showed that careful workmanship aligned with detailed quality-control checklists markedly lowers the incidence of premature failures in critical repair elements [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+</ul>
+<p><strong>Novelty &amp; rigor</strong> — The approach distinguishes itself by assembling traditional quality assurance components into a single, life-cycle confidence system rather than presenting isolated techniques [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. It introduces statistical acceptance procedures that shift the focus from deterministic pass-fail checks to managing overall variability and protecting contractors from uncontrollable variations [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. The method embeds quality assurance throughout the project lifecycle through mandatory joint preliminary reviews and continuous monitoring, linking planning, execution, and monitoring in ways that go beyond conventional post-construction inspections [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p><strong>Implications</strong> — Organizations must treat quality assurance as an overarching governance layer activated during early project stages, embedding disciplined pre-construction reviews to create traceability among design intent, safety plans, and material specifications [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Practitioners should accept the trade-off of increased upfront coordination time for reduced risk of costly rework by integrating mandatory equipment inspections and rigorous oversight of on-site contractor practices as cross-cutting control points [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p><strong>Limitations</strong> — The effectiveness of integrated quality assurance frameworks is highly dependent on the conscientiousness and diligence of contractors rather than relying solely on built-in procedural safeguards [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Quality assurance processes do not function as self-executing guarantees, meaning their success in minimizing failures remains variable and contingent upon human execution during construction activities [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<h2 id="statistical-process-control-documentation-standards">Statistical Process Control &amp; Documentation Standards</h2>
+<p><small>Evidence: 1 report (1 primary)</small></p>
+<p><strong>Findings from the reports</strong></p>
+<ul>
+<li>Demonstrated that robust Quality Assurance programs require systematic record-keeping combined with statistical control charts to monitor variables, enabling practitioners to identify abnormal variability and trigger corrective analysis through defined out-of-control rules [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Revealed that reliable Quality Assurance in concrete paving depends on a disciplined three-stage sequence of laboratory prequalification, field verification, and ongoing production monitoring using the same equipment to verify mix properties before placement and throughout construction [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Showed that acceptance testing often emphasizes easily measured attributes while omitting difficult-to-measure factors such as steel joint placement, air-void structure, permeability, and curing, necessitating independent verification when contractors perform the tests [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Found that acceptance criteria relying on statistical variability should not penalize contractors unless they control all sources of variation, suggesting that reducing variability (e.g., using a single technician) helps meet percent-within-limits specifications without unfair penalties [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Established that preconstruction meetings among all parties are essential to establish working criteria, goals, and response systems for problems, requiring contractors to supply comprehensive Quality Assurance plans covering mix design and field checks [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+</ul>
+<p><strong>Novelty &amp; rigor</strong> — The novelty lies in integrating rigorous statistical control charts with standardized documentation protocols to ensure that process adjustments are both traceable and reproducible across different operational contexts [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Reproducibility is achieved by mandating consistent data labeling, timestamping, and the use of specific acceptance criteria that allow independent verification of contractor performance against established quality benchmarks [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p><strong>Implications</strong> — Quality assurance programs must be structured as staged, collaborative efforts that integrate laboratory prequalification with on-site verification and ongoing statistical monitoring to ensure suitability for specific performance criteria [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. When contractors perform acceptance testing, independent verification is essential to preserve confidence in statistical methods and prevent variability from unfairly impacting payment outcomes [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Systematic record-keeping and the routine use of control charts with predefined limits serve as core proactive tools for enabling data-driven decision-making, early detection of process variability, and timely corrective actions [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p><strong>Limitations</strong> — The reliance on statistical acceptance frameworks assumes normal data distribution, which may not reflect actual field conditions [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Compensation mechanisms can be unfairly influenced by testing variability that is beyond the contractor&rsquo;s control [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Large-scale projects often generate overwhelming amounts of test data, hindering timely analysis and reliable process-control decisions [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<h2 id="related-concepts">Related concepts</h2>
+<p><strong>In this hierarchy</strong></p>
+<ul>
+<li>Child: <a href="quality-control-1-0.html">Quality Control</a></li>
+<li>Child: <a href="project-management.html">Project Management</a></li>
+<li>Child: <a href="quality-assurance-1-2.html">Quality Assurance</a></li>
+</ul>
+<p><strong>Related by shared evidence</strong></p>
+<ul>
+<li><a href="aggregate-management.html">Aggregate Management</a> — shares 3 reports</li>
+<li><a href="cement-chemistry.html">Cement Chemistry</a> — shares 3 reports</li>
+<li><a href="cementitious-materials.html">Cementitious Materials</a> — shares 3 reports</li>
+<li><a href="concrete-mixture-design.html">Concrete Mixture Design</a> — shares 3 reports</li>
+<li><a href="concrete-production-8-3.html">Concrete Production</a> — shares 3 reports</li>
+<li><a href="concrete-strength.html">Concrete Strength</a> — shares 3 reports</li>
+<li><a href="concrete-testing.html">Concrete Testing</a> — shares 3 reports</li>
+<li><a href="cracking-mitigation.html">Cracking Mitigation</a> — shares 3 reports</li>
+</ul>
+<p><strong>Similar topics</strong></p>
+<ul>
+<li><a href="quality-control.html">Quality Control</a></li>
+<li><a href="quality-assurance-1-2.html">Quality Assurance</a></li>
+<li><a href="concrete-production.html">Concrete Production</a></li>
+<li><a href="paving-operations.html">Paving Operations</a></li>
+<li><a href="quality-control-3-2.html">Quality Control</a></li>
+<li><a href="mixture-management.html">Mixture Management</a></li>
+<li><a href="quality-control-1-0.html">Quality Control</a></li>
+<li><a href="material-testing.html">Material Testing</a></li>
+</ul>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1">Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL (2019)</li><li id="ref-2">Concrete Pavement Preservation Guide (Third Edition) (2022)</li>
+</ol>
+</section></article>
+<section class="comments" aria-labelledby="comments-heading">
+<h2 id="comments-heading">Feedback on this page</h2>
+<iframe data-tally-src="https://tally.so/embed/q4qql9?url=https%3A%2F%2Fig0r.github.io%2Fcnrt-guides-wiki-stage%2Fquality-assurance.html&amp;hideTitle=1&amp;transparentBackground=1&amp;dynamicHeight=1" loading="lazy" width="100%" frameborder="0" title="Feedback form for this page"></iframe>
+<script async src="https://tally.so/widgets/embed.js"></script>
+</section>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concrete Standards</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-16: per-page Tally feedback embed (md->html reverse builder) */
+.comments { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+.comments h2 { color: var(--accent); border: none; margin: 0 0 .75rem; font-size: 1.1rem; }
+.comments iframe { width: 100%; border: 0; min-height: 320px; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /Users/igor/dev/llm/ak-llm-wiki/llm-wiki-tools/hierarchy_v2_guides/16-guides-concept-visual -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">75 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="aggregate-management.html">Aggregate Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="aggregate-classification.html">Aggregate Classification</a></li><li><a href="aggregate-management-3-1.html">Aggregate Management</a></li><li><a href="quality-control-3-2.html">Quality Control</a></li><li><a href="aggregate-impact.html">Aggregate Impact</a></li><li><a href="mixture-design.html">Mixture Design</a></li></ul></details></li><li><a href="cementitious-materials.html">Cementitious Materials</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="cement-chemistry.html">Cement Chemistry</a></li><li><a href="concrete-mixture-design.html">Concrete Mixture Design</a></li><li><a href="sustainable-scms.html">Sustainable SCMs</a></li><li><a href="cement-production.html">Cement Production</a></li><li><a href="concrete-durability.html">Concrete Durability</a></li></ul></details></li><li><a href="concrete-production.html">Concrete Production</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-production-15.html">Concrete Production</a></li></ul></details></li><li><a href="cracking-mitigation.html">Cracking Mitigation</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-cracking.html">Concrete Cracking</a></li><li><a href="moisture-management.html">Moisture Management</a></li><li><a href="sealant-application.html">Sealant Application</a></li><li><a href="temperature-management.html">Temperature Management</a></li></ul></details></li><li><a href="diamond-grinding.html">Diamond Grinding</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="diamond-grinding-5.html">Diamond Grinding</a></li></ul></details></li><li><a href="drainage-management.html">Drainage Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="drainage-management-7.html">Drainage Management</a></li></ul></details></li><li><a href="joint-sealing.html">Joint Sealing</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="joint-maintenance.html">Joint Maintenance</a></li><li><a href="sealant-installation.html">Sealant Installation</a></li><li><a href="pavement-maintenance.html">Pavement Maintenance</a></li><li><a href="sealant-performance.html">Sealant Performance</a></li></ul></details></li><li><a href="material-testing.html">Material Testing</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-testing.html">Concrete Testing</a></li><li><a href="concrete-durability-9-1.html">Concrete Durability</a></li><li><a href="concrete-strength.html">Concrete Strength</a></li><li><a href="concrete-standards.html" class="active" aria-current="page">Concrete Standards</a></li><li><a href="material-testing-9-4.html">Material Testing</a></li><li><a href="maturity-methods.html">Maturity Methods</a></li></ul></details></li><li><a href="other.html">Other</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="other-17.html">Other</a></li></ul></details></li><li><a href="pavement-design.html">Pavement Design</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="overlay-technology.html">Overlay Technology</a></li><li><a href="pavement-types.html">Pavement Types</a></li><li><a href="construction-insights.html">Construction Insights</a></li><li><a href="recycling-innovation.html">Recycling Innovation</a></li></ul></details></li><li><a href="pavement-management-14.html">Pavement Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-smoothness.html">Pavement Smoothness</a></li><li><a href="pavement-systems.html">Pavement Systems</a></li><li><a href="subgrade-insights.html">Subgrade Insights</a></li><li><a href="excavation-safety.html">Excavation Safety</a></li><li><a href="slab-jacking.html">Slab Jacking</a></li></ul></details></li><li><a href="pavement-management.html">Pavement Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-evaluation.html">Pavement Evaluation</a></li><li><a href="preservation-strategies.html">Preservation Strategies</a></li><li><a href="pavement-design-8-2.html">Pavement Design</a></li><li><a href="concrete-production-8-3.html">Concrete Production</a></li><li><a href="design-methodologies.html">Design Methodologies</a></li><li><a href="design-considerations.html">Design Considerations</a></li></ul></details></li><li><a href="pavement-repair.html">Pavement Repair</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="slab-stabilization.html">Slab Stabilization</a></li><li><a href="pavement-repairs.html">Pavement Repairs</a></li><li><a href="dowel-bar-retrofit.html">Dowel Bar Retrofit</a></li></ul></details></li><li><a href="paving-operations.html">Paving Operations</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="paving-operations-12.html">Paving Operations</a></li></ul></details></li><li><a href="quality-assurance.html">Quality Assurance</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="quality-control-1-0.html">Quality Control</a></li><li><a href="project-management.html">Project Management</a></li><li><a href="quality-assurance-1-2.html">Quality Assurance</a></li></ul></details></li><li><a href="quality-control.html">Quality Control</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-assessment.html">Pavement Assessment</a></li><li><a href="mixture-management.html">Mixture Management</a></li><li><a href="concrete-sampling.html">Concrete Sampling</a></li><li><a href="concrete-strength-10-3.html">Concrete Strength</a></li><li><a href="mixture-design-10-4.html">Mixture Design</a></li></ul></details></li><li><a href="reinforcement-techniques.html">Reinforcement Techniques</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="reinforcement-techniques-16.html">Reinforcement Techniques</a></li></ul></details></li><li><a href="surface-textures.html">Surface Textures</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="surface-textures-11.html">Surface Textures</a></li></ul></details></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">All concepts</a><span class="crumb-sep">›</span><a href="material-testing.html">Material Testing</a><span class="crumb-sep">›</span><span class="crumb-current">Concrete Standards</span></nav>
+<article><h1>Concrete Standards</h1>
+<div class="meta"><div class="part-of">Part of: <a href="material-testing.html">Material Testing</a> <span class="edge edge-taxonomic" title="Concrete Standards is a topic under Material Testing.">is-subtopic-of</span></div><div class="edge-reading">Concrete Standards is a topic under Material Testing.</div><div><a class="tag" href="index.html?q=concrete-performance">concrete-performance</a><a class="tag" href="index.html?q=astm-standards">astm-standards</a><a class="tag" href="index.html?q=aashto-guidelines">aashto-guidelines</a><a class="tag" href="index.html?q=durability-testing">durability-testing</a><a class="tag" href="index.html?q=quality-control">quality-control</a></div><div>Created 2026-09-01 · Updated 2026-09-02</div></div>
+<p>Concrete standards comprise a unified framework of standardized test procedures and acceptance criteria designed to evaluate the fresh-state workability, mechanical strength, and long-term durability of concrete mixtures. These protocols establish uniform methodologies for assessing fundamental properties such as bleeding, setting time, shrinkage behavior, and resistance to environmental degradation including freeze-thaw cycles, salt scaling, and sulfate attack [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. By defining specific specimen preparation, testing conditions, and measurement techniques for parameters like slump, air content, and compressive strength, the standards ensure consistent quality control and reliable performance verification across different production batches and projects [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#key-findings">Key findings</a></li><li><a href="#concrete-test-standards">Concrete Test Standards</a></li><li><a href="#related-concepts">Related concepts</a></li><li><a href="#source-coverage">Source coverage</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (2)</summary><div class="sources-body"><a href="#ref-1">Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL (2019)</a>, <a href="#ref-2">Best Practices Manual: Quality Control and Quality Acceptance of Concrete Airport Pavement (2025)</a></div></details>
+
+<h2 id="key-findings">Key findings</h2>
+<ul>
+<li>Identified that no direct test exists to predict cracking risk for specific concrete mixes, recommending restrained-shrinkage tests such as ASTM C1581 and AASHTO T 334 for comparing relative susceptibility during prequalification [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Established that Procedure A of ASTM C666 serves as the more severe benchmark for freeze-thaw durability, correlating well with field performance when specimens survive 300 cycles with a dynamic modulus-based durability factor of at least 60 [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+</ul>
+<h2 id="concrete-test-standards">Concrete Test Standards</h2>
+<p>Concrete test standards establish uniform procedures for evaluating the fresh-state workability and hardened mechanical properties of concrete mixtures [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. These protocols quantify fundamental characteristics such as bleeding, setting time, shrinkage, and durability against environmental stressors like freeze-thaw cycles and chemical attack [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. By enforcing consistent measurement techniques, standardized testing enables reliable quality control and performance verification across different construction projects [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p>The following figure illustrates the relationship between these mechanical properties by comparing compressive and flexural strength correlations.</p>
+<p><img alt="Comparison of compressive and flexural strength correlations" src="assets/concrete-standards/f5af3228e812f02a2e3fb2f9a9e3f06a6ff73dbbcb96ed526494bfbe0fe323b7.jpg" />
+<em>Comparison of compressive and flexural strength correlations, based on equations 3.1 and 3.2</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure plots two linear models relating concrete&rsquo;s compressive strength to its flexural strength. One model uses a square root relationship while the other utilizes an exponent of 2/3, with the text noting that the more conservative equation should be used depending on the range of values being considered.</p>
+<p><strong>Research problem</strong> — Ambiguities and gaps in existing concrete standard provisions lead to misinterpretation of test results, inadequate control of fresh properties, and compromised pavement durability [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. The absence of direct testing methods for assessing cracking risk forces reliance on indirect approaches that may fail to identify early-age defects and jeopardize structural safety [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. There is a critical need to verify that all concrete components and resulting mix properties are measured against established standards and tolerance limits to ensure structural performance, durability, and reliable construction scheduling [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p><strong>State of the art</strong> — The field relies on a comprehensive suite of ASTM and AASHTO test methods to evaluate fresh and hardened concrete properties, including aggregate quality, air content, slump, strength, and hydration calorimetry [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. While traditional laboratory standards like Vicat testing and penetration resistance define setting times, the industry is increasingly augmenting these with portable acoustic devices and semi-adiabatic calorimetry for on-site assessments [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Durability evaluation remains anchored in standardized freeze-thaw and salt-scaling tests, though predictive modeling tools are commonly employed to assess cracking risk since no direct test exists for this parameter [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p>The following figure illustrates how ultrasonic velocity increases as the concrete mixture begins to set.</p>
+<p><img alt="Ultrasonic velocity accelerates when mixture begins to set" src="assets/concrete-standards/ce2d3a7a0d140135e067ef087f2705418ddc747d0146d8bc5ff759f450353b3c.jpg" />
+<em>Ultrasonic velocity accelerates when mixture begins to set</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure plots the ultrasonic pulse velocity (UPV) in meters per second against duration in minutes for three different concrete mixtures. An alternative approach for measuring setting time is to observe the change in the speed of sound through a fresh concrete sample, which accelerates when solid hydration products start to percolate through the sample. The graph demonstrates that UPV remains low and stable during the initial phase before rising sharply as the material stiffens.</p>
+<p><strong>Findings from the reports</strong></p>
+<ul>
+<li>Identified that no direct test exists to predict cracking risk for specific concrete mixes, recommending restrained-shrinkage tests such as ASTM C1581 and AASHTO T 334 for comparing relative susceptibility during prequalification [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Established that Procedure A of ASTM C666 serves as the more severe benchmark for freeze-thaw durability, correlating well with field performance when specimens survive 300 cycles with a dynamic modulus-based durability factor of at least 60 [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+</ul>
+<p><strong>Novelty &amp; rigor</strong> — The manual introduces methodological departures from conventional standards by repurposing established tests as early-warning indicators for aluminate reactions and abandoning traditional penetration-based setting time assessments in favor of monitoring intrinsic physical changes such as sound speed or calorimetric temperature increases [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. It further enhances diagnostic capability by adopting a dual-ring test that simultaneously tracks expansion and shrinkage stresses to provide a quicker indication of early-age cracking susceptibility, while modifying freeze-thaw protocols to create a less severe exposure regime that better correlates with actual field performance [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Reproducibility is ensured by requiring strict adherence to cited standards through exact specimen dimensions, curing schedules, and measurement intervals, allowing generated data to be directly comparable across different investigations [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p><strong>Reported values</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Context</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>freeze-thaw durability factor</td>
+<td>60</td>
+<td>specimens tested to 300 cycles (ASTM C666)</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>freeze-thaw test duration</td>
+<td>300 cycles</td>
+<td>specimens tested to ASTM C666</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>salt-scaling mass loss limit</td>
+<td>0.3 lb/ft2</td>
+<td>after 50 cycles (ASTM C672)</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>salt-scaling test duration</td>
+<td>50 cycles</td>
+<td>ASTM C672 mass loss monitoring</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>salt-scaling visual rating</td>
+<td>3</td>
+<td>ASTM C672 test</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Implications</strong> — Concrete standards should be applied as comparative ranking tools for mixtures during prequalification rather than viewed as absolute guarantees against cracking [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Specifications must prioritize restrained-shrinkage ring tests to evaluate realistic job-mix performance and feed predictive models, while using severe freeze-thaw benchmarks to validate durability claims before field approval [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Practice should move away from overly aggressive salt-scaling protocols that reject viable mixes, adopting less stringent or field-correlated methods aligned with performance-based criteria instead of relying on single stringent laboratory tests [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p><strong>Limitations</strong> — Current standards lack direct laboratory tests to evaluate cracking risk for specific mixes in their actual service environments, necessitating reliance on indirect or relative-risk methods [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Certain standardized tests require modified sample compositions that prevent their application to job mixes, while others may yield results that do not accurately reflect the most severe field exposure conditions [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Concrete specimens that fail these rigorous laboratory assessments can still demonstrate acceptable performance in actual construction projects [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p>The following figure illustrates this discrepancy by displaying an example plot from HIPERPAV that indicates a high risk of cracking approximately six hours after paving.</p>
+<p><img alt="A plot showing the development of tensile strength versus pr" src="assets/concrete-standards/7307a8bc3d8c5bdf50c7b0bc0f8276eb624944559fa597b16b61e99e7e75e0e9.jpg" />
+<em>A plot showing the development of tensile strength versus predicted stress over time to identify cracking risk.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays a graph plotting tensile strength and stress against elapsed time since construction, illustrating how these values change during the early curing period. It demonstrates that when predicted stress exceeds allowable stress, cracking is indicated as likely, highlighting a limitation of current standards which lack direct laboratory tests to evaluate this specific risk for actual service environments.</p>
+<p><small>Evidence: 2 reports (1 primary)</small></p>
+<h2 id="related-concepts">Related concepts</h2>
+<p><strong>In this hierarchy</strong></p>
+<ul>
+<li>Parent: <a href="material-testing.html">Material Testing</a></li>
+<li>Sibling: <a href="concrete-durability-9-1.html">Concrete Durability</a></li>
+<li>Sibling: <a href="concrete-strength.html">Concrete Strength</a></li>
+<li>Sibling: <a href="concrete-testing.html">Concrete Testing</a></li>
+<li>Sibling: <a href="material-testing-9-4.html">Material Testing</a></li>
+<li>Sibling: <a href="maturity-methods.html">Maturity Methods</a></li>
+</ul>
+<p><strong>Related by shared evidence</strong></p>
+<ul>
+<li><a href="aggregate-impact.html">Aggregate Impact</a> — shares 2 reports</li>
+<li><a href="aggregate-management.html">Aggregate Management</a> — shares 2 reports</li>
+<li><a href="aggregate-management-3-1.html">Aggregate Management</a> — shares 2 reports</li>
+<li><a href="cement-chemistry.html">Cement Chemistry</a> — shares 2 reports</li>
+<li><a href="cementitious-materials.html">Cementitious Materials</a> — shares 2 reports</li>
+<li><a href="concrete-cracking.html">Concrete Cracking</a> — shares 2 reports</li>
+<li><a href="concrete-mixture-design.html">Concrete Mixture Design</a> — shares 2 reports</li>
+<li><a href="concrete-production-8-3.html">Concrete Production</a> — shares 2 reports</li>
+</ul>
+<p><strong>Similar topics</strong></p>
+<ul>
+<li><a href="quality-control-3-2.html">Quality Control</a></li>
+<li><a href="concrete-strength.html">Concrete Strength</a></li>
+<li><a href="concrete-testing.html">Concrete Testing</a></li>
+<li><a href="concrete-durability-9-1.html">Concrete Durability</a></li>
+<li><a href="concrete-strength-10-3.html">Concrete Strength</a></li>
+<li><a href="material-testing-9-4.html">Material Testing</a></li>
+<li><a href="maturity-methods.html">Maturity Methods</a></li>
+<li><a href="cement-chemistry.html">Cement Chemistry</a></li>
+</ul>
+<h2 id="source-coverage">Source coverage</h2>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Concrete Test Standards</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+<td>✓</td>
+</tr>
+</tbody>
+</table>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1">Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL (2019)</li><li id="ref-2">Best Practices Manual: Quality Control and Quality Acceptance of Concrete Airport Pavement (2025)</li>
+</ol>
+</section></article>
+<section class="comments" aria-labelledby="comments-heading">
+<h2 id="comments-heading">Feedback on this page</h2>
+<iframe data-tally-src="https://tally.so/embed/q4qql9?url=https%3A%2F%2Fig0r.github.io%2Fcnrt-guides-wiki-stage%2Fconcrete-standards.html&amp;hideTitle=1&amp;transparentBackground=1&amp;dynamicHeight=1" loading="lazy" width="100%" frameborder="0" title="Feedback form for this page"></iframe>
+<script async src="https://tally.so/widgets/embed.js"></script>
+</section>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

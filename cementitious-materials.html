@@ -1,0 +1,738 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cementitious Materials</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-16: per-page Tally feedback embed (md->html reverse builder) */
+.comments { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+.comments h2 { color: var(--accent); border: none; margin: 0 0 .75rem; font-size: 1.1rem; }
+.comments iframe { width: 100%; border: 0; min-height: 320px; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /Users/igor/dev/llm/ak-llm-wiki/llm-wiki-tools/hierarchy_v2_guides/16-guides-concept-visual -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">75 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="aggregate-management.html">Aggregate Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="aggregate-classification.html">Aggregate Classification</a></li><li><a href="aggregate-management-3-1.html">Aggregate Management</a></li><li><a href="quality-control-3-2.html">Quality Control</a></li><li><a href="aggregate-impact.html">Aggregate Impact</a></li><li><a href="mixture-design.html">Mixture Design</a></li></ul></details></li><li><a href="cementitious-materials.html" class="active" aria-current="page">Cementitious Materials</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="cement-chemistry.html">Cement Chemistry</a></li><li><a href="concrete-mixture-design.html">Concrete Mixture Design</a></li><li><a href="sustainable-scms.html">Sustainable SCMs</a></li><li><a href="cement-production.html">Cement Production</a></li><li><a href="concrete-durability.html">Concrete Durability</a></li></ul></details></li><li><a href="concrete-production.html">Concrete Production</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-production-15.html">Concrete Production</a></li></ul></details></li><li><a href="cracking-mitigation.html">Cracking Mitigation</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-cracking.html">Concrete Cracking</a></li><li><a href="moisture-management.html">Moisture Management</a></li><li><a href="sealant-application.html">Sealant Application</a></li><li><a href="temperature-management.html">Temperature Management</a></li></ul></details></li><li><a href="diamond-grinding.html">Diamond Grinding</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="diamond-grinding-5.html">Diamond Grinding</a></li></ul></details></li><li><a href="drainage-management.html">Drainage Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="drainage-management-7.html">Drainage Management</a></li></ul></details></li><li><a href="joint-sealing.html">Joint Sealing</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="joint-maintenance.html">Joint Maintenance</a></li><li><a href="sealant-installation.html">Sealant Installation</a></li><li><a href="pavement-maintenance.html">Pavement Maintenance</a></li><li><a href="sealant-performance.html">Sealant Performance</a></li></ul></details></li><li><a href="material-testing.html">Material Testing</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-testing.html">Concrete Testing</a></li><li><a href="concrete-durability-9-1.html">Concrete Durability</a></li><li><a href="concrete-strength.html">Concrete Strength</a></li><li><a href="concrete-standards.html">Concrete Standards</a></li><li><a href="material-testing-9-4.html">Material Testing</a></li><li><a href="maturity-methods.html">Maturity Methods</a></li></ul></details></li><li><a href="other.html">Other</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="other-17.html">Other</a></li></ul></details></li><li><a href="pavement-design.html">Pavement Design</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="overlay-technology.html">Overlay Technology</a></li><li><a href="pavement-types.html">Pavement Types</a></li><li><a href="construction-insights.html">Construction Insights</a></li><li><a href="recycling-innovation.html">Recycling Innovation</a></li></ul></details></li><li><a href="pavement-management-14.html">Pavement Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-smoothness.html">Pavement Smoothness</a></li><li><a href="pavement-systems.html">Pavement Systems</a></li><li><a href="subgrade-insights.html">Subgrade Insights</a></li><li><a href="excavation-safety.html">Excavation Safety</a></li><li><a href="slab-jacking.html">Slab Jacking</a></li></ul></details></li><li><a href="pavement-management.html">Pavement Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-evaluation.html">Pavement Evaluation</a></li><li><a href="preservation-strategies.html">Preservation Strategies</a></li><li><a href="pavement-design-8-2.html">Pavement Design</a></li><li><a href="concrete-production-8-3.html">Concrete Production</a></li><li><a href="design-methodologies.html">Design Methodologies</a></li><li><a href="design-considerations.html">Design Considerations</a></li></ul></details></li><li><a href="pavement-repair.html">Pavement Repair</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="slab-stabilization.html">Slab Stabilization</a></li><li><a href="pavement-repairs.html">Pavement Repairs</a></li><li><a href="dowel-bar-retrofit.html">Dowel Bar Retrofit</a></li></ul></details></li><li><a href="paving-operations.html">Paving Operations</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="paving-operations-12.html">Paving Operations</a></li></ul></details></li><li><a href="quality-assurance.html">Quality Assurance</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="quality-control-1-0.html">Quality Control</a></li><li><a href="project-management.html">Project Management</a></li><li><a href="quality-assurance-1-2.html">Quality Assurance</a></li></ul></details></li><li><a href="quality-control.html">Quality Control</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-assessment.html">Pavement Assessment</a></li><li><a href="mixture-management.html">Mixture Management</a></li><li><a href="concrete-sampling.html">Concrete Sampling</a></li><li><a href="concrete-strength-10-3.html">Concrete Strength</a></li><li><a href="mixture-design-10-4.html">Mixture Design</a></li></ul></details></li><li><a href="reinforcement-techniques.html">Reinforcement Techniques</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="reinforcement-techniques-16.html">Reinforcement Techniques</a></li></ul></details></li><li><a href="surface-textures.html">Surface Textures</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="surface-textures-11.html">Surface Textures</a></li></ul></details></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Cementitious Materials</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=cementitious">cementitious</a><a class="tag" href="index.html?q=materials">materials</a></div><div>Created 2026-09-01 · Updated 2026-09-02</div></div>
+<p>Cementitious materials are hydraulic binders that harden through irreversible chemical reactions with water, forming a solid matrix that binds aggregates into concrete or mortar. The fundamental mechanism involves the hydration of calcium silicates and aluminates to produce calcium-silicate-hydrate gel, which provides strength and impermeability, alongside calcium hydroxide as a secondary phase [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Performance is governed by the water-to-cement ratio, which controls capillary porosity and permeability, as well as the use of supplementary cementitious materials that refine pore structure through pozzolanic reactions [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. These materials are classified by their chemical composition and intended performance characteristics, balancing trade-offs between early strength development, workability, setting time, and long-term durability against environmental stresses [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</p>
+<p>Cementitious Materials form the binding backbone of modern construction through chemical reactions and engineered compositions. <a href="cement-production.html">Cement Production</a> generates the hydraulic binder via high-temperature clinker formation, establishing the foundational component for all downstream applications. This binder undergoes specific transformations in <a href="cement-chemistry.html">Cement Chemistry</a>, where fundamental hydration reactions of calcium silicates and aluminates govern setting, strength development, and long-term durability. Engineers apply these principles in <a href="concrete-mixture-design.html">Concrete Mixture Design</a> to optimize the proportioning of binders and supplementary materials, ensuring the microstructural integrity required for durable construction. <a href="sustainable-scms.html">Sustainable SCMs</a> further refine this system by partially replacing Portland cement clinker with mineral or industrial by-product additives, enhancing both performance and sustainability while lowering environmental impact. The ultimate measure of success is <a href="concrete-durability.html">Concrete Durability</a>, which represents the essential performance outcome where the hardened matrix withstands environmental degradation and service stresses to preserve structural integrity over time.</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#key-findings">Key findings</a></li><li><a href="#hydration-mechanisms-and-chemical-performance">Hydration Mechanisms and Chemical Performance</a></li><li><a href="#durability-management-and-environmental-trade-offs">Durability Management and Environmental Trade-offs</a></li><li><a href="#material-selection-sourcing-and-placement-logistics">Material Selection, Sourcing, and Placement Logistics</a></li><li><a href="#related-concepts">Related concepts</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (4)</summary><div class="sources-body"><a href="#ref-1">Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL (2019)</a>, <a href="#ref-2">Best Practices Manual: Quality Control and Quality Acceptance of Concrete Airport Pavement (2025)</a>, <a href="#ref-3">Guide to the Prevention and Restoration of Early Joint Deterioration inConcrete Pavements (2016)</a>, <a href="#ref-4">Concrete Pavement Preservation Guide (Third Edition) (2022)</a></div></details>
+<details class="subconcepts-toggle"><summary>Sub-concepts (5)</summary><div class="subconcepts-body"><a href="cement-chemistry.html">Cement Chemistry</a> · <a href="concrete-mixture-design.html">Concrete Mixture Design</a> · <a href="sustainable-scms.html">Sustainable SCMs</a> · <a href="cement-production.html">Cement Production</a> · <a href="concrete-durability.html">Concrete Durability</a></div></details>
+<h2 id="key-findings">Key findings</h2>
+<ul>
+<li>Reduced the clinker fraction in concrete mixes by increasing the share of supplementary cementitious materials (SCMs) and optimizing aggregate gradations to lower greenhouse-gas emissions and embodied carbon [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Identified that durability is governed primarily by permeability, which is controlled by the paste matrix and its bond to aggregates, requiring low water-to-cement ratios and adequate curing to limit pore connectivity [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Demonstrated that incorporating SCMs lowers calcium hydroxide levels and fills capillary voids, thereby suppressing expansive reactions with deicing chlorides and enhancing frost durability in cementitious pavements [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Established a critical saturation threshold of approximately 85% for freeze-thaw damage initiation, highlighting that air entrainment effectiveness depends on tightly controlled void system consistency rather than just air content volume [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Revealed that lower water-to-cement ratios serve as the primary lever for mitigating joint deterioration by reducing paste permeability, limiting fluid transport, and raising strength against environmental stresses [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Reported that material availability and supply chain disruptions are decisive schedule factors, necessitating early mapping of local sources and lot-specific certification to prevent redesigns or delays [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Showed that the shifting landscape of SCMs introduces chemical and physical variability, requiring early hydration testing, backup material plans, and strict compliance with standards to manage performance risks [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Identified alkali-silica reaction (ASR) as a principal durability challenge in airport pavements, mitigated by limiting total alkali loading, judicious SCM selection, and the use of lithium nitrate admixtures when reactive aggregates are present [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+</ul>
+<h2 id="hydration-mechanisms-and-chemical-performance">Hydration Mechanisms and Chemical Performance</h2>
+<p><small>Evidence: 4 reports (1 primary)</small></p>
+<p>Hydration is the irreversible chemical reaction between hydraulic binders and water that transforms a plastic paste into a solid, aggregate-binding matrix through the formation of calcium-silicate-hydrate gel and calcium hydroxide [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. The rate and extent of this reaction are governed by cross-cutting factors including cement chemistry, particle fineness, ambient temperature, and the presence of chemical admixtures or supplementary materials [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Performance outcomes such as strength development, setting time, and microstructural density are fundamentally controlled by the water-to-binder ratio, which dictates capillary porosity, alongside the specific interactions of supplementary cementitious materials that refine pore structure over time [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</p>
+<p>The following figure illustrates how these hydration processes influence the properties of hardened concrete.</p>
+<p><img alt="Implications of Cement Hydration for Hardened Concrete Prope" src="assets/cementitious-materials/65a04f4725023d028e5207e1bb9406d6781990d3fae2f39f397469f5d24cc358.jpg" />
+<em>Implications of Cement Hydration for Hardened Concrete Properties</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure illustrates the five stages of cement hydration—Mixing, Dormancy, Hardening, Cooling, and Densification—mapped against a heat evolution curve over time. It specifically highlights how the stability of the air-void system is influenced by chemical admixtures and handling during these hydration phases, which directly impacts concrete durability against freezing and thawing. The diagram demonstrates that while hydration drives the formation of the solid matrix, specific performance characteristics like air content stability are governed by interactions between supplementary cementitious materials and chemical admixtures.</p>
+<p><strong>State of the art</strong> — Modern practice has shifted from legacy recipe-based designs to a performance-oriented paradigm that engineers binder systems to explicitly manage trade-offs between early-age properties like strength and long-term microstructural refinement [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. The field relies on two-stage hydration strategies using supplementary cementitious materials to consume calcium hydroxide and densify the paste matrix, thereby improving durability while reducing clinker demand [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Current consensus integrates blended cements with high-range water reducers and rigorous curing regimes to balance early workability with long-term permeability control, guided by life-cycle analysis for sustainability [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p>The figure below illustrates how pozzolans influence this critical process of cement hydration.</p>
+<p><img alt="Effect of pozzolans on cement hydration" src="assets/cementitious-materials/e6316ad54754641fd4e1e385d4d3dae57d04d76fbd7a1b923d60e5d0e4617a63.jpg" />
+<em>Effect of pozzolans on cement hydration</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure illustrates the chemical process where cement and water undergo a primary reaction to form calcium silicate hydrate (C-S-H) and calcium hydroxide (CH). It depicts how pozzolans react with the less desirable product, CH, in a secondary reaction to produce additional C-S-H.</p>
+<p><strong>Findings from the reports</strong></p>
+<ul>
+<li>Identified clinker production as the dominant environmental burden of cementitious materials, demonstrating that meaningful reductions in greenhouse-gas emissions and energy use require lowering the clinker fraction through optimized mixtures and increased supplementary cementitious material (SCM) usage [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Showed that sustainability gains from using locally sourced recycled or waste materials are amplified by reduced transport emissions, though these benefits remain highly context-dependent and require project-specific evaluation [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Observed that reducing cementitious content not only lowers embodied carbon but also enhances functional performance in alternative systems such as roller-compacted and pervious concrete [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Established that the durability of all cementitious systems is governed by permeability, which is controlled primarily by the paste matrix and its bond to aggregates, necessitating low water-to-cement ratios, adequate curing, and appropriate SCM dosages to limit pore connectivity [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Revealed cross-cutting challenges of material incompatibility linked to sulfate imbalance, fineness, temperature, or rapid admixture reactions that cause premature stiffening or delayed setting, underscoring the need for trial batching and careful monitoring [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Demonstrated that managing on-site variables such as water addition, air-entrainment, and temperature is critical because these factors directly influence workability, early strength development, and long-term durability [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+</ul>
+<p><strong>Novelty &amp; rigor</strong> — Novelty lies in shifting from static recipe-based design to a performance-driven framework that dynamically tailors proportions to locally available materials and waste streams, while integrating functional surface technologies like photocatalytic nanoparticles for self-cleaning capabilities [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Methodological rigor is established through the use of miniature insulated calorimetry to isolate hydration heat from external influences, alongside standardized absolute-volume proportioning and strict batching tolerances that ensure reproducible binder system performance across diverse local contexts [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p>The following figure illustrates a typical field semi-adiabatic temperature monitoring system for mortar.</p>
+<p><img alt="A portable field semi-adiabatic temperature monitoring syste" src="assets/cementitious-materials/0817a86745ee18b1414221fb04221491648ac4e8799ea9bd56901beeca359f78.jpg" />
+<em>A portable field semi-adiabatic temperature monitoring system for mortar.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The apparatus consists of a portable case containing four cylindrical cavities designed to hold specimens, with one cavity covered by a cap and the others open. This equipment is used for semi-adiabatic calorimetry to observe hydration kinetics and measure comparative heat gain.</p>
+<p><strong>Reported values</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Context</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>adequate SCM amount for sulfate resistance</td>
+<td>20 percent%</td>
+<td>SCM proportion of the cementitious system</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>air-void spacing factor for adequate protection</td>
+<td>0.008 in.</td>
+<td>spacing factor considered adequate to protect concrete</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>autogenous shrinkage significance threshold</td>
+<td>0.40</td>
+<td>w/cm ratio below which autogenous shrinkage becomes important</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>calcium oxychloride limit (AASHTO T 365)</td>
+<td>0.5 oz CAOXY/3.5 oz cementitious paste</td>
+<td>calcium oxychloride determination for mixtures using CaCl2 or MgCl2</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>Class F fly ash dosage for sulfate resistance</td>
+<td>15 to 25 percent%</td>
+<td>Use Class F fly ash for sulfate resistance</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>compressive strength loss per unit entrained air</td>
+<td>5 percent%</td>
+<td>concrete compressive strength loss per 1 percent entrained air</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>fly ash usage in ready-mixed concrete</td>
+<td>50 percent%</td>
+<td>Fly ash usage in ready-mixed concrete</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>fly ash, slag cement, and silica fume maximum proportions (ACI 318)</td>
+<td>25, 50, and 10 percent%</td>
+<td>maximum proportion by mass of cementitious materials per ACI 318 (2014) building code</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>high early-strength concrete cement content</td>
+<td>675 to 850 lb/yd3</td>
+<td>High cement content in High early-strength concrete</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>high early-strength concrete w/cm ratio</td>
+<td>0.37 to 0.45</td>
+<td>Low w/cm ratio in High early-strength concrete by mass</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>Low-calcium Class F fly ash reactivity expansion reduction</td>
+<td>70 percent%</td>
+<td>reduced reactivity expansion in Low-calcium Class F fly ashes</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>paste content limit (AASHTO PP 84)</td>
+<td>25 percent%</td>
+<td>Paste content by volume of concrete per AASHTO PP 84</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>Portland cement alkali content limit for ASR control</td>
+<td>0.60 percent%</td>
+<td>equivalent sodium oxide in portland cement to control ASR</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>Portland cement fineness (Type I)</td>
+<td>1,464.7 to 1,953.0 ft²/lb</td>
+<td>Typical Type I cements</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>SCM replacement of portland cement</td>
+<td>30 percent%</td>
+<td>increasing the replacement of portland cement with high-quality SCMs</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+</tbody>
+</table>
+<p><small>11 more distinct values omitted here; the full span-verified set is in the quantities sidecar.</small></p>
+<p><strong>Implications</strong> — Designers must treat hydration as a system-wide optimization problem, balancing the accelerated early-age heat and strength development of fine cements against the long-term microstructural densification provided by slower-hydrating supplementary binders [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Practitioners are required to rigorously manage early-age constructability constraints, such as setting time and temperature evolution, through precise curing regimes and quality control to ensure that rapid chemical reactions do not compromise final durability [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. The industry must shift toward integrated specifications that unify material chemistry with operational practices, ensuring that mixing equipment and injection parameters are selected to support the specific hydration kinetics of low-carbon binder systems [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</p>
+<p>The following figure illustrates how specific chemical reactions contribute to the early heat spike observed during cement hydration.</p>
+<p><img alt="Heat evolution curve of cement hydration showing the dormant" src="assets/cementitious-materials/456467d26734aa05a8596bdcdd3017106b4ae4e51e755b343dbbc1588a796952.jpg" />
+<em>Heat evolution curve of cement hydration showing the dormant period and subsequent reaction phases.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays a plot of heat generation over time, characterized by an initial sharp spike followed by a prolonged period of low activity known as the dormant period. This mechanism is a fundamental aspect of cement chemistry where the formation of specific hydrates governs the setting time and heat evolution of hydraulic binders.</p>
+<p><strong>Limitations</strong> — The inherent variability in cement chemistry and fineness, often masked by averaged mill certifications, creates risks of incompatibility such as premature stiffening or delayed set that cannot be predicted without testing the specific plant materials [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Achieving desired chemical performance requires rigorous trial batching because standard mix designs fail to account for context-sensitive factors like local material availability and site-specific handling conditions that can negate anticipated durability gains [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<h2 id="durability-management-and-environmental-trade-offs">Durability Management and Environmental Trade-offs</h2>
+<p><small>Evidence: 3 reports (3 primary)</small></p>
+<p><strong>Research problem</strong> — The reliability of cementitious inputs cannot be assumed, as variations in composition and availability disrupt workability and long-term durability, thereby threatening schedule adherence and lifecycle costs in critical infrastructure projects [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Joint deterioration driven by simultaneous freeze-thaw stresses and chemical attack from deicing salts creates a complex durability challenge that requires balancing low permeability against workability, cost, and early-strength requirements [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</p>
+<p>The following figure illustrates how the degree of saturation influences stiffness degradation resulting from freeze-thaw damage.</p>
+<p><img alt="Influence of the degree of saturation on relative stiffness" src="assets/cementitious-materials/98029015024c326dce8409d5ba81eed56b1eccbefaeb8929da02f22a9541e9aa.jpg" />
+<em>Influence of the degree of saturation on relative stiffness degradation due to freeze-thaw damage.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure plots Relative Stiffness against Degree of Saturation (%) for two concrete mixtures with different air-void contents, demonstrating that stiffness remains high until a critical saturation threshold is exceeded. Once the degree of saturation exceeds this critical point, damage initiates in the material regardless of the quantity and quality of the air system.</p>
+<p><strong>State of the art</strong> — The industry has shifted toward performance-based specifications that permit blended cements and supplementary materials to reduce clinker content, provided they meet strict physical criteria while managing trade-offs in workability and alkali-silica reaction risk [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Durability management now centers on controlling the degree of saturation below critical thresholds through air-entrainment and low water-to-cement ratios, while simultaneously mitigating chemical attacks by using supplementary cementitious materials to suppress expansive reactions with deicing salts [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. Current practice relies on rigorous quality-control protocols, including trial batching and early-hydration testing, alongside probabilistic modeling to balance environmental goals with the need for reliable service life under combined physical and chemical stresses [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>] [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</p>
+<p>The following figure illustrates a sample mill test report that highlights the specific location of alkali content within the material.</p>
+<p><img alt="Sample mill test report showing location of alkali content (" src="assets/cementitious-materials/55e434d00efd6cfea220b8767bc83710280bf5b9915d80491c6a8d1d6c31ec42.jpg" />
+<em>Sample mill test report showing location of alkali content (source: CEMEX).</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays a standard mill test report from the CEMEX Brooksville South Plant, which lists chemical and physical properties for Type IL cement. A specific row labeled &ldquo;Alkalis (Na2O equivalent) %&rdquo; is highlighted to demonstrate how manufacturers report this data on the document. The cement manufacturer’s mill test report readily provides this information, allowing users to determine the total alkalis available to support ASR.</p>
+<p><strong>Findings from the reports</strong></p>
+<ul>
+<li>Identified supply chain reliability, blended cement behavior, and supplementary cementitious material (SCM) variability as dominant cross-cutting factors that require holistic management through early testing and backup plans [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Demonstrated that alkali-silica reaction (ASR) remains the principal durability challenge in airport pavements, requiring strict control of total alkali loading and judicious SCM selection or lithium nitrate admixtures for mitigation [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Showed that variability in air-void system quality dramatically shortens predicted service life against freeze-thaw damage, highlighting the need for tight proportion control rather than just increased air content [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Revealed that de-icing chlorides trigger the formation of expansive calcium oxychloride salts within the cement matrix, which seals pore pathways but can also cause direct binder damage and alter transport properties depending on cement type [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Established that controlling the water-to-cement ratio is the primary lever for mitigating joint deterioration by reducing paste permeability, limiting fluid transport, and raising strength against both freeze-thaw stresses and salt-induced reactions [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Found that incorporating supplementary cementitious materials lowers calcium hydroxide levels and fills capillary voids to suppress expansive salt formation, though higher dosages may lower pH and increase reinforcement corrosion risk [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Documented a cross-cutting incompatibility risk where certain water-reducing admixtures accelerate aluminate hydration while retarding silicate hydration, causing early stiffening followed by delayed set and slower strength development [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Observed that cement source markedly influences heat output and setting behavior when mixed with the same admixture, necessitating practical mitigation actions such as adjusting replacement levels, changing cement type, or extending mixing time [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+</ul>
+<p><strong>Novelty &amp; rigor</strong> — Research introduces a holistic quality-control framework that integrates performance-based cement specifications, routine semi-adiabatic calorimetry, and continuous supplier monitoring to link material certification directly with long-term durability goals [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. A distinctive methodological advance treats durability challenges as a unified probabilistic design problem by coupling sorption-based moisture uptake models with Monte Carlo simulations of mix variability to forecast service life and identify internal chemical sealing mechanisms [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. Reproducibility is ensured through tightly controlled chains of material specifications, documented test data, and repeatable mixing procedures that standardize binder sourcing, mix-design approval, trial batching, and comprehensive documentation across the cementitious system [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>] [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</p>
+<p><strong>Reported values</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Context</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>alkali loading limit</td>
+<td>3.0 lb/yd3</td>
+<td>concrete mixture alkali loading</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+<tr>
+<td>alkali loading limit (metric)</td>
+<td>1.8 kg/m3</td>
+<td>concrete mixture with potentially reactive aggregate per ASTM C311</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+<tr>
+<td>available alkali content limit</td>
+<td>3%</td>
+<td>cementitious materials (fly ash, slag, pozzolan) for ASR mitigation per FAA AC 150/5370-10H</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+<tr>
+<td>average particle size limit</td>
+<td>6 microns</td>
+<td>ultra fine fly ash/pozzolan</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+<tr>
+<td>Blaine fineness (ordinary portland)</td>
+<td>4000 cm2/g</td>
+<td>ordinary portland cement Blaine fineness</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+<tr>
+<td>Blaine fineness (Type IL)</td>
+<td>5000-5500 cm2/g</td>
+<td>Type IL cement Blaine fineness</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+<tr>
+<td>cement total alkali content range</td>
+<td>0.2% to 1.5%</td>
+<td>Na2O equivalent in cement</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+<tr>
+<td>fineness increase</td>
+<td>20 percent</td>
+<td>grinding of Type IL cements relative to ordinary cement</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+<tr>
+<td>C-SUD mix maximum w/c ratio</td>
+<td>0.45</td>
+<td>high-durability mix C-SUD</td>
+<td>[<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</td>
+</tr>
+<tr>
+<td>C-SUD mix target w/c ratio</td>
+<td>0.40</td>
+<td>high-durability mix C-SUD</td>
+<td>[<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</td>
+</tr>
+<tr>
+<td>CaCl concentration</td>
+<td>12 percent</td>
+<td>at 23°C</td>
+<td>[<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</td>
+</tr>
+<tr>
+<td>calcium chloride content in calcium oxychloride formation</td>
+<td>12 percent CaCl</td>
+<td>at 23°C</td>
+<td>[<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</td>
+</tr>
+<tr>
+<td>Class C fly ash replacement rate</td>
+<td>30–35 percent</td>
+<td>cement replacement rate recommendation</td>
+<td>[<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</td>
+</tr>
+<tr>
+<td>Class C fly ash replacement rate (combined mix)</td>
+<td>20 percent</td>
+<td>in combination with 20 percent slag</td>
+<td>[<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</td>
+</tr>
+<tr>
+<td>Class F fly ash replacement rate</td>
+<td>20–25 percent</td>
+<td>cement replacement rate recommendation</td>
+<td>[<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</td>
+</tr>
+</tbody>
+</table>
+<p><small>20 more distinct values omitted here; the full span-verified set is in the quantities sidecar.</small></p>
+<p>Across the reviewed reports, durability management is fundamentally constrained by the interplay between mix proportioning variables—specifically water-to-cement ratio and air-void system consistency—and the chemical reactivity of the binder matrix under environmental stress. While supplementary cementitious materials are employed to mitigate specific degradation mechanisms such as alkali-silica reaction and calcium oxychloride formation by consuming reactive phases, their use introduces significant variability in hydration kinetics and workability that complicates performance predictability. The collective evidence indicates a critical trade-off where optimizing for chemical resistance or freeze-thaw resilience through lower permeability or air entrainment often conflicts with the need to manage supply chain reliability and the inherent variability of blended binders. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>] [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p><strong>Implications</strong> — Project planning must treat binder supply as a systemic risk, requiring owners to secure pre-approved contingency sources and contractors to manage logistics that balance local availability against the schedule certainty of longer hauls [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Designers must evaluate total alkali loading across the entire mix rather than relying on nominal cement values, necessitating the use of low-alkali binders or specific admixtures to control alkali-silica reaction [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Mix specifications should mandate tight controls on water-to-cement ratios and air-void variability, while prescribing supplementary cementitious material thresholds to mitigate chemical attack and freeze-thaw damage [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</p>
+<p><strong>Limitations</strong> — Reliable local availability of cementitious materials cannot be assumed, forcing contractors to maintain contingency plans rather than switch suppliers due to the delays and re-design requirements triggered by material changes [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Current analytical shortcuts for alkali-silica reaction risk ignore alkalinity contributions from supplementary materials, de-icing salts, or groundwater, potentially underestimating durability threats [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. The critical degree of saturation is not a fixed threshold but varies widely based on air-void quality, making accurate field predictions inherently uncertain and dependent on precise measurement [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. Sorption analysis models assume perpetual water contact with no drying, limiting their relevance to most structures that experience wet-dry cycles [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. Durability outcomes are highly conditional on the specific type, concentration, and temperature of de-icing salts used, with insufficient substantiation for the aggressiveness of certain agents [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. While supplementary materials can mitigate deleterious salt formation, their use lowers concrete pH, which may compromise corrosion protection for embedded steel and restricts high-supplementary-material mixes to plain or unreinforced pavements [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</p>
+<p>The following figure illustrates the phase diagrams showing the temperature conditions required for calcium oxychloride formation in hydrated cement paste exposed to calcium chloride solutions.</p>
+<p><img alt="Phase diagram illustrating the temperature for calcium oxych" src="assets/cementitious-materials/0e81480ee349aa5c93a1611e7eb4787dad394e40103056ac286395e0da9cf0de.jpg" />
+<em>Phase diagram illustrating the temperature for calcium oxychloride formation when hydrated cement paste is brought into contact with calcium chloride solution.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays a phase diagram plotting Temperature against CaCl2 Concentration, delineating regions where various solid phases coexist with solutions or ice. This diagram illustrates a specific durability threat mechanism where chloride exposure alters the internal chemistry and fluid transport properties of cementitious materials.</p>
+<h2 id="material-selection-sourcing-and-placement-logistics">Material Selection, Sourcing, and Placement Logistics</h2>
+<p><small>Evidence: 1 report (1 primary)</small></p>
+<p><strong>Research problem</strong> — Selecting cementitious materials for pavement preservation requires balancing conflicting performance demands, as binders must simultaneously provide high strength and wear resistance under traffic loads while maintaining sufficient fluidity for placement into narrow gaps without excessive water addition [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]. Effective material sourcing and placement logistics are hindered by practical constraints, including inadequate mixing equipment that fails to generate necessary agitation for pozzolanic grouts and low injection pressures that risk slab uplift or premature reaction due to environmental sensitivity [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</p>
+<p><strong>State of the art</strong> — Material selection for slab stabilization has shifted from traditional cement grouts to expansive polyurethane binders, while specialized hydraulic cements such as calcium aluminate and calcium sulfoaluminate are preferred for rapid-strength repair applications requiring specific durability traits [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]. Sourcing and mixing logistics now mandate dedicated plants with high-shear colloidal mixers to ensure uniform dispersion, explicitly avoiding low-agitation drum mixers or bulk transport equipment that compromise material integrity through excess water or particle agglomeration [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]. Placement technology relies on positive-displacement injection pumps operating at controlled low pressures and flow rates to achieve uniform fill without slab uplift, with strict adherence to moisture and temperature controls for advanced systems like magnesium phosphate concrete [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</p>
+<p><strong>Findings from the reports</strong></p>
+<ul>
+<li>Evaluated the performance trade-offs among specialized repair binders, revealing that while gypsum-based cements offer rapid setting they are unsuitable for reinforced applications, whereas calcium sulfoaluminate cements provide a superior combination of rapid strength gain, high sulfate resistance, and low shrinkage without conversion issues [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</li>
+<li>Demonstrated that production reliability for pavement stabilization grouts depends critically on using dedicated plants with precise volumetric or gravimetric proportioning and colloidal mixers to avoid the excess water demand and particle agglomeration caused by standard ready-mix trucks or paddle-type drum mixers [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</li>
+<li>Observed that durability of pavement cementitious layers requires a dense, uniform mortar with consistent depth, necessitating a comprehensive testing regime for pozzolanic blends to ensure flow-cone times and early-age strength meet specific performance thresholds [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</li>
+<li>Found that conventional concrete remains the preferred material for dowel-bar retrofits due to its low cost, availability, and thermal compatibility, provided strict water-to-cement control is maintained to limit shrinkage [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</li>
+</ul>
+<p><strong>Novelty &amp; rigor</strong> — The primary innovation lies in integrating precise volumetric proportioning with high-shear colloidal mixing and real-time uplift monitoring to ensure the reliability of cementitious repairs, rather than developing new binder chemistries [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]. Reproducibility is achieved by strictly controlling material acquisition through standardized pozzolan specifications and enforcing rigorous placement protocols that utilize low-pressure positive-displacement pumping to maintain mix integrity during injection [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</p>
+<p>The following figure illustrates the specific order of grout pumping employed to address settlement issues.</p>
+<p><img alt="Plan view of a concrete slab showing the recommended sequenc" src="assets/cementitious-materials/b667449ccc4ad65a932994295df886aa3c813251945562165fdde937aaa761d4.jpg" />
+<em>Plan view of a concrete slab showing the recommended sequence for pumping grout to correct settlement.</em> [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The figure displays a plan view of a pavement section with numbered injection points indicating the order in which material should be pumped to lift and level a settled slab.</p>
+<p><strong>Reported values</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Context</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>compressive strength</td>
+<td>600 lbf/in2</td>
+<td>at 7 days</td>
+<td>[<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</td>
+</tr>
+<tr>
+<td>cure time before traffic</td>
+<td>at least 3 hours</td>
+<td>after grouting</td>
+<td>[<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</td>
+</tr>
+<tr>
+<td>flow cone time</td>
+<td>10- to 16-second</td>
+<td>fly ash grouts</td>
+<td>[<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</td>
+</tr>
+<tr>
+<td>injection pressure</td>
+<td>25 and 200 lbf/in2</td>
+<td>during grout injection</td>
+<td>[<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</td>
+</tr>
+<tr>
+<td>maximum aggregate size</td>
+<td>0.375 in.</td>
+<td>sand and aggregate</td>
+<td>[<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</td>
+</tr>
+<tr>
+<td>pumping rate</td>
+<td>about 1.5 gallons per minute</td>
+<td>low pumping rate</td>
+<td>[<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</td>
+</tr>
+<tr>
+<td>setting time</td>
+<td>20 to 40 minutes</td>
+<td>Gypsum-based cements</td>
+<td>[<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</td>
+</tr>
+<tr>
+<td>shrinkage</td>
+<td>as low as 200 macrostrains</td>
+<td>CSA cements at 28 days</td>
+<td>[<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</td>
+</tr>
+<tr>
+<td>ultimate compressive strength</td>
+<td>1,500 to 4,000 lbf/in2</td>
+<td>grout</td>
+<td>[<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Limitations</strong> — The suitability of repair materials cannot be assumed without a comprehensive quality-control program that verifies properties such as pozzolan quality, early-age strength, and flowability before placement begins [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]. Practical constraints in sourcing and logistics include strict limitations on mixing technology to prevent non-uniform dispersion or particle agglomeration, as well as requirements for specific pump types and pressure ranges during placement [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]. Material selection is further restricted by environmental sensitivities, such as the need to halt work in low ambient temperatures and the requirement for dry placement of certain cement types, alongside reservations regarding chemical compatibility with existing structures [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</p>
+<h2 id="related-concepts">Related concepts</h2>
+<p><strong>In this hierarchy</strong></p>
+<ul>
+<li>Child: <a href="cement-chemistry.html">Cement Chemistry</a></li>
+<li>Child: <a href="concrete-mixture-design.html">Concrete Mixture Design</a></li>
+<li>Child: <a href="sustainable-scms.html">Sustainable SCMs</a></li>
+<li>Child: <a href="cement-production.html">Cement Production</a></li>
+<li>Child: <a href="concrete-durability.html">Concrete Durability</a></li>
+</ul>
+<p><strong>Related by shared evidence</strong></p>
+<ul>
+<li><a href="aggregate-management.html">Aggregate Management</a> — shares 4 reports</li>
+<li><a href="cement-chemistry.html">Cement Chemistry</a> — shares 4 reports</li>
+<li><a href="concrete-mixture-design.html">Concrete Mixture Design</a> — shares 4 reports</li>
+<li><a href="concrete-production-8-3.html">Concrete Production</a> — shares 4 reports</li>
+<li><a href="concrete-testing.html">Concrete Testing</a> — shares 4 reports</li>
+<li><a href="cracking-mitigation.html">Cracking Mitigation</a> — shares 4 reports</li>
+<li><a href="joint-maintenance.html">Joint Maintenance</a> — shares 4 reports</li>
+<li><a href="joint-sealing.html">Joint Sealing</a> — shares 4 reports</li>
+</ul>
+<p><strong>Similar topics</strong></p>
+<ul>
+<li><a href="sustainable-scms.html">Sustainable SCMs</a></li>
+<li><a href="material-testing.html">Material Testing</a></li>
+<li><a href="pavement-design.html">Pavement Design</a></li>
+<li><a href="other.html">Other</a></li>
+<li><a href="reinforcement-techniques.html">Reinforcement Techniques</a></li>
+<li><a href="surface-textures.html">Surface Textures</a></li>
+<li><a href="concrete-production.html">Concrete Production</a></li>
+<li><a href="pavement-management.html">Pavement Management</a></li>
+</ul>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1">Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL (2019)</li><li id="ref-2">Best Practices Manual: Quality Control and Quality Acceptance of Concrete Airport Pavement (2025)</li><li id="ref-3">Guide to the Prevention and Restoration of Early Joint Deterioration inConcrete Pavements (2016)</li><li id="ref-4">Concrete Pavement Preservation Guide (Third Edition) (2022)</li>
+</ol>
+</section></article>
+<section class="comments" aria-labelledby="comments-heading">
+<h2 id="comments-heading">Feedback on this page</h2>
+<iframe data-tally-src="https://tally.so/embed/q4qql9?url=https%3A%2F%2Fig0r.github.io%2Fcnrt-guides-wiki-stage%2Fcementitious-materials.html&amp;hideTitle=1&amp;transparentBackground=1&amp;dynamicHeight=1" loading="lazy" width="100%" frameborder="0" title="Feedback form for this page"></iframe>
+<script async src="https://tally.so/widgets/embed.js"></script>
+</section>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

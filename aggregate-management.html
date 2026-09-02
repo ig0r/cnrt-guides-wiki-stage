@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aggregate Management</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-16: per-page Tally feedback embed (md->html reverse builder) */
+.comments { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+.comments h2 { color: var(--accent); border: none; margin: 0 0 .75rem; font-size: 1.1rem; }
+.comments iframe { width: 100%; border: 0; min-height: 320px; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /Users/igor/dev/llm/ak-llm-wiki/llm-wiki-tools/hierarchy_v2_guides/16-guides-concept-visual -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">75 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="aggregate-management.html" class="active" aria-current="page">Aggregate Management</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="aggregate-classification.html">Aggregate Classification</a></li><li><a href="aggregate-management-3-1.html">Aggregate Management</a></li><li><a href="quality-control-3-2.html">Quality Control</a></li><li><a href="aggregate-impact.html">Aggregate Impact</a></li><li><a href="mixture-design.html">Mixture Design</a></li></ul></details></li><li><a href="cementitious-materials.html">Cementitious Materials</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="cement-chemistry.html">Cement Chemistry</a></li><li><a href="concrete-mixture-design.html">Concrete Mixture Design</a></li><li><a href="sustainable-scms.html">Sustainable SCMs</a></li><li><a href="cement-production.html">Cement Production</a></li><li><a href="concrete-durability.html">Concrete Durability</a></li></ul></details></li><li><a href="concrete-production.html">Concrete Production</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-production-15.html">Concrete Production</a></li></ul></details></li><li><a href="cracking-mitigation.html">Cracking Mitigation</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-cracking.html">Concrete Cracking</a></li><li><a href="moisture-management.html">Moisture Management</a></li><li><a href="sealant-application.html">Sealant Application</a></li><li><a href="temperature-management.html">Temperature Management</a></li></ul></details></li><li><a href="diamond-grinding.html">Diamond Grinding</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="diamond-grinding-5.html">Diamond Grinding</a></li></ul></details></li><li><a href="drainage-management.html">Drainage Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="drainage-management-7.html">Drainage Management</a></li></ul></details></li><li><a href="joint-sealing.html">Joint Sealing</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="joint-maintenance.html">Joint Maintenance</a></li><li><a href="sealant-installation.html">Sealant Installation</a></li><li><a href="pavement-maintenance.html">Pavement Maintenance</a></li><li><a href="sealant-performance.html">Sealant Performance</a></li></ul></details></li><li><a href="material-testing.html">Material Testing</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-testing.html">Concrete Testing</a></li><li><a href="concrete-durability-9-1.html">Concrete Durability</a></li><li><a href="concrete-strength.html">Concrete Strength</a></li><li><a href="concrete-standards.html">Concrete Standards</a></li><li><a href="material-testing-9-4.html">Material Testing</a></li><li><a href="maturity-methods.html">Maturity Methods</a></li></ul></details></li><li><a href="other.html">Other</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="other-17.html">Other</a></li></ul></details></li><li><a href="pavement-design.html">Pavement Design</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="overlay-technology.html">Overlay Technology</a></li><li><a href="pavement-types.html">Pavement Types</a></li><li><a href="construction-insights.html">Construction Insights</a></li><li><a href="recycling-innovation.html">Recycling Innovation</a></li></ul></details></li><li><a href="pavement-management-14.html">Pavement Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-smoothness.html">Pavement Smoothness</a></li><li><a href="pavement-systems.html">Pavement Systems</a></li><li><a href="subgrade-insights.html">Subgrade Insights</a></li><li><a href="excavation-safety.html">Excavation Safety</a></li><li><a href="slab-jacking.html">Slab Jacking</a></li></ul></details></li><li><a href="pavement-management.html">Pavement Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-evaluation.html">Pavement Evaluation</a></li><li><a href="preservation-strategies.html">Preservation Strategies</a></li><li><a href="pavement-design-8-2.html">Pavement Design</a></li><li><a href="concrete-production-8-3.html">Concrete Production</a></li><li><a href="design-methodologies.html">Design Methodologies</a></li><li><a href="design-considerations.html">Design Considerations</a></li></ul></details></li><li><a href="pavement-repair.html">Pavement Repair</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="slab-stabilization.html">Slab Stabilization</a></li><li><a href="pavement-repairs.html">Pavement Repairs</a></li><li><a href="dowel-bar-retrofit.html">Dowel Bar Retrofit</a></li></ul></details></li><li><a href="paving-operations.html">Paving Operations</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="paving-operations-12.html">Paving Operations</a></li></ul></details></li><li><a href="quality-assurance.html">Quality Assurance</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="quality-control-1-0.html">Quality Control</a></li><li><a href="project-management.html">Project Management</a></li><li><a href="quality-assurance-1-2.html">Quality Assurance</a></li></ul></details></li><li><a href="quality-control.html">Quality Control</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-assessment.html">Pavement Assessment</a></li><li><a href="mixture-management.html">Mixture Management</a></li><li><a href="concrete-sampling.html">Concrete Sampling</a></li><li><a href="concrete-strength-10-3.html">Concrete Strength</a></li><li><a href="mixture-design-10-4.html">Mixture Design</a></li></ul></details></li><li><a href="reinforcement-techniques.html">Reinforcement Techniques</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="reinforcement-techniques-16.html">Reinforcement Techniques</a></li></ul></details></li><li><a href="surface-textures.html">Surface Textures</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="surface-textures-11.html">Surface Textures</a></li></ul></details></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Aggregate Management</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=aggregate">aggregate</a><a class="tag" href="index.html?q=management">management</a></div><div>Created 2026-09-01 · Updated 2026-09-02</div></div>
+<p>Aggregate management is the coordinated oversight of mineral constituents throughout their lifecycle, from extraction and processing to storage and delivery, ensuring they meet defined quality criteria for concrete production. The process involves systematic selection, handling, and control of coarse and fine fractions to maintain consistent grading, particle shape, texture, absorption, and durability within prescribed limits [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. By optimizing aggregate volume and gradation to maximize stable mineral content while minimizing voids, the approach reduces cement paste demand, thereby limiting shrinkage and chemical deterioration [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. Effective management integrates moisture conditioning, durability screening for deleterious materials, and uniform stockpile practices to preserve the intended water-cement ratio and prevent segregation or contamination [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. This holistic control ensures that the bulk of the concrete mixture contributes positively to workability, strength, durability, and economic efficiency across all production stages [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</p>
+<p><a href="aggregate-management-3-1.html">Aggregate Management</a> governs the systematic control of mineral constituents to ensure coarse and fine fractions meet specified quality criteria for concrete production. <a href="aggregate-classification.html">Aggregate Classification</a> establishes the foundational material identity by systematically categorizing concrete aggregates based on their geological origin and physical characteristics to ensure optimal selection for mixture design. <a href="quality-control-3-2.html">Quality Control</a> ensures that coarse aggregates meet specific performance criteria through systematic testing, thereby safeguarding the durability and structural integrity of concrete pavements. <a href="aggregate-impact.html">Aggregate Impact</a> quantifies the resistance of coarse particles to sudden shock loads, providing a critical metric for selecting durable materials that maintain structural integrity under traffic stresses. <a href="mixture-design.html">Mixture Design</a> optimizes concrete performance and durability by systematically selecting proportions for cement, water, aggregates, and admixtures to satisfy prescribed strength, workability, and economy criteria.</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#key-findings">Key findings</a></li><li><a href="#particle-size-distribution-and-grading-optimization">Particle Size Distribution and Grading Optimization</a></li><li><a href="#aggregate-sourcing-classification-and-physical-specifications">Aggregate Sourcing, Classification, and Physical Specifications</a></li><li><a href="#related-concepts">Related concepts</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (4)</summary><div class="sources-body"><a href="#ref-1">Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL (2019)</a>, <a href="#ref-2">Best Practices Manual: Quality Control and Quality Acceptance of Concrete Airport Pavement (2025)</a>, <a href="#ref-3">Guide to the Prevention and Restoration of Early Joint Deterioration inConcrete Pavements (2016)</a>, <a href="#ref-4">Concrete Pavement Preservation Guide (Third Edition) (2022)</a></div></details>
+<details class="subconcepts-toggle"><summary>Sub-concepts (5)</summary><div class="subconcepts-body"><a href="aggregate-classification.html">Aggregate Classification</a> · <a href="aggregate-management-3-1.html">Aggregate Management</a> · <a href="quality-control-3-2.html">Quality Control</a> · <a href="aggregate-impact.html">Aggregate Impact</a> · <a href="mixture-design.html">Mixture Design</a></div></details>
+<h2 id="key-findings">Key findings</h2>
+<ul>
+<li>Maximizing the nominal maximum aggregate size within geometric constraints reduced cement paste volume, which curtailed shrinkage and improved freeze-thaw durability [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Well-graded aggregate blends consistently outperformed gap-graded mixes by reducing void space, lowering water demand, curbing shrinkage, and mitigating segregation [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Mineralogical classification alone could not guarantee performance, requiring systematic verification of new sources to identify unsound materials like shale or siltstone [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Angular and rough aggregate textures improved interlock and skid resistance but created harsh mixes that required additional water or admixture adjustments to maintain workability [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Recycled concrete aggregates demanded tighter quality-control regimes due to higher absorption, softness, and potential leaching compared to natural sources [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Maintaining saturated-surface-dry moisture conditions prevented variability in the water-cementitious ratio and preserved concrete durability [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Transportation of aggregates often generated more energy use and greenhouse-gas emissions than extraction, making proximity to batching plants a key sustainability factor [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Conical stockpiles presented the highest segregation risk, necessitating construction in thin layers on stabilized bases to maintain gradation limits [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+</ul>
+<h2 id="particle-size-distribution-and-grading-optimization">Particle Size Distribution and Grading Optimization</h2>
+<p><small>Evidence: 3 reports (3 primary)</small></p>
+<p>Particle size distribution and grading optimization involve selecting a blend of mineral particles that maximizes solid volume while minimizing the voids between them. A well-graded aggregate structure efficiently fills these interstitial spaces, which reduces the quantity of cement paste required to coat the surfaces and fill remaining gaps [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. This reduction in paste demand directly limits shrinkage potential and enhances resistance to chemical attack and freeze-thaw deterioration by decreasing the volume of the more vulnerable matrix material [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</p>
+<p>The relationship between these aggregate properties is illustrated in the figure below, which plots workability against coarseness.</p>
+<p><img alt="Workability factor vs. coarseness factor for combined aggreg" src="assets/aggregate-management/533ec6e6f3a18fe3b896ef88f0704c7b78f4d624d331ff1097217508630ae048.jpg" />
+<em>Workability factor vs. coarseness factor for combined aggregate</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays a chart plotting Workability (percent) against Coarseness Factor (percent), divided into five distinct zones labeled I through V. It illustrates the relationship between aggregate gradation and concrete performance, showing how specific combinations of coarseness and workability define different mixture classes (e.g., II-A, II-B) or durability requirements.</p>
+<p><strong>Research problem</strong> — Research addresses the challenge of optimizing particle size distribution to minimize cement paste volume, thereby reducing shrinkage and extending pavement service life [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. Investigation focuses on managing uncontrolled variability in aggregate grading and moisture to prevent increased cementitious demand and compromised durability [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Study examines the difficulty of maintaining strict gradation limits through blending and storage without segregation or environmental contamination [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p>The following figure illustrates a sample haystack plot to visualize aggregate variability.</p>
+<p><img alt="Sample Haystack plot" src="assets/aggregate-management/0dbc844677e7d0e5dd93a00c65e63e80352eb979c4f1781c74c7b38806f39bfa.jpg" />
+<em>Sample Haystack plot</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>A red line with diamond markers indicates the specific particle distribution for a sample, while blue dashed lines represent traditional grading limits that bound the acceptable range of aggregate retention.</p>
+<p><strong>State of the art</strong> — Current practice prioritizes optimizing particle size distribution to maximize aggregate packing density, which reduces cement paste demand and improves durability by mitigating shrinkage and freeze-thaw damage [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. Designers routinely employ densification tools such as the Tarantula curve, Power 45 chart, and coarseness/workability factors to generate well-graded skeletons that minimize segregation and lower water-to-cement ratios [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. The industry standard involves iterative grading adjustments based on performance-engineered mixtures and real-time moisture monitoring to ensure consistent particle packing and constructability under varying environmental conditions [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p>The following figure illustrates how this well-graded distribution enables smaller particles to fill voids between larger ones.</p>
+<p><img alt="Well-graded aggregate with a balanced variety of sizes allow" src="assets/aggregate-management/d9c08f853092d99cb0c4b153c32a1f743cba2d6389186aa496dd9a98f9bdb072.jpg" />
+<em>Well-graded aggregate with a balanced variety of sizes allows smaller particles to fill voids between larger particles, maximizing aggregate volume</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays three beakers containing coarse aggregates of varying particle size distributions: one with large uniform stones, one with small uniform grains, and one with a mix of both sizes. Below the beakers are graduated cylinders showing that the mixture containing the balanced variety of sizes requires the least amount of water to fill the voids between particles.</p>
+<p><strong>Findings from the reports</strong></p>
+<ul>
+<li>Maximizing the nominal maximum aggregate size within geometric constraints reduced cement paste volume, which curtailed shrinkage and improved freeze-thaw durability [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Well-graded aggregate blends consistently outperformed gap-graded mixes by reducing void space, lowering water demand, curbing shrinkage, and mitigating segregation [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Mineralogical classification alone could not guarantee performance, requiring systematic verification of new sources to identify unsound materials like shale or siltstone [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Angular and rough aggregate textures improved interlock and skid resistance but created harsh mixes that required additional water or admixture adjustments to maintain workability [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Recycled concrete aggregates demanded tighter quality-control regimes due to higher absorption, softness, and potential leaching compared to natural sources [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Maintaining saturated-surface-dry moisture conditions prevented variability in the water-cementitious ratio and preserved workability by avoiding unaccounted paste stiffening [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Transportation of aggregates often generated more energy use and greenhouse-gas emissions than extraction, making proximity to batching plants a key sustainability factor [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Conical stockpiles presented the highest segregation risk, necessitating thin-layer construction on stabilized bases to maintain gradation integrity [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>A minimum of 120 days was required for sampling, testing, and approving aggregates before proportioning studies could begin due to rigorous durability verification requirements [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+</ul>
+<p><strong>Novelty &amp; rigor</strong> — Novelty lies in operationalizing void-ratio calculations through accessible digital tools that bridge theoretical mixture design with practical aggregate management, thereby optimizing the trade-off between workability and material efficiency [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. The approach uniquely integrates grading optimization with durability assurance by treating the entire aggregate system as a single control problem, utilizing quantitative factors to steer blends toward ideal envelopes while mitigating long-term performance risks [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Reproducibility is ensured through disciplined chains of raw-material selection, precise moisture and grading control, and continuous plant-level monitoring that corrects for variability in real time to maintain consistent batch quality [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p>The following figure illustrates the sequential steps for adjusting concrete mixture proportions as part of this proactive process control strategy.</p>
+<p><img alt="Sequential steps for adjusting concrete mixture proportions" src="assets/aggregate-management/466a782c2f52e63d0051b8e64262228526688896b9de50921189005edac54991.jpg" />
+<em>Sequential steps for adjusting concrete mixture proportions as part of proactive process control.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays a four-stage workflow diagram illustrating the progression from initial laboratory design to final production management. The process begins with Laboratory Developed Mixture Design, followed by Contractor Full-Scale Test Batches for validating the mix. Subsequent steps involve a Control Strip or Test Section for fine tuning and conclude with Production managing.</p>
+<p><strong>Reported values</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Context</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>bulk volume increase</td>
+<td>10 percent%</td>
+<td>for low‑slump concrete (slipform paving)</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>expansion failure criterion</td>
+<td>0.035 percent%</td>
+<td>in 350 freeze-thaw cycles or less for D-cracking susceptibility</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>fines passing #200 sieve</td>
+<td>10 percent%</td>
+<td>limit for untreated bases</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>fines passing #200 sieve</td>
+<td>35 percent%</td>
+<td>for Granular materials in AASHTO Soil Classification Groups A-1, A-2-4, A-2-5, and A-3</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>Los Angeles abrasion loss</td>
+<td>50 percent%</td>
+<td>loss in the Los Angeles abrasion test (ASTM C131/AASHTO T 96)</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>maximum coarse-aggregate size</td>
+<td>2.5 in.</td>
+<td>general limitation for concrete placement (whichever is less)</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>profile index (PI)</td>
+<td>10</td>
+<td>for Granular materials in AASHTO Soil Classification Groups A-1, A-2-4, A-2-5, and A-3</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>siliceous particle content</td>
+<td>25 percent%</td>
+<td>by mass of fine aggregate</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>Coarseness Factor variability</td>
+<td>±5</td>
+<td>expected change during a paving day quantified by Air Force research in 1996</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+<tr>
+<td>fineness modulus limit (lower)</td>
+<td>2.5</td>
+<td>FAA and DOD limit for FM</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+<tr>
+<td>fineness modulus limit (upper)</td>
+<td>3.4</td>
+<td>FAA and DOD limit for FM</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+<tr>
+<td>planning lead time</td>
+<td>120 days</td>
+<td>minimum recommended for planning the acquisition of aggregates, sampling stockpiles, testing, approval, and performing the study</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+<tr>
+<td>proportioning study notice period</td>
+<td>21 days</td>
+<td>minimum prior to beginning a mixture proportioning study for preliminary proposed items</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+<tr>
+<td>Workability Factor variability</td>
+<td>±3</td>
+<td>expected change during a paving day quantified by Air Force research in 1996</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+<tr>
+<td>intermediate aggregate size for optimized gradation</td>
+<td>~0.33 in.</td>
+<td>optimized gradation intermediate size</td>
+<td>[<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</td>
+</tr>
+</tbody>
+</table>
+<p><small>1 more distinct value omitted here; the full span-verified set is in the quantities sidecar.</small></p>
+<p>Across the reviewed reports, optimizing particle size distribution through well-graded blends is consistently identified as a primary mechanism for reducing void space and minimizing cement paste volume, which directly enhances durability by lowering permeability and shrinkage risks. While maximizing aggregate size and achieving optimal grading improve economy and freeze-thaw resistance, these benefits are constrained by geometric limits on nominal maximum size and the trade-offs introduced by angular textures or recycled sources that can impair workability. The collective evidence indicates that maintaining strict control over gradation is critical because deviations from optimal grading or the introduction of blended aggregates increase segregation potential and variability, necessitating rigorous trial batching and continuous quality monitoring to ensure performance. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>] [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The following figure illustrates sieve analysis and the basic characteristics of gradations.</p>
+<p><img alt="Sieve analysis and the basic characteristics of gradations (" src="assets/aggregate-management/3656b2aef3bd5136ebc94980e1391a4de4e690aa40e20b43543aebc0d57920ba.jpg" />
+<em>Sieve analysis and the basic characteristics of gradations (adapted from ACPA 2015).</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure illustrates a sieve analysis process where aggregate particles are separated by size using stacked screens, resulting in different particle distributions. It visually contrasts three gradation types: uniformly-graded, gap-graded, and well-graded aggregates, showing how the distribution of particle sizes affects void space within a mixture.</p>
+<p><strong>Implications</strong> — Designers should specify the largest practicable maximum aggregate size within code limits to reduce cement paste demand, thereby lowering shrinkage and enhancing durability against freeze-thaw cycles [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. Optimizing gradation by incorporating intermediate particle sizes further decreases paste volume, requiring managers to balance these volumetric benefits against potential workability trade-offs during construction [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. Practitioners must implement continuous monitoring of combined gradation and moisture content to maintain saturated-surface-dry conditions, ensuring that variability in particle size distribution does not compromise the effective water-cement ratio or mix stability [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p>The following figure illustrates how aggregate gradation influences workability relative to paste content.</p>
+<p><img alt="Effect of aggregate gradation on workability as a function o" src="assets/aggregate-management/53be06df0af028b782df728f7b3bdbbdd5b63a5bb17b6d6681a3095ed9c0862b.jpg" />
+<em>Effect of aggregate gradation on workability as a function of paste content</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure plots the V-Kelly Index, representing concrete workability, against varying paste contents for three distinct aggregate classifications.</p>
+<p><strong>Limitations</strong> — Optimizing particle size distribution is constrained by the inherent variability of grading, moisture content, and mineralogy, which complicates the achievement of consistent concrete performance [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. The effectiveness of grading optimization relies heavily on reliable service records; in their absence, confidence is limited to laboratory testing and trial-batch verification rather than historical precedent [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Current practices often lack quantitative thresholds for key performance indicators such as segregation, making decisions regarding particle size and mix behavior subjective and prone to dispute [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<h2 id="aggregate-sourcing-classification-and-physical-specifications">Aggregate Sourcing, Classification, and Physical Specifications</h2>
+<p><small>Evidence: 1 report (1 primary)</small></p>
+<p><strong>Findings from the reports</strong></p>
+<ul>
+<li>Found that aggregate hardness dictates grinding specifications, requiring harder aggregates to use closer blade spacing and higher blade density to achieve a thin land area, while softer aggregates allow for wider spacings [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</li>
+<li>Observed that this relationship between aggregate hardness and grinding parameters creates a trade-off between achieving the desired surface texture and managing blade selection complexity and wear [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</li>
+<li>Reported that specifications shifted from explicit land-area measurements to stating the number of blades per unit width, because land-area dimensions are influenced by many uncontrolled factors [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</li>
+</ul>
+<p><strong>Novelty &amp; rigor</strong> — The approach introduces a specific construction protocol for aggregate drainage that integrates precise trench geometry, full-encapsulation geotextile lining, and strict lift-size limits to prevent fines migration [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]. Reproducibility is ensured by defining exact excavation dimensions, minimum slope requirements, and a sequential compaction process that allows the procedure to be replicated with standard earth-moving equipment [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</p>
+<p><strong>Implications</strong> — Specifications for aggregate sourcing and physical characteristics should prioritize measurable material properties, such as hardness, over abstract geometric metrics to ensure practical enforceability in construction applications [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]. The integration of early-stage material property data into design specifications is essential to balance conceptual simplicity with operational reality, particularly when coordinating aggregate management with broader restoration techniques [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</p>
+<p><strong>Limitations</strong> — Physical specifications for aggregate-related surface treatments cannot reliably define exact land-area dimensions due to variability in blade core size, segment width, spacers, wear, and operator control [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]. Consequently, guidance shifts to prescribing the number of blades per unit width rather than exact values, which limits the precision with which surface texture can be controlled [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</p>
+<p>The following figure illustrates the resulting surface texture provided by diamond grinding.</p>
+<p><img alt="Surface texture provided by diamond grinding" src="assets/aggregate-management/7cf16c118125ee42484990fff6b8303b01686fec0a0f48361fe0f5b3003383a7.jpg" />
+<em>Surface texture provided by diamond grinding</em> [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The figure displays a schematic cross-section of a concrete pavement surface featuring alternating grooves and land areas.</p>
+<h2 id="related-concepts">Related concepts</h2>
+<p><strong>In this hierarchy</strong></p>
+<ul>
+<li>Child: <a href="aggregate-classification.html">Aggregate Classification</a></li>
+<li>Child: <a href="aggregate-management-3-1.html">Aggregate Management</a></li>
+<li>Child: <a href="quality-control-3-2.html">Quality Control</a></li>
+<li>Child: <a href="aggregate-impact.html">Aggregate Impact</a></li>
+<li>Child: <a href="mixture-design.html">Mixture Design</a></li>
+</ul>
+<p><strong>Related by shared evidence</strong></p>
+<ul>
+<li><a href="cement-chemistry.html">Cement Chemistry</a> — shares 4 reports</li>
+<li><a href="cementitious-materials.html">Cementitious Materials</a> — shares 4 reports</li>
+<li><a href="concrete-mixture-design.html">Concrete Mixture Design</a> — shares 4 reports</li>
+<li><a href="concrete-production-8-3.html">Concrete Production</a> — shares 4 reports</li>
+<li><a href="concrete-testing.html">Concrete Testing</a> — shares 4 reports</li>
+<li><a href="cracking-mitigation.html">Cracking Mitigation</a> — shares 4 reports</li>
+<li><a href="joint-maintenance.html">Joint Maintenance</a> — shares 4 reports</li>
+<li><a href="joint-sealing.html">Joint Sealing</a> — shares 4 reports</li>
+</ul>
+<p><strong>Similar topics</strong></p>
+<ul>
+<li><a href="aggregate-management-3-1.html">Aggregate Management</a></li>
+<li><a href="aggregate-classification.html">Aggregate Classification</a></li>
+<li><a href="pavement-management.html">Pavement Management</a></li>
+<li><a href="pavement-management-14.html">Pavement Management</a></li>
+<li><a href="cracking-mitigation.html">Cracking Mitigation</a></li>
+<li><a href="paving-operations.html">Paving Operations</a></li>
+<li><a href="concrete-production.html">Concrete Production</a></li>
+<li><a href="quality-control.html">Quality Control</a></li>
+</ul>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1">Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL (2019)</li><li id="ref-2">Best Practices Manual: Quality Control and Quality Acceptance of Concrete Airport Pavement (2025)</li><li id="ref-3">Guide to the Prevention and Restoration of Early Joint Deterioration inConcrete Pavements (2016)</li><li id="ref-4">Concrete Pavement Preservation Guide (Third Edition) (2022)</li>
+</ol>
+</section></article>
+<section class="comments" aria-labelledby="comments-heading">
+<h2 id="comments-heading">Feedback on this page</h2>
+<iframe data-tally-src="https://tally.so/embed/q4qql9?url=https%3A%2F%2Fig0r.github.io%2Fcnrt-guides-wiki-stage%2Faggregate-management.html&amp;hideTitle=1&amp;transparentBackground=1&amp;dynamicHeight=1" loading="lazy" width="100%" frameborder="0" title="Feedback form for this page"></iframe>
+<script async src="https://tally.so/widgets/embed.js"></script>
+</section>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pavement Design</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-16: per-page Tally feedback embed (md->html reverse builder) */
+.comments { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+.comments h2 { color: var(--accent); border: none; margin: 0 0 .75rem; font-size: 1.1rem; }
+.comments iframe { width: 100%; border: 0; min-height: 320px; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /Users/igor/dev/llm/ak-llm-wiki/llm-wiki-tools/hierarchy_v2_guides/16-guides-concept-visual -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">75 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="aggregate-management.html">Aggregate Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="aggregate-classification.html">Aggregate Classification</a></li><li><a href="aggregate-management-3-1.html">Aggregate Management</a></li><li><a href="quality-control-3-2.html">Quality Control</a></li><li><a href="aggregate-impact.html">Aggregate Impact</a></li><li><a href="mixture-design.html">Mixture Design</a></li></ul></details></li><li><a href="cementitious-materials.html">Cementitious Materials</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="cement-chemistry.html">Cement Chemistry</a></li><li><a href="concrete-mixture-design.html">Concrete Mixture Design</a></li><li><a href="sustainable-scms.html">Sustainable SCMs</a></li><li><a href="cement-production.html">Cement Production</a></li><li><a href="concrete-durability.html">Concrete Durability</a></li></ul></details></li><li><a href="concrete-production.html">Concrete Production</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-production-15.html">Concrete Production</a></li></ul></details></li><li><a href="cracking-mitigation.html">Cracking Mitigation</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-cracking.html">Concrete Cracking</a></li><li><a href="moisture-management.html">Moisture Management</a></li><li><a href="sealant-application.html">Sealant Application</a></li><li><a href="temperature-management.html">Temperature Management</a></li></ul></details></li><li><a href="diamond-grinding.html">Diamond Grinding</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="diamond-grinding-5.html">Diamond Grinding</a></li></ul></details></li><li><a href="drainage-management.html">Drainage Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="drainage-management-7.html">Drainage Management</a></li></ul></details></li><li><a href="joint-sealing.html">Joint Sealing</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="joint-maintenance.html">Joint Maintenance</a></li><li><a href="sealant-installation.html">Sealant Installation</a></li><li><a href="pavement-maintenance.html">Pavement Maintenance</a></li><li><a href="sealant-performance.html">Sealant Performance</a></li></ul></details></li><li><a href="material-testing.html">Material Testing</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-testing.html">Concrete Testing</a></li><li><a href="concrete-durability-9-1.html">Concrete Durability</a></li><li><a href="concrete-strength.html">Concrete Strength</a></li><li><a href="concrete-standards.html">Concrete Standards</a></li><li><a href="material-testing-9-4.html">Material Testing</a></li><li><a href="maturity-methods.html">Maturity Methods</a></li></ul></details></li><li><a href="other.html">Other</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="other-17.html">Other</a></li></ul></details></li><li><a href="pavement-design.html" class="active" aria-current="page">Pavement Design</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="overlay-technology.html">Overlay Technology</a></li><li><a href="pavement-types.html">Pavement Types</a></li><li><a href="construction-insights.html">Construction Insights</a></li><li><a href="recycling-innovation.html">Recycling Innovation</a></li></ul></details></li><li><a href="pavement-management-14.html">Pavement Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-smoothness.html">Pavement Smoothness</a></li><li><a href="pavement-systems.html">Pavement Systems</a></li><li><a href="subgrade-insights.html">Subgrade Insights</a></li><li><a href="excavation-safety.html">Excavation Safety</a></li><li><a href="slab-jacking.html">Slab Jacking</a></li></ul></details></li><li><a href="pavement-management.html">Pavement Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-evaluation.html">Pavement Evaluation</a></li><li><a href="preservation-strategies.html">Preservation Strategies</a></li><li><a href="pavement-design-8-2.html">Pavement Design</a></li><li><a href="concrete-production-8-3.html">Concrete Production</a></li><li><a href="design-methodologies.html">Design Methodologies</a></li><li><a href="design-considerations.html">Design Considerations</a></li></ul></details></li><li><a href="pavement-repair.html">Pavement Repair</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="slab-stabilization.html">Slab Stabilization</a></li><li><a href="pavement-repairs.html">Pavement Repairs</a></li><li><a href="dowel-bar-retrofit.html">Dowel Bar Retrofit</a></li></ul></details></li><li><a href="paving-operations.html">Paving Operations</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="paving-operations-12.html">Paving Operations</a></li></ul></details></li><li><a href="quality-assurance.html">Quality Assurance</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="quality-control-1-0.html">Quality Control</a></li><li><a href="project-management.html">Project Management</a></li><li><a href="quality-assurance-1-2.html">Quality Assurance</a></li></ul></details></li><li><a href="quality-control.html">Quality Control</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-assessment.html">Pavement Assessment</a></li><li><a href="mixture-management.html">Mixture Management</a></li><li><a href="concrete-sampling.html">Concrete Sampling</a></li><li><a href="concrete-strength-10-3.html">Concrete Strength</a></li><li><a href="mixture-design-10-4.html">Mixture Design</a></li></ul></details></li><li><a href="reinforcement-techniques.html">Reinforcement Techniques</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="reinforcement-techniques-16.html">Reinforcement Techniques</a></li></ul></details></li><li><a href="surface-textures.html">Surface Textures</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="surface-textures-11.html">Surface Textures</a></li></ul></details></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Pavement Design</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=pavement">pavement</a><a class="tag" href="index.html?q=design">design</a></div><div>Created 2026-09-01 · Updated 2026-09-02</div></div>
+<p>Pavement design is the engineering discipline that determines how a road will be built so that it can safely carry expected traffic over its intended service life while providing acceptable ride quality, durability, and cost efficiency. The process involves selecting the appropriate structural type, material composition, and surface texture to meet performance objectives such as load-bearing capacity and noise control by balancing traffic loading, environmental conditions, and lifecycle cost considerations [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Designers determine the sequence of layers from subgrade through base and surface courses, along with their respective thicknesses, based on key inputs including traffic characteristics, soil strength, climate variables, and drainage requirements [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Material properties such as stiffness, strength, thermal expansion, and moisture susceptibility are matched to these conditions, and the interaction among layers is evaluated using established analytical frameworks that translate input data into required structural capacities [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. A fundamental step in this process is the evaluation of existing pavement condition through records review and nondestructive testing to verify support uniformity, ensuring that design decisions address all system components to achieve desired service life as economically as possible [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p>Pavement Design unifies the engineering decisions that determine how road surfaces perform, last, and impact the environment. <a href="overlay-technology.html">Overlay Technology</a> enables pavement design to optimize structural capacity and extend service life by strategically placing new layers over existing roadways. <a href="pavement-types.html">Pavement Types</a> defines the structural form and reinforcement strategy of road surfaces to enable engineers to select materials that optimize sustainability, durability, and performance. <a href="construction-insights.html">Construction Insights</a> provides the critical execution protocols that translate sustainable design principles into durable, high-performance concrete pavements. <a href="recycling-innovation.html">Recycling Innovation</a> advances pavement design by integrating waste-derived materials into concrete structures to enhance sustainability and performance optimization.</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#fundamentals">Fundamentals</a></li><li><a href="#key-findings">Key findings</a></li><li><a href="#sustainable-materials-and-recycling-applications">Sustainable Materials and Recycling Applications</a></li><li><a href="#related-concepts">Related concepts</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (4)</summary><div class="sources-body"><a href="#ref-1">Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL (2019)</a>, <a href="#ref-2">Concrete Pavement Preservation Guide (Third Edition) (2022)</a>, <a href="#ref-3">Guide to the Prevention and Restoration of Early Joint Deterioration inConcrete Pavements (2016)</a>, <a href="#ref-4">Best Practices Manual: Quality Control and Quality Acceptance of Concrete Airport Pavement (2025)</a></div></details>
+<details class="subconcepts-toggle"><summary>Sub-concepts (4)</summary><div class="subconcepts-body"><a href="overlay-technology.html">Overlay Technology</a> · <a href="pavement-types.html">Pavement Types</a> · <a href="construction-insights.html">Construction Insights</a> · <a href="recycling-innovation.html">Recycling Innovation</a></div></details>
+<h2 id="fundamentals">Fundamentals</h2>
+<p>Pavement design is an engineering discipline that determines the structural configuration and material selection required for a road to safely support expected traffic loads over its intended service life while maintaining acceptable ride quality and durability [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. The process involves selecting appropriate pavement types, layer sequences, and thicknesses by evaluating key inputs such as traffic characteristics, subgrade strength, climate variables, and drainage requirements to ensure the system performs under specific environmental conditions [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Designers balance structural capacity, construction complexity, and lifecycle costs by matching material properties like stiffness and moisture susceptibility to site-specific demands, often utilizing mechanistic-empirical frameworks or established guidelines to translate input data into required structural capacities [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. A fundamental step in the design process is evaluating existing pavement conditions through records review and nondestructive testing to verify support uniformity, which informs trade-offs between different treatment strategies such as bonded versus unbonded overlays [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p>The following figure illustrates how center slab deflection varies along a project when normalized to a standard 9,000 lbf loading.</p>
+<p><img alt="Center slab deflection variation along a project normalized" src="assets/pavement-design/b2bc2d59ea7ec17f84f0fb15c2b1ce115449f6e6c48e7505c8e0c0deada6d6d8.jpg" />
+<em>Center slab deflection variation along a project normalized to a 9,000 lbf loading.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure plots the normalized maximum deflection of pavement slabs against the distance along the roadway in feet. This data illustrates how surface deflections vary spatially, which is essential for identifying subsections where distress or poor moisture conditions may be affecting the pavement structure. Such measurements are used to backcalculate fundamental engineering properties of the concrete and subgrade soil to assess structural condition.</p>
+<h2 id="key-findings">Key findings</h2>
+<ul>
+<li>Found that bonded overlays create a monolithic pavement structure with the existing pavement to add structural value and eliminate surface distresses, but require the underlying pavement to be free of structural distress and aligned joints [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Demonstrated that recycled concrete aggregate consistently outperforms virgin aggregate for unbound or stabilized bases by providing greater shear strength, improved rutting resistance, and higher resilient modulus [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Identified the two-lift composite pavement as the preferred configuration because it allows designers to place high-quality aggregate in a thin upper lift while using recycled material in the thicker lower lift, thereby reducing costs and environmental impacts without degrading surface performance [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Established that solar reflectance is the single most important pavement material property affecting thermal behavior, with concrete values ranging from 0.2 to 0.5 depending on mix constituents and age [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Showed that concrete pavements previously overlaid with asphalt represent a viable opportunity for rehabilitation if the underlying slab remains structurally sound, allowing for cost-effective preservation actions such as slab stabilization and diamond grinding [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Confirmed that uniform support is the decisive factor for successful overlay performance, with any deviation from uniform support identified as the root cause of premature failures across all overlay strategies [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Observed that thick geotextile fabrics increasingly serve as effective separation layers for unbonded overlays, enabling independent movement and preventing crack propagation where historical asphalt sheets were previously used [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+</ul>
+<h2 id="sustainable-materials-and-recycling-applications">Sustainable Materials and Recycling Applications</h2>
+<p><small>Evidence: 4 reports (3 primary)</small></p>
+<p>Sustainable pavement design increasingly incorporates recycled materials, such as crushed concrete, to replace virgin aggregates in base layers, thereby reducing resource consumption and environmental impact [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. These recycled aggregates often possess distinct physical properties, including higher roughness and shear strength, which can enhance the structural performance and rutting resistance of the pavement structure [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</p>
+<p>The following figure illustrates a concrete pavement prepared for recycling.</p>
+<p><img alt="Crushed concrete pavement material being processed by heavy" src="assets/pavement-design/6f4e378a8cd5e6d3a148767db969fa2b61deae5870d2300285363183d30b193a.jpg" />
+<em>Crushed concrete pavement material being processed by heavy machinery.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The image displays a pile of broken, irregular grey blocks identified as concrete pavement undergoing recycling operations.</p>
+<p><strong>Research problem</strong> — Existing concrete and composite pavements frequently fail to deliver the uniform support and durability required for long-term service, yet agencies often overlook these deficiencies when selecting preservation treatments [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Designers must address systemic issues such as excessive noise, moisture ingress, and structural degradation by balancing environmental impact with performance goals rather than relying on conventional overlay strategies that ignore underlying slab conditions [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Conventional repair methods are often insufficient for severe joint deterioration, creating a need to evaluate in-place recycling of existing concrete into recycled aggregate bases while ensuring material quality through rigorous testing for distresses like alkali-silica reaction [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</p>
+<p>The following figure illustrates a pre-overlay repair of a spalled joint.</p>
+<p><img alt="Pre-overlay repair of spalled joint (photo courtesy of Todd" src="assets/pavement-design/5c549cc49b95ac8d2c997df5e2411d76e3a7240cfbcd26dbc3dd1ae0796b07de.jpg" />
+<em>Pre-overlay repair of spalled joint (photo courtesy of Todd LaTorella, MO/KS ACPA)</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The image displays a concrete pavement surface featuring yellow longitudinal markings and a dark transverse joint. A patch of light-colored material has been applied to the area surrounding the joint, indicating pre-overlay repair work on spalled concrete.</p>
+<p><strong>State of the art</strong> — The field has converged on mechanistic-empirical design frameworks that integrate sustainability metrics with structural performance, enabling the routine incorporation of recycled aggregates and supplementary cementitious materials to reduce environmental impact while maintaining durability [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Current practice prioritizes preservation-focused strategies, such as concrete overlays and slab stabilization using polyurethane foam, which extend service life by decades and offer significant societal benefits including noise reduction and improved friction without the high carbon footprint of full reconstruction [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Emerging sustainable technologies, including fully permeable concrete systems and modular precast components, are gaining traction for their stormwater management capabilities and reduced greenhouse gas emissions, although structural limitations currently restrict some innovations to low-traffic applications [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p>The following figure illustrates a permeable interlocking concrete pavement system.</p>
+<p><img alt="Cross-section of a permeable interlocking concrete pavement" src="assets/pavement-design/870162a2f729afbabb138315ea7d656c2da37e7d938ece5649edc3175f6f61b4.jpg" />
+<em>Cross-section of a permeable interlocking concrete pavement system showing its layered construction.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays the vertical stratification of a permeable pavement, consisting of surface pavers separated by gravel, resting on a bedding layer and two distinct open-graded granular base layers above a compacted subgrade.</p>
+<p><strong>Findings from the reports</strong></p>
+<ul>
+<li>Identified material stewardship, structural reliability, and thermal performance as the three cross-cutting imperatives defining modern pavement design [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Demonstrated that the two-lift composite pavement configuration reduces material costs and transport-related environmental impacts by placing high-quality aggregate in a thin upper lift while utilizing locally sourced or recycled materials in the thicker lower lift [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Established that solar reflectance is the single most important pavement material property governing thermal performance, with concrete values varying based on mix constituents and age [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Observed that bonded overlays are effective only when the underlying pavement is free of structural distress and properly aligned joints to prevent crack reflection [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Showed that thick geotextile fabrics increasingly serve as successful separation layers in unbonded overlays, enabling independent movement and preventing crack propagation [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Found that uniform support conditions are the decisive factor for satisfactory overlay performance, with deviations from uniformity identified as the root cause of premature failures [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Revealed that concrete pavements previously overlaid with asphalt offer a cost-effective preservation opportunity if the underlying slab remains structurally sound and receives appropriate treatment [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Evaluated recycled concrete aggregate as an engineered material for unbound or stabilized bases, noting it consistently outperforms virgin aggregate in shear strength, rutting resistance, and resilient modulus [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+</ul>
+<p><strong>Novelty &amp; rigor</strong> — Research introduces a preservation-first philosophy that treats deteriorating concrete as a recoverable asset, utilizing lightweight polyurethane foam for void stabilization to avoid the environmental and material costs of full reconstruction [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Novelty lies in codifying uniform support as the sole prerequisite for overlay success, supported by a systematic evaluation framework that maps condition assessments directly to specific repair and overlay solutions [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Reproducibility is ensured through disciplined sequential protocols involving nondestructive testing, precise material sourcing to established standards, and strict construction controls for curing and joint protection [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</p>
+<p>The figure below illustrates how specific pavement conditions dictate the selection of appropriate concrete overlay solutions and necessary preliminary repairs.</p>
+<p><img alt="Flowchart for selecting concrete overlay solutions based on" src="assets/pavement-design/fa6d72fb7887b6ae3066d0dbc4a0e6cc451a73af4997f89339d16bda0be42d63.jpg" />
+<em>Flowchart for selecting concrete overlay solutions based on pavement condition and repair needs.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays a decision matrix that categorizes existing pavement into Good, Fair, Poor, and Deteriorated conditions to determine the appropriate maintenance strategy. For each condition level, the chart evaluates whether specific repair techniques—such as spot repairs, milling, or patching—can cost-effectively resolve deficiencies before recommending a final solution like a bonded overlay, unbonded overlay, or reconstruction.</p>
+<p><strong>Reported values</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Context</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>albedo (solar reflectance)</td>
+<td>0.2 and 0.5</td>
+<td>concrete pavement</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>overlay thickness</td>
+<td>6 to 11 in.</td>
+<td>unbonded concrete overlays</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>separation layer thickness</td>
+<td>1 in.</td>
+<td>hot mix asphalt separation layer for unbonded overlays</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>diamond grinding area</td>
+<td>1 million yd2</td>
+<td>previously asphalt-overlaid concrete freeway pavements in the Phoenix area by ADOT</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+<tr>
+<td>overlay thickness limit for preservation</td>
+<td>≤4 in.</td>
+<td>thin bonded and unbonded concrete overlays used as preservation treatments by highway agencies</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+<tr>
+<td>service life extension</td>
+<td>15 to 30 years</td>
+<td>concrete overlays placed on existing concrete and composite pavements</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+</tbody>
+</table>
+<p>Across the reviewed reports, recycled concrete aggregate is established as a high-performance engineered material that consistently outperforms virgin aggregate in unbound or stabilized base applications by offering superior shear strength and resilient modulus, provided its properties are rigorously determined prior to use. While the integration of recycled materials significantly reduces transport-related environmental impacts and extends service life, successful implementation requires strict adherence to uniform support conditions and specific testing protocols to mitigate risks such as alkali-silicate reaction or thermal deformation. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>] [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p><strong>Implications</strong> — Designers should treat locally sourced and recycled aggregates as a standard lever for reducing material costs and carbon emissions, embedding durability checks into mix designs [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Reconstruction efforts must be viewed as opportunities to recycle existing concrete into high-quality base materials, adjusting specifications to exploit the superior shear strength and rutting resistance of recycled aggregates while screening for chemical pathologies [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. Modern pavement design must balance resource efficiency through recycled materials with climate mitigation by prioritizing solar reflectance, requiring agencies to incorporate high-albedo specifications despite interactions with durability and cost considerations [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p><strong>Limitations</strong> — Recycled concrete aggregate cannot serve as a direct substitute for conventional materials without prior verification of its properties and potential adjustments to mixture designs [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. The application of recycled concrete in base layers is restricted by the necessity to screen reclaimed material for specific chemical distresses, such as alkali-silicate reaction, before acceptance [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</p>
+<h2 id="related-concepts">Related concepts</h2>
+<p><strong>In this hierarchy</strong></p>
+<ul>
+<li>Child: <a href="overlay-technology.html">Overlay Technology</a></li>
+<li>Child: <a href="pavement-types.html">Pavement Types</a></li>
+<li>Child: <a href="construction-insights.html">Construction Insights</a></li>
+<li>Child: <a href="recycling-innovation.html">Recycling Innovation</a></li>
+</ul>
+<p><strong>Related by shared evidence</strong></p>
+<ul>
+<li><a href="aggregate-management.html">Aggregate Management</a> — shares 4 reports</li>
+<li><a href="cement-chemistry.html">Cement Chemistry</a> — shares 4 reports</li>
+<li><a href="cementitious-materials.html">Cementitious Materials</a> — shares 4 reports</li>
+<li><a href="concrete-mixture-design.html">Concrete Mixture Design</a> — shares 4 reports</li>
+<li><a href="concrete-production-8-3.html">Concrete Production</a> — shares 4 reports</li>
+<li><a href="concrete-testing.html">Concrete Testing</a> — shares 4 reports</li>
+<li><a href="cracking-mitigation.html">Cracking Mitigation</a> — shares 4 reports</li>
+<li><a href="joint-maintenance.html">Joint Maintenance</a> — shares 4 reports</li>
+</ul>
+<p><strong>Similar topics</strong></p>
+<ul>
+<li><a href="pavement-management.html">Pavement Management</a></li>
+<li><a href="paving-operations.html">Paving Operations</a></li>
+<li><a href="overlay-technology.html">Overlay Technology</a></li>
+<li><a href="pavement-management-14.html">Pavement Management</a></li>
+<li><a href="pavement-repair.html">Pavement Repair</a></li>
+<li><a href="surface-textures.html">Surface Textures</a></li>
+<li><a href="recycling-innovation.html">Recycling Innovation</a></li>
+<li><a href="cementitious-materials.html">Cementitious Materials</a></li>
+</ul>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1">Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL (2019)</li><li id="ref-2">Concrete Pavement Preservation Guide (Third Edition) (2022)</li><li id="ref-3">Guide to the Prevention and Restoration of Early Joint Deterioration inConcrete Pavements (2016)</li><li id="ref-4">Best Practices Manual: Quality Control and Quality Acceptance of Concrete Airport Pavement (2025)</li>
+</ol>
+</section></article>
+<section class="comments" aria-labelledby="comments-heading">
+<h2 id="comments-heading">Feedback on this page</h2>
+<iframe data-tally-src="https://tally.so/embed/q4qql9?url=https%3A%2F%2Fig0r.github.io%2Fcnrt-guides-wiki-stage%2Fpavement-design.html&amp;hideTitle=1&amp;transparentBackground=1&amp;dynamicHeight=1" loading="lazy" width="100%" frameborder="0" title="Feedback form for this page"></iframe>
+<script async src="https://tally.so/widgets/embed.js"></script>
+</section>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pavement Management</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-16: per-page Tally feedback embed (md->html reverse builder) */
+.comments { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+.comments h2 { color: var(--accent); border: none; margin: 0 0 .75rem; font-size: 1.1rem; }
+.comments iframe { width: 100%; border: 0; min-height: 320px; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /Users/igor/dev/llm/ak-llm-wiki/llm-wiki-tools/hierarchy_v2_guides/16-guides-concept-visual -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">75 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="aggregate-management.html">Aggregate Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="aggregate-classification.html">Aggregate Classification</a></li><li><a href="aggregate-management-3-1.html">Aggregate Management</a></li><li><a href="quality-control-3-2.html">Quality Control</a></li><li><a href="aggregate-impact.html">Aggregate Impact</a></li><li><a href="mixture-design.html">Mixture Design</a></li></ul></details></li><li><a href="cementitious-materials.html">Cementitious Materials</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="cement-chemistry.html">Cement Chemistry</a></li><li><a href="concrete-mixture-design.html">Concrete Mixture Design</a></li><li><a href="sustainable-scms.html">Sustainable SCMs</a></li><li><a href="cement-production.html">Cement Production</a></li><li><a href="concrete-durability.html">Concrete Durability</a></li></ul></details></li><li><a href="concrete-production.html">Concrete Production</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-production-15.html">Concrete Production</a></li></ul></details></li><li><a href="cracking-mitigation.html">Cracking Mitigation</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-cracking.html">Concrete Cracking</a></li><li><a href="moisture-management.html">Moisture Management</a></li><li><a href="sealant-application.html">Sealant Application</a></li><li><a href="temperature-management.html">Temperature Management</a></li></ul></details></li><li><a href="diamond-grinding.html">Diamond Grinding</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="diamond-grinding-5.html">Diamond Grinding</a></li></ul></details></li><li><a href="drainage-management.html">Drainage Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="drainage-management-7.html">Drainage Management</a></li></ul></details></li><li><a href="joint-sealing.html">Joint Sealing</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="joint-maintenance.html">Joint Maintenance</a></li><li><a href="sealant-installation.html">Sealant Installation</a></li><li><a href="pavement-maintenance.html">Pavement Maintenance</a></li><li><a href="sealant-performance.html">Sealant Performance</a></li></ul></details></li><li><a href="material-testing.html">Material Testing</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-testing.html">Concrete Testing</a></li><li><a href="concrete-durability-9-1.html">Concrete Durability</a></li><li><a href="concrete-strength.html">Concrete Strength</a></li><li><a href="concrete-standards.html">Concrete Standards</a></li><li><a href="material-testing-9-4.html">Material Testing</a></li><li><a href="maturity-methods.html">Maturity Methods</a></li></ul></details></li><li><a href="other.html">Other</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="other-17.html">Other</a></li></ul></details></li><li><a href="pavement-design.html">Pavement Design</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="overlay-technology.html">Overlay Technology</a></li><li><a href="pavement-types.html">Pavement Types</a></li><li><a href="construction-insights.html">Construction Insights</a></li><li><a href="recycling-innovation.html">Recycling Innovation</a></li></ul></details></li><li><a href="pavement-management-14.html" class="active" aria-current="page">Pavement Management</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-smoothness.html">Pavement Smoothness</a></li><li><a href="pavement-systems.html">Pavement Systems</a></li><li><a href="subgrade-insights.html">Subgrade Insights</a></li><li><a href="excavation-safety.html">Excavation Safety</a></li><li><a href="slab-jacking.html">Slab Jacking</a></li></ul></details></li><li><a href="pavement-management.html">Pavement Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-evaluation.html">Pavement Evaluation</a></li><li><a href="preservation-strategies.html">Preservation Strategies</a></li><li><a href="pavement-design-8-2.html">Pavement Design</a></li><li><a href="concrete-production-8-3.html">Concrete Production</a></li><li><a href="design-methodologies.html">Design Methodologies</a></li><li><a href="design-considerations.html">Design Considerations</a></li></ul></details></li><li><a href="pavement-repair.html">Pavement Repair</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="slab-stabilization.html">Slab Stabilization</a></li><li><a href="pavement-repairs.html">Pavement Repairs</a></li><li><a href="dowel-bar-retrofit.html">Dowel Bar Retrofit</a></li></ul></details></li><li><a href="paving-operations.html">Paving Operations</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="paving-operations-12.html">Paving Operations</a></li></ul></details></li><li><a href="quality-assurance.html">Quality Assurance</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="quality-control-1-0.html">Quality Control</a></li><li><a href="project-management.html">Project Management</a></li><li><a href="quality-assurance-1-2.html">Quality Assurance</a></li></ul></details></li><li><a href="quality-control.html">Quality Control</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-assessment.html">Pavement Assessment</a></li><li><a href="mixture-management.html">Mixture Management</a></li><li><a href="concrete-sampling.html">Concrete Sampling</a></li><li><a href="concrete-strength-10-3.html">Concrete Strength</a></li><li><a href="mixture-design-10-4.html">Mixture Design</a></li></ul></details></li><li><a href="reinforcement-techniques.html">Reinforcement Techniques</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="reinforcement-techniques-16.html">Reinforcement Techniques</a></li></ul></details></li><li><a href="surface-textures.html">Surface Textures</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="surface-textures-11.html">Surface Textures</a></li></ul></details></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Pavement Management</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=pavement">pavement</a><a class="tag" href="index.html?q=management">management</a></div><div>Created 2026-09-01 · Updated 2026-09-02</div></div>
+<p>Pavement management is a systematic discipline that plans, designs, constructs, and maintains roadway networks to achieve defined performance goals throughout their service life. The approach integrates condition monitoring, traffic data, environmental factors, and predictive modeling to prioritize maintenance actions and allocate resources efficiently across the network [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>] [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. It relies on regular inspections and nondestructive testing to evaluate structural capacity, surface roughness, and distress levels, using these metrics to predict future performance and guide decision-making [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Central to the framework is the recognition that pavement behavior depends on the interaction of all structural layers, from subgrade support to surface smoothness, which collectively determine durability and safety [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</p>
+<p>Pavement Management unifies the technical and operational disciplines required to maintain infrastructure performance over time. <a href="pavement-systems.html">Pavement Systems</a> provides the structural framework of layered components that must be systematically monitored and maintained to ensure long-term durability and safety under traffic loads. <a href="subgrade-insights.html">Subgrade Insights</a> enables this oversight by providing critical data on foundational soil stability and support capacity to ensure long-term pavement durability. <a href="excavation-safety.html">Excavation Safety</a> ensures the structural integrity and stability of pavement foundations by preventing subsurface collapses and ground failures during earthwork operations. <a href="pavement-smoothness.html">Pavement Smoothness</a> serves as a critical performance metric within Pavement Management by quantifying ride quality and structural integrity to guide maintenance prioritization and ensure long-term durability. <a href="slab-jacking.html">Slab Jacking</a> serves as a critical maintenance intervention within Pavement Management by actively restoring structural integrity and elevation to settled concrete slabs, thereby ensuring long-term durability and safety.</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#key-findings">Key findings</a></li><li><a href="#systemic-management-strategic-planning">Systemic Management &amp;amp; Strategic Planning</a></li><li><a href="#pavement-condition-assessment">Pavement Condition Assessment</a></li><li><a href="#related-concepts">Related concepts</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (4)</summary><div class="sources-body"><a href="#ref-1">Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL (2019)</a>, <a href="#ref-2">Concrete Pavement Preservation Guide (Third Edition) (2022)</a>, <a href="#ref-3">Guide to the Prevention and Restoration of Early Joint Deterioration inConcrete Pavements (2016)</a>, <a href="#ref-4">Best Practices Manual: Quality Control and Quality Acceptance of Concrete Airport Pavement (2025)</a></div></details>
+<details class="subconcepts-toggle"><summary>Sub-concepts (5)</summary><div class="subconcepts-body"><a href="pavement-smoothness.html">Pavement Smoothness</a> · <a href="pavement-systems.html">Pavement Systems</a> · <a href="subgrade-insights.html">Subgrade Insights</a> · <a href="excavation-safety.html">Excavation Safety</a> · <a href="slab-jacking.html">Slab Jacking</a></div></details>
+<h2 id="key-findings">Key findings</h2>
+<ul>
+<li>Found that uniform subgrade support is more critical to long-term durability than sheer strength, as abrupt variations in support create localized stress concentrations that accelerate fatigue cracking and premature distress [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Demonstrated that a reduction in concrete slab thickness by one inch can decrease pavement service life by approximately fifty percent, highlighting the dominant role of slab depth in structural longevity [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Observed that granular subbase layers provide superior stiffness, strength, and drainage—often yielding smoother rides—but represent the most expensive option, requiring managers to weigh these performance gains against higher initial costs [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Measured that increasing the thickness of base or drainable layers enhances durability and reduces clogging in areas with shallow water tables, but does not accelerate drainage rates, necessitating a trade-off between service life and initial outlay [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Identified that effective pavement management requires treating the health of the support system as the primary concern, prioritizing proper subgrade preparation, compaction, and early treatment of expansive soils to prevent soil pumping [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Reported a fundamental tension in airport pavement management between mandatory destructive core testing for acceptance and the operational need for faster, non-destructive thickness verification methods like magnetic imaging or total-station surveys [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</li>
+<li>Showed that mapping maximum pavement deflection along stationing is essential for identifying support uniformity issues, allowing managers to isolate subsections affected by moisture problems or cut-and-fill irregularities for precise interventions [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Revealed that the field currently suffers from inconsistent testing practices and absent industry standards for straightedge execution and vertical edge assessment, despite the emergence of non-destructive measurement technologies [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</li>
+</ul>
+<h2 id="systemic-management-strategic-planning">Systemic Management &amp; Strategic Planning</h2>
+<p><small>Evidence: 3 reports (3 primary)</small></p>
+<p>Pavement management is a systematic framework that integrates condition monitoring, traffic data, and predictive modeling to plan and maintain roadway networks throughout their service life [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. The approach recognizes that pavement behavior depends on the interaction of all structural layers, requiring managers to evaluate subgrade support, base systems, and surface conditions together to ensure durability and safety [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. By continuously analyzing key performance indicators such as roughness, distress levels, and structural capacity, agencies can predict future performance and prioritize preservation or rehabilitation treatments to allocate limited resources efficiently [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p><strong>Research problem</strong> — Agencies struggle to achieve uniformly stable subgrade support due to inherent soil variability and moisture-related volume changes, creating a complex trade-off between necessary stabilization techniques and the associated costs, schedule impacts, and drainage preservation [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. The absence of an integrated quality-control regime for verifying base course geometry and material conditions leads to inconsistent measurements and propagated errors that compromise pavement smoothness, safety, and maintenance planning accuracy [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]. Systemic joint deterioration driven by inadequate drainage and non-uniform subgrade support causes premature structural failure and inflated lifecycle costs, highlighting the need for holistic management strategies that address these interconnected degradation mechanisms [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</p>
+<p>The following figure illustrates corner cracking in jointed concrete pavement, a common manifestation of the systemic deterioration described above.</p>
+<p><img alt="Corner cracking in jointed concrete pavement" src="assets/pavement-management-14/73aed2994adf9b85d882a93e5b96b88aa047adbbeaddeb82cd6dbc9ee590d50c.jpg" />
+<em>Corner cracking in jointed concrete pavement</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The image displays a section of rigid pavement characterized by intersecting joints and significant structural distress. Visible cracks radiate from the corners where slabs meet, indicating failure at these specific locations. This type of distress highlights the importance of uniform support and load transfer in pavement management systems to prevent premature deterioration.</p>
+<p><strong>State of the art</strong> — Modern pavement management treats the structure as an integrated system where subgrade stability, drainage capacity, and surface performance are given equal design priority to ensure long-term bearing strength and ride quality [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. The field has converged on a data-driven workflow that integrates early-stage subgrade diagnostics with continuous intelligent-compaction monitoring and automated machine control to identify risks before construction and maintain design tolerances throughout the project lifecycle [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Current practice balances regulatory compliance and safety-critical precision against operational efficiency by transitioning from legacy manual inspections toward non-contact laser profiling and real-time smoothness sensors that enable immediate corrective actions while retaining mandatory destructive testing for thickness verification [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</p>
+<p><strong>Findings from the reports</strong></p>
+<ul>
+<li>Demonstrated that uniform subgrade support is more critical to pavement longevity than sheer strength, as abrupt variations create localized stress concentrations that accelerate fatigue cracking and premature distress [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Revealed a significant cost-performance trade-off where granular subbase layers provide superior stiffness, strength, and drainage but represent the most expensive option, requiring managers to weigh higher initial outlays against longer service life [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Showed that increasing base or drainable layer thickness enhances durability and reduces clogging in areas with shallow water tables, but does not accelerate drainage rates, necessitating a balance between structural stability and drainage emphasis [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Established that even minor reductions in concrete slab thickness can drastically cut service life, highlighting the dominance of slab dimensions as a durability factor alongside foundation uniformity [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Identified a fundamental tension between regulatory compliance and operational efficiency, where mandatory destructive core testing remains the acceptance baseline despite the availability of faster non-destructive alternatives like magnetic imaging or total-station surveys [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</li>
+<li>Observed that while laser profiling offers rapid surface data, its adoption is limited by existing specifications that still require manual straightedge checks and lack uniform procedural standards for non-destructive methods [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</li>
+<li>Highlighted a knowledge gap regarding the structural impacts of edge slump, noting that current management focus prioritizes water-related safety hazards like ponding and hydroplaning over potential structural degradation from vertical irregularities [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</li>
+</ul>
+<p><strong>Novelty &amp; rigor</strong> — The research introduces a unified, measurement-driven framework that integrates previously disparate quality-control practices into a single workflow spanning from subgrade preparation to post-pavement verification [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]. This approach replaces ad-hoc visual inspections with repeatable, specification-based data by formalizing testing standards for horizontal straightedge measurements and vertical edge assessments where no prior agency standards existed [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]. Reproducibility is ensured through a disciplined sequence that ties together subgrade characterization, structural support quantification, base construction, concrete performance testing, and surface smoothness verification using standardized material selections and test methods [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</p>
+<p><strong>Reported values</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Context</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>maximum allowable thickness deviation</td>
+<td>0.5 in.</td>
+<td>slab thickness tolerance (thinner than specified)</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>minimum density for untreated bases</td>
+<td>105 percent</td>
+<td>ASTM D698/AASHTO T 99 for heavily traveled projects</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>service life reduction</td>
+<td>50 percent</td>
+<td>reduction in concrete slab thickness by an inch</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>thickness measurement accuracy</td>
+<td>0.1 in.</td>
+<td>for a concrete pavement 12.9 in. thick</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+</tbody>
+</table>
+<p>Across the reviewed reports, effective pavement management is fundamentally defined by navigating complex trade-offs between structural durability, performance metrics, and operational constraints. While strategic planning prioritizes uniform subgrade support to prevent premature distress and recognizes that minor reductions in slab thickness can drastically reduce service life, it simultaneously requires balancing these structural needs against the high costs of granular layers or the accelerated drainage benefits they provide. Furthermore, management strategies must reconcile the tension between rigorous regulatory compliance and operational efficiency, as agencies struggle to integrate rapid non-destructive testing technologies into acceptance protocols that still rely on arduous manual verification methods. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>] [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p><strong>Implications</strong> — Pavement management must shift from treating material selection as a simple cost item to viewing it as a strategic, life-cycle decision that justifies higher upfront investments in granular subbases through expected reductions in long-term maintenance and construction delays [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. Agencies must abandon isolated preservation techniques in favor of a system-wide view where the support structure is the dominant determinant of performance, requiring rigorous quality control of foundation layers and proactive monitoring to prevent embedded defects [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Programs need to evolve from fragmented, labor-intensive practices toward an integrated framework that reconciles mandatory verification requirements with modern nondestructive technologies while establishing standardized protocols for surface evenness to mitigate operational safety risks [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</p>
+<p><strong>Limitations</strong> — Management plans face residual uncertainty because diagnostic practices for subgrade conditions rely on simple index tests that fail to capture the influence of compaction moisture, density, or surcharge loads [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Verification of pavement thickness is constrained by regulatory reliance on sparse random coring data, as alternative non-destructive techniques are not accepted for official compliance [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]. Quality control outcomes remain inconsistent due to the absence of an industry-wide standard for straightedge testing and a lack of empirical studies linking edge irregularities to structural capacity [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</p>
+<p>The figure below illustrates non-destructive testing options that can be utilized for quality control of pavement thickness.</p>
+<p><img alt="A worker in high-visibility gear operates a non-destructive" src="assets/pavement-management-14/f898d450b6d48a7ab0c1713d06f2e6ce0af85d6b7512f968bd005135d4bd4deb.jpg" />
+<em>A worker in high-visibility gear operates a non-destructive scanning device on a concrete surface.</em> [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The image shows an operator using the MIT-SCAN-T3 equipment to perform thickness testing by detecting distances between the scanner and buried metal plates. This non-destructive testing method provides accurate thickness measurements without damaging the surface.</p>
+<h2 id="pavement-condition-assessment">Pavement Condition Assessment</h2>
+<p><small>Evidence: 2 reports (2 primary)</small></p>
+<p><strong>Research problem</strong> — Pavement managers lack dependable, network-wide information on the structural condition of concrete pavements, which prevents accurate prioritization of maintenance and prediction of remaining service life [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Translating surface deflection measurements into fundamental engineering parameters via back-calculation remains difficult due to challenges in obtaining reliable subsurface data on layer thicknesses, embedded steel, and hidden voids [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p>The following figure illustrates how center slab deflection varies along a project when normalized to a standard 9,000 lbf loading.</p>
+<p><img alt="Center slab deflection variation along a project normalized" src="assets/pavement-management-14/b2bc2d59ea7ec17f84f0fb15c2b1ce115449f6e6c48e7505c8e0c0deada6d6d8.jpg" />
+<em>Center slab deflection variation along a project normalized to a 9,000 lbf loading.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure plots the normalized maximum deflection of pavement slabs against distance along the roadway, revealing significant spatial variability in structural response. This data is used to identify subsections where distress or poor moisture conditions may be adversely affecting the pavement. Such measurements are central to backcalculation methods that estimate fundamental engineering properties of the pavement structure.</p>
+<p><strong>State of the art</strong> — Ground-penetrating radar has become the standard non-destructive tool for large-scale pavement condition assessment, capable of quantifying layer thicknesses and detecting voids or reinforcement with accuracy comparable to core measurements [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Current practice balances survey speed against material discrimination by selecting between air-coupled antennas for highway-speed data collection and ground-coupled antennas for deeper penetration and finer resolution [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p><strong>Findings from the reports</strong></p>
+<ul>
+<li>Integrated inertial profiling and ground-penetrating radar provided a comprehensive diagnostic framework that linked surface roughness to hidden subsurface defects, such as voids and moisture issues [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Mapping maximum pavement deflection along project stationing revealed variations in support conditions that correlated with distress, drainage problems, and subgrade irregularities [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Real-time smoothness monitoring behind the paver significantly shortened the feedback loop for material variability and equipment adjustments from days to hours [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Power spectral density analysis identified dominant repeat wavelengths in pavement roughness, enabling managers to modify mix gradation or construction practices to eliminate specific sources of irregularity [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>GPR detection of underlying voids allowed agencies to prioritize repairs and evaluate the effectiveness of interventions by confirming conditions like free water beneath patches [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+</ul>
+<p><strong>Novelty &amp; rigor</strong> — Novelty lies in fusing surface-deflection profiling with high-speed ground-penetrating radar into a single workflow that overlays distress, drainage, and material data to isolate specific problem subsections for targeted preservation [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Reproducibility is ensured by adhering to documented acquisition protocols, standardized calibration procedures using core measurements, and established analytical methods for back-calculating structural parameters from deflection data [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p>The following figure illustrates the deflection measurement process using a Falling Weight Deflectometer (FWD) device, which is central to the structural parameter analysis described above.</p>
+<p><img alt="Schematic of a Falling Weight Deflectometer (FWD) device mea" src="assets/pavement-management-14/cb93dc97bd637ca98bcf4966dadca5acd9732209c1372cd5300551f535bf9fd9.jpg" />
+<em>Schematic of a Falling Weight Deflectometer (FWD) device measuring pavement deflection.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure illustrates the mechanical components of a Falling Weight Deflectometer, showing a weight dropping from a specific height onto a load plate via a buffering system to simulate traffic loads on the pavement surface. A series of sensors is positioned at predetermined distances from the load plate to measure the resulting deflection basin, which allows for the assessment of structural capacity and condition monitoring.</p>
+<p><strong>Reported values</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Context</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>base length</td>
+<td>0.10 mi</td>
+<td>IRI running average</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>wavelength</td>
+<td>15 ft</td>
+<td>repeating wavelength corresponding to joint spacing</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>void thickness</td>
+<td>2 to 3 in.</td>
+<td>localized void beneath the slab</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+</tbody>
+</table>
+<p>Across the reviewed reports, pavement condition assessment relies on integrating quantitative surface metrics with subsurface diagnostics to identify distress mechanisms and guide targeted interventions. While inertial profiling and Power Spectral Density analysis isolate surface roughness sources such as joint spacing through rapid feedback loops, ground-penetrating radar and deflection mapping reveal hidden subsurface defects like voids and support variability. The collective evidence indicates that modern assessment frameworks prioritize correlating these distinct data streams—linking surface roughness patterns with underlying structural integrity—to enable precise preservation decisions based on both material performance and subgrade conditions. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><strong>Implications</strong> — Agencies should integrate systematic deflection profiling with project stationing to identify spatial variations in support conditions that drive distress and moisture issues [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Treating uniformity data as a cross-cutting diagnostic enables managers to align surface performance goals with subgrade and drainage insights for more precise preservation prioritization [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p>The following figure illustrates an example of such a project strip chart.</p>
+<p><img alt="Strip chart showing the spatial distribution of concrete sla" src="assets/pavement-management-14/f2a15153a76d77156c49f257ad7e26b5a50f2417455935006af862a9ce86041e.jpg" />
+<em>Strip chart showing the spatial distribution of concrete slab cracking severity and pavement roughness along a project.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays a strip chart that plots the percentage of cracked slabs by severity (low, medium, high) against distance along a project. It integrates multiple pavement evaluation parameters including distress conditions, drainage types, traffic levels, and roughness to provide a comprehensive view of the overall pavement condition.</p>
+<h2 id="related-concepts">Related concepts</h2>
+<p><strong>In this hierarchy</strong></p>
+<ul>
+<li>Child: <a href="pavement-smoothness.html">Pavement Smoothness</a></li>
+<li>Child: <a href="pavement-systems.html">Pavement Systems</a></li>
+<li>Child: <a href="subgrade-insights.html">Subgrade Insights</a></li>
+<li>Child: <a href="excavation-safety.html">Excavation Safety</a></li>
+<li>Child: <a href="slab-jacking.html">Slab Jacking</a></li>
+</ul>
+<p><strong>Related by shared evidence</strong></p>
+<ul>
+<li><a href="aggregate-management.html">Aggregate Management</a> — shares 4 reports</li>
+<li><a href="cement-chemistry.html">Cement Chemistry</a> — shares 4 reports</li>
+<li><a href="cementitious-materials.html">Cementitious Materials</a> — shares 4 reports</li>
+<li><a href="concrete-mixture-design.html">Concrete Mixture Design</a> — shares 4 reports</li>
+<li><a href="concrete-production-8-3.html">Concrete Production</a> — shares 4 reports</li>
+<li><a href="concrete-testing.html">Concrete Testing</a> — shares 4 reports</li>
+<li><a href="cracking-mitigation.html">Cracking Mitigation</a> — shares 4 reports</li>
+<li><a href="joint-maintenance.html">Joint Maintenance</a> — shares 4 reports</li>
+</ul>
+<p><strong>Similar topics</strong></p>
+<ul>
+<li><a href="pavement-management.html">Pavement Management</a></li>
+<li><a href="paving-operations.html">Paving Operations</a></li>
+<li><a href="cracking-mitigation.html">Cracking Mitigation</a></li>
+<li><a href="pavement-design.html">Pavement Design</a></li>
+<li><a href="pavement-repair.html">Pavement Repair</a></li>
+<li><a href="drainage-management.html">Drainage Management</a></li>
+<li><a href="diamond-grinding.html">Diamond Grinding</a></li>
+<li><a href="aggregate-management.html">Aggregate Management</a></li>
+</ul>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1">Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL (2019)</li><li id="ref-2">Concrete Pavement Preservation Guide (Third Edition) (2022)</li><li id="ref-3">Guide to the Prevention and Restoration of Early Joint Deterioration inConcrete Pavements (2016)</li><li id="ref-4">Best Practices Manual: Quality Control and Quality Acceptance of Concrete Airport Pavement (2025)</li>
+</ol>
+</section></article>
+<section class="comments" aria-labelledby="comments-heading">
+<h2 id="comments-heading">Feedback on this page</h2>
+<iframe data-tally-src="https://tally.so/embed/q4qql9?url=https%3A%2F%2Fig0r.github.io%2Fcnrt-guides-wiki-stage%2Fpavement-management-14.html&amp;hideTitle=1&amp;transparentBackground=1&amp;dynamicHeight=1" loading="lazy" width="100%" frameborder="0" title="Feedback form for this page"></iframe>
+<script async src="https://tally.so/widgets/embed.js"></script>
+</section>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

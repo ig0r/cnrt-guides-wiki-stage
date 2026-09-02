@@ -1,0 +1,689 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concrete Testing</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-16: per-page Tally feedback embed (md->html reverse builder) */
+.comments { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+.comments h2 { color: var(--accent); border: none; margin: 0 0 .75rem; font-size: 1.1rem; }
+.comments iframe { width: 100%; border: 0; min-height: 320px; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /Users/igor/dev/llm/ak-llm-wiki/llm-wiki-tools/hierarchy_v2_guides/16-guides-concept-visual -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">75 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="aggregate-management.html">Aggregate Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="aggregate-classification.html">Aggregate Classification</a></li><li><a href="aggregate-management-3-1.html">Aggregate Management</a></li><li><a href="quality-control-3-2.html">Quality Control</a></li><li><a href="aggregate-impact.html">Aggregate Impact</a></li><li><a href="mixture-design.html">Mixture Design</a></li></ul></details></li><li><a href="cementitious-materials.html">Cementitious Materials</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="cement-chemistry.html">Cement Chemistry</a></li><li><a href="concrete-mixture-design.html">Concrete Mixture Design</a></li><li><a href="sustainable-scms.html">Sustainable SCMs</a></li><li><a href="cement-production.html">Cement Production</a></li><li><a href="concrete-durability.html">Concrete Durability</a></li></ul></details></li><li><a href="concrete-production.html">Concrete Production</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-production-15.html">Concrete Production</a></li></ul></details></li><li><a href="cracking-mitigation.html">Cracking Mitigation</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-cracking.html">Concrete Cracking</a></li><li><a href="moisture-management.html">Moisture Management</a></li><li><a href="sealant-application.html">Sealant Application</a></li><li><a href="temperature-management.html">Temperature Management</a></li></ul></details></li><li><a href="diamond-grinding.html">Diamond Grinding</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="diamond-grinding-5.html">Diamond Grinding</a></li></ul></details></li><li><a href="drainage-management.html">Drainage Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="drainage-management-7.html">Drainage Management</a></li></ul></details></li><li><a href="joint-sealing.html">Joint Sealing</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="joint-maintenance.html">Joint Maintenance</a></li><li><a href="sealant-installation.html">Sealant Installation</a></li><li><a href="pavement-maintenance.html">Pavement Maintenance</a></li><li><a href="sealant-performance.html">Sealant Performance</a></li></ul></details></li><li><a href="material-testing.html">Material Testing</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-testing.html" class="active" aria-current="page">Concrete Testing</a></li><li><a href="concrete-durability-9-1.html">Concrete Durability</a></li><li><a href="concrete-strength.html">Concrete Strength</a></li><li><a href="concrete-standards.html">Concrete Standards</a></li><li><a href="material-testing-9-4.html">Material Testing</a></li><li><a href="maturity-methods.html">Maturity Methods</a></li></ul></details></li><li><a href="other.html">Other</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="other-17.html">Other</a></li></ul></details></li><li><a href="pavement-design.html">Pavement Design</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="overlay-technology.html">Overlay Technology</a></li><li><a href="pavement-types.html">Pavement Types</a></li><li><a href="construction-insights.html">Construction Insights</a></li><li><a href="recycling-innovation.html">Recycling Innovation</a></li></ul></details></li><li><a href="pavement-management-14.html">Pavement Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-smoothness.html">Pavement Smoothness</a></li><li><a href="pavement-systems.html">Pavement Systems</a></li><li><a href="subgrade-insights.html">Subgrade Insights</a></li><li><a href="excavation-safety.html">Excavation Safety</a></li><li><a href="slab-jacking.html">Slab Jacking</a></li></ul></details></li><li><a href="pavement-management.html">Pavement Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-evaluation.html">Pavement Evaluation</a></li><li><a href="preservation-strategies.html">Preservation Strategies</a></li><li><a href="pavement-design-8-2.html">Pavement Design</a></li><li><a href="concrete-production-8-3.html">Concrete Production</a></li><li><a href="design-methodologies.html">Design Methodologies</a></li><li><a href="design-considerations.html">Design Considerations</a></li></ul></details></li><li><a href="pavement-repair.html">Pavement Repair</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="slab-stabilization.html">Slab Stabilization</a></li><li><a href="pavement-repairs.html">Pavement Repairs</a></li><li><a href="dowel-bar-retrofit.html">Dowel Bar Retrofit</a></li></ul></details></li><li><a href="paving-operations.html">Paving Operations</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="paving-operations-12.html">Paving Operations</a></li></ul></details></li><li><a href="quality-assurance.html">Quality Assurance</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="quality-control-1-0.html">Quality Control</a></li><li><a href="project-management.html">Project Management</a></li><li><a href="quality-assurance-1-2.html">Quality Assurance</a></li></ul></details></li><li><a href="quality-control.html">Quality Control</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-assessment.html">Pavement Assessment</a></li><li><a href="mixture-management.html">Mixture Management</a></li><li><a href="concrete-sampling.html">Concrete Sampling</a></li><li><a href="concrete-strength-10-3.html">Concrete Strength</a></li><li><a href="mixture-design-10-4.html">Mixture Design</a></li></ul></details></li><li><a href="reinforcement-techniques.html">Reinforcement Techniques</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="reinforcement-techniques-16.html">Reinforcement Techniques</a></li></ul></details></li><li><a href="surface-textures.html">Surface Textures</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="surface-textures-11.html">Surface Textures</a></li></ul></details></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">All concepts</a><span class="crumb-sep">›</span><a href="material-testing.html">Material Testing</a><span class="crumb-sep">›</span><span class="crumb-current">Concrete Testing</span></nav>
+<article><h1>Concrete Testing</h1>
+<div class="meta"><div class="part-of">Part of: <a href="material-testing.html">Material Testing</a> <span class="edge edge-taxonomic" title="Concrete Testing is a topic under Material Testing.">is-subtopic-of</span></div><div class="edge-reading">Concrete Testing is a topic under Material Testing.</div><div><a class="tag" href="index.html?q=concrete-testing">concrete-testing</a><a class="tag" href="index.html?q=environmental-monitoring">environmental-monitoring</a><a class="tag" href="index.html?q=quality-control">quality-control</a><a class="tag" href="index.html?q=workability">workability</a><a class="tag" href="index.html?q=durability">durability</a></div><div>Created 2026-09-01 · Updated 2026-09-02</div></div>
+<p>Concrete testing is a systematic application of standardized procedures designed to evaluate the physical, mechanical, and chemical properties of concrete in both its fresh and hardened states. Fresh-state assessments monitor workability, air content, temperature evolution, and setting characteristics to ensure proper placement and uniformity during production [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. Hardened-state evaluations quantify structural integrity through measurements of compressive strength, tensile capacity, durability, and dimensional stability using physical specimens or non-destructive techniques [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>] [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. The process also includes specialized pavement testing to verify load transfer efficiency across joints and surface friction coefficients under simulated traffic conditions [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#key-findings">Key findings</a></li><li><a href="#fresh-and-hardened-concrete-testing-methods">Fresh and Hardened Concrete Testing Methods</a></li><li><a href="#quality-assurance-and-testing-techniques">Quality Assurance and Testing Techniques</a></li><li><a href="#quality-control-of-air-void-system-and-workability">Quality Control of Air-Void System and Workability</a></li><li><a href="#related-concepts">Related concepts</a></li><li><a href="#source-coverage">Source coverage</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (4)</summary><div class="sources-body"><a href="#ref-1">Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL (2019)</a>, <a href="#ref-2">Concrete Pavement Preservation Guide (Third Edition) (2022)</a>, <a href="#ref-3">Best Practices Manual: Quality Control and Quality Acceptance of Concrete Airport Pavement (2025)</a>, <a href="#ref-4">Guide to the Prevention and Restoration of Early Joint Deterioration inConcrete Pavements (2016)</a></div></details>
+
+<h2 id="key-findings">Key findings</h2>
+<ul>
+<li>Concrete performance depends on both total air content and its distribution, with quality assessed using the Super Air Meter (SAM) number and spacing factor rather than relying solely on the water-to-cement ratio [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</li>
+<li>Load-transfer efficiency testing provides a quantitative measure of joint performance by comparing deflections across joints, with results classified into categories ranging from excellent to very poor based on specific percentage thresholds [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Falling-weight deflectometer measurements identify voids and non-uniform support beneath concrete slabs by analyzing load-deflection lines and corner-to-interior support ratios [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Aggregate gradation significantly influences mix variability, with poorly or gap-graded blends driving unacceptable performance inconsistencies that require tighter control limits than standard specifications allow [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Control charts enable the proactive identification of assignable-cause variations in production data, allowing for corrective actions before process instability leads to out-of-spec concrete [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Rapid moist-sieve sampling offers early warnings regarding aggregate gradation issues, reducing the lag inherent in standard testing methods and facilitating quicker mix adjustments [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Parallel-plate rheometry provides direct, quantitative indicators of fresh-mix quality by monitoring shear stress rise over time to track silicate hydration rates [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>The ring test serves as a predictive tool for field cracking risk by measuring the onset of cracking in fully restrained specimens under laboratory conditions [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+</ul>
+<h2 id="fresh-and-hardened-concrete-testing-methods">Fresh and Hardened Concrete Testing Methods</h2>
+<p>Concrete testing employs standardized procedures to evaluate material properties at both the fresh and hardened stages, ensuring compliance with design specifications [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Fresh-state assessments focus on workability, setting characteristics, air content, and early-age thermal behavior to predict performance during placement [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Hardened-state evaluations quantify mechanical strength, durability indicators, and dimensional stability through tests on cured specimens [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p>The relationship between these mechanical properties is illustrated in the following figure.</p>
+<p><img alt="Comparison of compressive and flexural strength correlations" src="assets/concrete-testing/f5af3228e812f02a2e3fb2f9a9e3f06a6ff73dbbcb96ed526494bfbe0fe323b7.jpg" />
+<em>Comparison of compressive and flexural strength correlations, based on equations 3.1 and 3.2</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays a graph plotting Flexural strength against Compressive strength for concrete. Two linear models are compared: one defined by the equation MR = 9 * sqrt(f&rsquo;c) and another by MR = 2.3 * (f&rsquo;c)^(2/3).</p>
+<p><strong>Research problem</strong> — Current concrete testing practices face significant challenges in ensuring quality control and durability due to the poor reproducibility of early hydration assessments across different laboratories [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. There is a critical need for reliable methods to detect abnormal chemical reactions during cement hydration, as conventional monitoring often fails to identify deviations that govern long-term strength and durability [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Engineers lack standardized approaches to quantify the rate of fresh concrete stiffening and accurately assess cracking risks in fully restrained specimens, which hinders effective mix design adjustments and construction scheduling [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p><strong>State of the art</strong> — Contemporary concrete testing employs a multi-modal approach that integrates rapid field diagnostics with laboratory-grade analytical techniques to monitor early-age hydration, workability, and long-term performance [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Standard on-site procedures focus on verifying mill certifications and measuring semi-adiabatic temperature, slump loss, setting time, and air-void uniformity to provide real-time quality control before placement [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Calorimetric monitoring remains central for diagnosing hydration kinetics, while rheological methods using parallel-plate rheometers offer quantitative insights into silicate hydration progress through time-dependent shear stress measurements [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Workability and cracking potential are assessed using mechanical restraint tests like the ring test alongside various consistency evaluations such as mini-slump cone, Vebe, and static Kelly-ball penetration tests [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Air content is quantified via pressure drop measurements in airtight cells, with the Standard Air Meter (SAM) applied at multiple pressures to evaluate spacing factor and air-void system quality during paving [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Maturity testing according to ASTM C1074 utilizes embedded temperature sensors and pre-established curves to predict in situ strength development, complemented by surface resistivity for permeability and non-destructive pulse-induction thickness measurement [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p>The following figure illustrates how specific chemical reactions contribute to the early heat spike observed during cement hydration.</p>
+<p><img alt="Heat evolution curve of cement hydration showing the initial" src="assets/concrete-testing/456467d26734aa05a8596bdcdd3017106b4ae4e51e755b343dbbc1588a796952.jpg" />
+<em>Heat evolution curve of cement hydration showing the initial reaction, dormant period, and acceleration phase.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays a plot with Heat on the vertical axis and Time on the horizontal axis, illustrating the thermal profile of cement hydration. A sharp initial peak is followed by a prolonged period of low heat generation known as the dormant period, which lasts two to four hours and provides time for transport and placement.</p>
+<p><strong>Findings from the reports</strong></p>
+<ul>
+<li>Evaluated fresh-mix quality and early-age performance using direct quantitative indicators such as shear stress rise in paste, ring test cracking times, and the VKelly index [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Demonstrated that earlier laboratory cracking signals a higher risk of field cracking when using the ring test for fully restrained specimens [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Established that vibration response serves as a reliable gauge of field placeability, corroborated by Box-test results [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Identified visual observation of coarse particle movement as the practical control method for segregation in the absence of standardized tests [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Showed that surface-resistivity measurements directly signal lower permeability, with higher kohm-cm values indicating better durability [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Measured pavement thickness using pulse-induction devices and compared the results against project specifications to assess compliance [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+</ul>
+<p><strong>Novelty &amp; rigor</strong> — The research introduces three novel non-destructive evaluation tools for fresh and hardened concrete, including a vibration-augmented Kelly ball test that quantifies dynamic response in stiff mixes [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. It proposes an interpretive framework called the Tarantula curve to partition sieve-retention data and link it to qualitative vibration feedback for slip-form placement acceptance [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. The approach utilizes pulse-induction technology with a pre-placed metal target to provide rapid, calibrated pavement thickness measurements as an alternative to destructive coring [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p>The following figure illustrates the practical application of these vibration-based methods by showing an array of vibrators positioned under a slipform paver.</p>
+<p><img alt="An array of vibrators under a slipform paver" src="assets/concrete-testing/2386af6159cfe6eed4f45d15acc8bf3ebef286f45990245c0cb58a95f222cf1d.jpg" />
+<em>An array of vibrators under a slipform paver</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The image displays the underside of heavy machinery, specifically showing several cylindrical metal tubes mounted to the chassis. These components are identified as vibrators used for consolidating concrete during slipform paving operations. This equipment is essential for fresh-state assessments as it ensures proper placement and uniformity by removing air voids.</p>
+<p><strong>Reported values</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Context</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>coarse sand retained</td>
+<td>&gt;15%</td>
+<td>Tarantula curve limits for slipform placement</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>fine sand retained</td>
+<td>24–34%</td>
+<td>Tarantula curve limits for slipform placement</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>SAM value limit</td>
+<td>&lt;0.20 lb/in²</td>
+<td>acceptable air-void system</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>thickness measurement accuracy</td>
+<td>0.08 in.</td>
+<td>MIT-SCAN-T3 device reported pavement thickness compared to measured core lengths</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>time to critical saturation</td>
+<td>&gt;30 years</td>
+<td>durability assessment at 85% critical saturation</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>VKelly index</td>
+<td>0.6 to 1.1 in./√s</td>
+<td>slipform paving mixtures</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Implications</strong> — Quality control protocols must evolve into multi-parameter, real-time systems that actively drive mix-design adjustments and on-site construction decisions to ensure long-term durability [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Laboratories should integrate rheometric monitoring and rapid workability indices like VKelly into proportioning workflows to provide immediate feedback on mixture behavior and prevent equipment incompatibility [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Early warning indicators such as ring test cracking or visual segregation must trigger immediate re-evaluation of mix proportions, curing practices, or reinforcement strategies before construction proceeds [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p><strong>Limitations</strong> — Certain indices like the VKelly index are primarily suited for laboratory mixture proportioning rather than serving as universal predictors of field performance due to their sensitivity to aggregate gradation and paste content [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Some evaluation methods lack standardization or rely on subjective visual observations, which limits their reliability and applicability across different placement techniques such as slip-form operations [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Test conclusions may be unreliable if ambient environmental factors like temperature, wind speed, and humidity are not systematically recorded and tracked during the testing process [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p>The following figure illustrates how the VKelly index is derived from the relationship between penetration depth and root time.</p>
+<p><img alt="Plot of penetration depth versus vibration duration showing" src="assets/concrete-testing/bbe587765d852e09f0bf8b2e8901243cb51471c1bfb3d62025d1bc9e9d04baa9.jpg" />
+<em>Plot of penetration depth versus vibration duration showing the linear relationship used to determine the VKelly index.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays a scatter plot with a linear regression line, where the vertical axis represents penetration depth and the horizontal axis represents vibration duration in root seconds.</p>
+<p><small>Evidence: 1 report (1 primary)</small></p>
+<h2 id="quality-assurance-and-testing-techniques">Quality Assurance and Testing Techniques</h2>
+<p>Quality assurance in concrete pavements relies on standardized testing procedures to evaluate structural integrity, load-transfer capability, and surface friction [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Load transfer efficiency measures how effectively joints or cracks convey traffic loads across discontinuities by analyzing vertical deflection differences under ambient conditions [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Non-destructive electromagnetic techniques are employed to determine layer thicknesses and locate embedded steel elements without damaging the pavement structure [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Friction assessment methods simulate various vehicle dynamics, such as locked-wheel braking or controlled side-force cornering, to quantify surface skid resistance [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p>The figure below illustrates friction measurements taken using the California CT-342 device at various angles relative to the pavement centerline.</p>
+<p><img alt="Friction measurements via the California CT-342 device at va" src="assets/concrete-testing/9c33a6ebbf9bd15704ac25d9e14e227de726edb3169ee0afaff91b4825f2887b.jpg" />
+<em>Friction measurements via the California CT-342 device at various angles relative to the centerline of the pavement</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure plots the friction index relative to longitudinal travel against the deviation angle for four distinct concrete surface textures: CDG, Random transverse tined, Astro turf, and Grooved. While the grooved texture shows a significant increase in friction as the vehicle deviates from the centerline, the other textures remain relatively stable or decrease slightly.</p>
+<p><strong>Research problem</strong> — Traditional quality control methods often provide only retrospective data, which delays corrective actions and allows mix variability to compromise pavement performance before it is detected [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. Measurement inaccuracies in load-transfer efficiency and dowel-bar placement can obscure structural deficiencies and lead to premature distress or ineffective repairs [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. The inability to reliably locate subsurface reinforcement and measure slab thickness without destructive coring hinders the planning of safe and effective preservation treatments [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p><strong>State of the art</strong> — Quality assurance for airport concrete production relies on NRMCA-certified stationary central-mix plants that adhere to ASTM C94 or C65 standards, with real-time process control achieved through aggregate moisture sensors and monitoring of plant amp-meter readings [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. Industry practice utilizes real-time control charts for the Coarseness Factor and Workability Factor to monitor mixture consistency, supported by recent fast-track sieve analysis methods that provide early indications of aggregate drift [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. The evaluation of concrete pavement joints and cracks is primarily based on load-transfer efficiency testing conducted at temperatures below 70°F to minimize thermal influences [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Subsurface support conditions are routinely assessed using falling-weight deflectometers, where specific deflection thresholds indicate voids or non-uniform foundation support [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Magnetic imaging tomography systems represent the current state-of-the-art for non-destructive evaluation, enabling precise verification of dowel-bar placement and rapid measurement of slab thickness with high accuracy [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p>The following figure illustrates typical joint details used in airport concrete pavements.</p>
+<p><img alt="Joint details used in airport concrete pavements (FAA 2021)." src="assets/concrete-testing/b1d12c737e1ef2a672812eda686d4d7dd1a786faf11979b37aa9d46c6708b8da.jpg" />
+<em>Joint details used in airport concrete pavements (FAA 2021).</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays cross-sectional diagrams of various joint types, including contraction joints with tie bars and dowels, construction joints, isolation joints with thickened edges, and a detailed view of sealant placement. These details illustrate the physical components required for pavement joints, which are integral to ensuring optimal performance by allowing independent slab movement during expansion and contraction.</p>
+<p><strong>Findings from the reports</strong></p>
+<ul>
+<li>Effective concrete testing on airport pavements requires a rigorously certified batch plant located near the paving site, comprehensive trial batches to establish baseline workability, and formal uniformity testing to quantify consistency [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Continuous quality control must monitor aggregate moisture in each batch and adjust water additions to keep the mixture within specified limits [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Concrete performance depends on maintaining a well-graded aggregate blend, as poorly or gap-graded mixes drive unacceptable variability [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Tighter action limits are necessary because broader regulatory limits mask out-of-control conditions in concrete production [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Rapid moist-sieve sampling of critical sieves provides early warnings that reduce the lag inherent in standard testing methods [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Control charts enable users to visualize data trends, identify process issues, and proactively implement corrective actions before the process becomes unstable [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Load-transfer efficiency is quantified from joint or crack deflections and interpreted using defined categories ranging from excellent to very poor [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Acceptable load-transfer performance requires peak corner deflections under 25 mils with differential deflection across the joint not exceeding 5 mils [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Falling-weight deflectometer plots that extrapolate within roughly 2 mils of the origin indicate no void, while larger offsets suggest a void beneath the slab [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+</ul>
+<p><strong>Novelty &amp; rigor</strong> — The research introduces a proactive quality-control framework that integrates real-time statistical process control charts for Coarseness and Workability Factors with rapid, moisture-corrected aggregate sampling to enable immediate batch adjustments [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. This approach is distinguished by its use of automated spreadsheet logic to apply rule-of-thumb monitoring patterns against restrictive action limits, providing early warnings that prevent process drift beyond tighter tolerances than standard agency specifications allow [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. Complementing this statistical monitoring, the work presents an innovative combination of falling-weight deflection analysis and magnetic imaging tomography to non-destructively detect voids and verify dowel-bar placement with high-resolution precision [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p>The following figure illustrates non-destructive testing options for quality control thickness testing.</p>
+<p><img alt="Non-destructive testing options for QC thickness testing." src="assets/concrete-testing/f898d450b6d48a7ab0c1713d06f2e6ce0af85d6b7512f968bd005135d4bd4deb.jpg" />
+<em>Non-destructive testing options for QC thickness testing.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The image displays a worker in high-visibility safety gear operating the MIT-SCAN-T3 equipment on a paved surface to perform non-destructive quality control thickness measurements. As the scanner moves along the surface, it detects the distance between the scanner and buried metal targets, providing an accurate thickness measurement that is recorded digitally for analysis.</p>
+<p><strong>Reported values</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Context</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>deflection offset from origin</td>
+<td>2 mils</td>
+<td>FWD plot for void detection (no void threshold)</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+<tr>
+<td>differential deflection across joint</td>
+<td>5 mils</td>
+<td>loaded joint or crack (limit)</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+<tr>
+<td>load-transfer efficiency</td>
+<td>75% to 89%</td>
+<td>Good LTE category</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+<tr>
+<td>load-transfer efficiency</td>
+<td>90% to 100%</td>
+<td>Excellent LTE category</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+<tr>
+<td>peak corner deflection</td>
+<td>25 mils</td>
+<td>loaded joint or crack (desirable limit)</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+<tr>
+<td>testing temperature</td>
+<td>70°F</td>
+<td>load transfer testing condition</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+<tr>
+<td>void detection offset from origin</td>
+<td>2 mils</td>
+<td>load-deflection line projection</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+<tr>
+<td>coarse fraction variability action limit</td>
+<td>±2.5 CF</td>
+<td>TSPWG recommended limits for concrete consistency</td>
+<td>[<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</td>
+</tr>
+<tr>
+<td>water fraction variability action limit</td>
+<td>±1.5 WF</td>
+<td>TSPWG recommended limits for concrete consistency</td>
+<td>[<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Implications</strong> — Quality assurance programs must implement rigorous, continuous monitoring through control charts and rapid sampling to detect process drift early, ensuring that mix designs are calibrated for actual field conditions rather than relying solely on laboratory baselines [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. Testing protocols should enforce tighter statistical limits for key quality factors and require the public display of current control data to facilitate immediate corrective actions by all project stakeholders [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. Evaluation techniques must be adapted to specific environmental conditions, such as conducting load-transfer tests at lower temperatures to prevent bias, while integrating advanced friction measurement tools to accurately assess pavement safety and maintenance needs [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p>The following figure illustrates the sequential steps for adjusting concrete mixture proportions as part of this proactive process control.</p>
+<p><img alt="Sequential steps for adjusting concrete mixture proportions" src="assets/concrete-testing/466a782c2f52e63d0051b8e64262228526688896b9de50921189005edac54991.jpg" />
+<em>Sequential steps for adjusting concrete mixture proportions as part of proactive process control.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays a four-stage workflow diagram illustrating the progression from initial design to final production management. The process begins with Laboratory Developed Mixture Design, followed by Contractor Full-Scale Test Batches for validating the mix in a field setting. The workflow continues through Control Strip Test Sections for fine tuning before reaching the final Production stage.</p>
+<p><strong>Limitations</strong> — Moisture sensors require frequent calibration that varies by site conditions, and indirect amp-meter readings may not accurately reflect mix consistency [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. Control charts provide only retrospective data with inherent testing lags, while agency limits allow greater variability than recommended standards [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. Load-transfer efficiency measurements are sensitive to temperature and loading side, making reliable assessment difficult for slabs with low deflections or when distinguishing support loss causes [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p>The following figure illustrates a handheld moisture sensor probe used in these assessments.</p>
+<p><img alt="Handheld moisture sensor probe (source: KSE Testing Equipmen" src="assets/concrete-testing/b1de73b1fac249a36ca08055d19940bcc05e9f8b4a29c5ad7b2a0e9c24f7485c.jpg" />
+<em>Handheld moisture sensor probe (source: KSE Testing Equipment).</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The image shows a worker in blue coveralls and a white hard hat kneeling on a pile of aggregate while operating a handheld device with an orange probe inserted into the material. This figure illustrates the use of &ldquo;Handheld moisture sensors&rdquo; to measure moisture content in aggregates, which is a critical step in monitoring fresh-state properties for concrete production.</p>
+<p><small>Evidence: 2 reports (2 primary)</small></p>
+<h2 id="quality-control-of-air-void-system-and-workability">Quality Control of Air-Void System and Workability</h2>
+<p><strong>Research problem</strong> — Conventional quality control methods that rely on water-to-cement ratios and traditional air-void measurements provide limited accuracy in assessing the durability of high-performance concrete mixtures [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]. There is a need for rapid, daily testing protocols that offer more direct indications of concrete performance than standard specifications allow [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</p>
+<p><strong>State of the art</strong> — Traditional quality control for concrete durability has historically relied on mix-design parameters such as the water-to-cement ratio, total air-void volume, and critical spacing factor [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]. Current state-of-the-art practice is shifting toward using the formation factor derived from electrical resistivity measurements in place of the water-to-cement ratio [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]. Air quality and quantity are increasingly quantified by the Super Air Meter number, allowing these newer tests to be incorporated into routine daily quality-control programs for more direct insight into resistance to joint deterioration [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</p>
+<p>The following figure illustrates how variations in the water-to-cement ratio and air volume impact the time required for concrete to reach critical saturation.</p>
+<p><img alt="The influence of w/c ratio and air volume on the time requir" src="assets/concrete-testing/f179414f6047e9454d6fb25676bdb6e38ceaedeb5ce9ecdc1d69ae3be1e1a0a1.jpg" />
+<em>The influence of w/c ratio and air volume on the time required for 20 percent of the concrete to reach critical saturation (assuming 5 percent COV in w/c ratio and 15 percent COV in air content)</em> [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The figure displays a plot comparing deterministic predictions against probabilistic outcomes for time to critical saturation based on varying air content.</p>
+<p><strong>Findings from the reports</strong></p>
+<ul>
+<li>found that concrete performance depended on both total air content and the distribution of that air [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</li>
+<li>identified a typical target of about 5 percent air with a critical spacing factor near 0.008 in for acceptable air‑void quality [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</li>
+<li>reported that current mix‑design practice controls the water‑to‑cement ratio together with measured air‑void volume and spacing [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</li>
+<li>demonstrated emerging approaches aimed to replace the w/c ratio with a formation‑factor derived from electrical resistivity for daily quality control [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</li>
+<li>showed that the Super Air Meter number can be used on site to assess air quality and quantity as part of routine QC [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</li>
+<li>found that calculated Coarseness Factor and Workability Factor values remained within FAA and UFGS action limits throughout ten production lots on an airfield project [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>observed that the CF and WF values were consistently higher than the original laboratory mixture‑design targets despite staying within broader control limits [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>reported that applying tighter TSPWG recommended limits resulted in only one measurement approaching an action limit, with later data drifting back toward acceptable ranges [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>identified that specific test points (19 and 20) exceeded the stricter TSPWG limits even though they complied with the broader FAA/UFGS limits [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+</ul>
+<p><strong>Novelty &amp; rigor</strong> — The research introduces a distinctive quality-control framework that replaces traditional water-to-cement ratios and simple air-volume metrics with electrical resistivity-derived formation factors and Super Air Meter numbers to directly assess freeze-thaw durability parameters [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]. Reproducibility is established through a standardized protocol involving specific mix designs targeting defined air-void content and spacing limits, followed by verification via the aforementioned electrical and meter-based measurements for daily site implementation [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</p>
+<p>The following figure illustrates how the degree of saturation influences stiffness degradation resulting from freeze-thaw damage.</p>
+<p><img alt="Influence of the DOS on stiffness degradation due to freeze-" src="assets/concrete-testing/98029015024c326dce8409d5ba81eed56b1eccbefaeb8929da02f22a9541e9aa.jpg" />
+<em>Influence of the DOS on stiffness degradation due to freeze-thaw damage</em> [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The figure plots Relative Stiffness against Degree of Saturation (%) for two concrete mixtures with different air-void characteristics.</p>
+<p><strong>Reported values</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Context</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Coarseness Factor (CF) action limit</td>
+<td>±3.5</td>
+<td>FAA standards</td>
+<td>[<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</td>
+</tr>
+<tr>
+<td>Coarseness Factor (CF) recommended limit</td>
+<td>±2.5</td>
+<td>TSPWG recommendation</td>
+<td>[<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</td>
+</tr>
+<tr>
+<td>Workability Factor (WF) action limit</td>
+<td>±2</td>
+<td>FAA standards</td>
+<td>[<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</td>
+</tr>
+<tr>
+<td>Workability Factor (WF) recommended limit</td>
+<td>±1.5</td>
+<td>TSPWG recommendation</td>
+<td>[<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</td>
+</tr>
+<tr>
+<td>air content</td>
+<td>5 percent%</td>
+<td>typical target for concrete performance</td>
+<td>[<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</td>
+</tr>
+<tr>
+<td>critical spacing factor</td>
+<td>0.008 in.</td>
+<td>typical target for concrete performance</td>
+<td>[<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</td>
+</tr>
+</tbody>
+</table>
+<p>Across the reviewed reports, quality control for air-void systems and workability relies on monitoring specific distribution metrics alongside traditional mix parameters, with one study highlighting the use of spacing factors and SAM numbers for daily assessment while another demonstrates that calculated Coarseness and Workability Factors can remain within broad regulatory limits even when they deviate from laboratory targets. The collective evidence indicates that while standard action limits may appear sufficient for routine compliance, stricter acceptance criteria reveal greater variability in production consistency, suggesting that emerging on-site tools like the Super Air Meter and electrical resistivity measurements offer more precise control over air quality than traditional factors alone. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>] [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The following figure illustrates the relationship between workability and coarseness factors as defined by ETL 97-5 guidance.</p>
+<p><img alt="Diagram showing workability factor vs. coarseness factor and" src="assets/concrete-testing/7195b1f1f1f44008e3b90b3bb019c6dc8de495d8c02600d7425da32cbc0ffe45.jpg" />
+<em>Diagram showing workability factor vs. coarseness factor and workability box, as provided in ETL 97-5 guidance (TSPWG 2019).</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays a chart plotting the Workability Factor against the Coarseness Factor to define theoretical zones of concrete mixture behavior. It illustrates how aggregate gradation affects workability, identifying regions such as &ldquo;Sandy,&rdquo; &ldquo;Rocky,&rdquo; and &ldquo;Coarse Gap-Graded&rdquo; relative to a central &ldquo;Workability Box.&rdquo; This chart is used for slipform paving mixtures, where the optimum plot falls between control lines adjacent to the gap graded position.</p>
+<p><strong>Implications</strong> — Quality control practices should transition from relying solely on water-to-cement ratios and total air content to incorporating the formation factor and Super Air Meter number for a more direct assessment of air-void quality [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]. Testing protocols must be updated to include these electrical resistivity and spacing index measurements as standard components of concrete quality assurance to better monitor durability factors [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</p>
+<p><small>Evidence: 2 reports (2 primary)</small></p>
+<h2 id="related-concepts">Related concepts</h2>
+<p><strong>In this hierarchy</strong></p>
+<ul>
+<li>Parent: <a href="material-testing.html">Material Testing</a></li>
+<li>Sibling: <a href="concrete-durability-9-1.html">Concrete Durability</a></li>
+<li>Sibling: <a href="concrete-standards.html">Concrete Standards</a></li>
+<li>Sibling: <a href="concrete-strength.html">Concrete Strength</a></li>
+<li>Sibling: <a href="material-testing-9-4.html">Material Testing</a></li>
+<li>Sibling: <a href="maturity-methods.html">Maturity Methods</a></li>
+</ul>
+<p><strong>Related by shared evidence</strong></p>
+<ul>
+<li><a href="aggregate-management.html">Aggregate Management</a> — shares 4 reports</li>
+<li><a href="cement-chemistry.html">Cement Chemistry</a> — shares 4 reports</li>
+<li><a href="cementitious-materials.html">Cementitious Materials</a> — shares 4 reports</li>
+<li><a href="concrete-mixture-design.html">Concrete Mixture Design</a> — shares 4 reports</li>
+<li><a href="concrete-production-8-3.html">Concrete Production</a> — shares 4 reports</li>
+<li><a href="cracking-mitigation.html">Cracking Mitigation</a> — shares 4 reports</li>
+<li><a href="joint-maintenance.html">Joint Maintenance</a> — shares 4 reports</li>
+<li><a href="joint-sealing.html">Joint Sealing</a> — shares 4 reports</li>
+</ul>
+<p><strong>Similar topics</strong></p>
+<ul>
+<li><a href="quality-control-3-2.html">Quality Control</a></li>
+<li><a href="concrete-strength.html">Concrete Strength</a></li>
+<li><a href="material-testing-9-4.html">Material Testing</a></li>
+<li><a href="concrete-durability-9-1.html">Concrete Durability</a></li>
+<li><a href="concrete-standards.html">Concrete Standards</a></li>
+<li><a href="material-testing.html">Material Testing</a></li>
+<li><a href="concrete-strength-10-3.html">Concrete Strength</a></li>
+<li><a href="maturity-methods.html">Maturity Methods</a></li>
+</ul>
+<h2 id="source-coverage">Source coverage</h2>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Fresh and Hardened Concrete Testing Methods</th>
+<th>Quality Assurance and Testing Techniques</th>
+<th>Quality Control of Air-Void System and Workability</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+<td>✓</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+<td></td>
+<td>✓</td>
+<td></td>
+</tr>
+<tr>
+<td>[<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</td>
+<td></td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>[<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</td>
+<td></td>
+<td></td>
+<td>✓</td>
+</tr>
+</tbody>
+</table>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1">Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL (2019)</li><li id="ref-2">Concrete Pavement Preservation Guide (Third Edition) (2022)</li><li id="ref-3">Best Practices Manual: Quality Control and Quality Acceptance of Concrete Airport Pavement (2025)</li><li id="ref-4">Guide to the Prevention and Restoration of Early Joint Deterioration inConcrete Pavements (2016)</li>
+</ol>
+</section></article>
+<section class="comments" aria-labelledby="comments-heading">
+<h2 id="comments-heading">Feedback on this page</h2>
+<iframe data-tally-src="https://tally.so/embed/q4qql9?url=https%3A%2F%2Fig0r.github.io%2Fcnrt-guides-wiki-stage%2Fconcrete-testing.html&amp;hideTitle=1&amp;transparentBackground=1&amp;dynamicHeight=1" loading="lazy" width="100%" frameborder="0" title="Feedback form for this page"></iframe>
+<script async src="https://tally.so/widgets/embed.js"></script>
+</section>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

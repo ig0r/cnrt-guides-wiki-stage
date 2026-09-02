@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mixture Management</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-16: per-page Tally feedback embed (md->html reverse builder) */
+.comments { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+.comments h2 { color: var(--accent); border: none; margin: 0 0 .75rem; font-size: 1.1rem; }
+.comments iframe { width: 100%; border: 0; min-height: 320px; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /Users/igor/dev/llm/ak-llm-wiki/llm-wiki-tools/hierarchy_v2_guides/16-guides-concept-visual -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">75 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="aggregate-management.html">Aggregate Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="aggregate-classification.html">Aggregate Classification</a></li><li><a href="aggregate-management-3-1.html">Aggregate Management</a></li><li><a href="quality-control-3-2.html">Quality Control</a></li><li><a href="aggregate-impact.html">Aggregate Impact</a></li><li><a href="mixture-design.html">Mixture Design</a></li></ul></details></li><li><a href="cementitious-materials.html">Cementitious Materials</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="cement-chemistry.html">Cement Chemistry</a></li><li><a href="concrete-mixture-design.html">Concrete Mixture Design</a></li><li><a href="sustainable-scms.html">Sustainable SCMs</a></li><li><a href="cement-production.html">Cement Production</a></li><li><a href="concrete-durability.html">Concrete Durability</a></li></ul></details></li><li><a href="concrete-production.html">Concrete Production</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-production-15.html">Concrete Production</a></li></ul></details></li><li><a href="cracking-mitigation.html">Cracking Mitigation</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-cracking.html">Concrete Cracking</a></li><li><a href="moisture-management.html">Moisture Management</a></li><li><a href="sealant-application.html">Sealant Application</a></li><li><a href="temperature-management.html">Temperature Management</a></li></ul></details></li><li><a href="diamond-grinding.html">Diamond Grinding</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="diamond-grinding-5.html">Diamond Grinding</a></li></ul></details></li><li><a href="drainage-management.html">Drainage Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="drainage-management-7.html">Drainage Management</a></li></ul></details></li><li><a href="joint-sealing.html">Joint Sealing</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="joint-maintenance.html">Joint Maintenance</a></li><li><a href="sealant-installation.html">Sealant Installation</a></li><li><a href="pavement-maintenance.html">Pavement Maintenance</a></li><li><a href="sealant-performance.html">Sealant Performance</a></li></ul></details></li><li><a href="material-testing.html">Material Testing</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-testing.html">Concrete Testing</a></li><li><a href="concrete-durability-9-1.html">Concrete Durability</a></li><li><a href="concrete-strength.html">Concrete Strength</a></li><li><a href="concrete-standards.html">Concrete Standards</a></li><li><a href="material-testing-9-4.html">Material Testing</a></li><li><a href="maturity-methods.html">Maturity Methods</a></li></ul></details></li><li><a href="other.html">Other</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="other-17.html">Other</a></li></ul></details></li><li><a href="pavement-design.html">Pavement Design</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="overlay-technology.html">Overlay Technology</a></li><li><a href="pavement-types.html">Pavement Types</a></li><li><a href="construction-insights.html">Construction Insights</a></li><li><a href="recycling-innovation.html">Recycling Innovation</a></li></ul></details></li><li><a href="pavement-management-14.html">Pavement Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-smoothness.html">Pavement Smoothness</a></li><li><a href="pavement-systems.html">Pavement Systems</a></li><li><a href="subgrade-insights.html">Subgrade Insights</a></li><li><a href="excavation-safety.html">Excavation Safety</a></li><li><a href="slab-jacking.html">Slab Jacking</a></li></ul></details></li><li><a href="pavement-management.html">Pavement Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-evaluation.html">Pavement Evaluation</a></li><li><a href="preservation-strategies.html">Preservation Strategies</a></li><li><a href="pavement-design-8-2.html">Pavement Design</a></li><li><a href="concrete-production-8-3.html">Concrete Production</a></li><li><a href="design-methodologies.html">Design Methodologies</a></li><li><a href="design-considerations.html">Design Considerations</a></li></ul></details></li><li><a href="pavement-repair.html">Pavement Repair</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="slab-stabilization.html">Slab Stabilization</a></li><li><a href="pavement-repairs.html">Pavement Repairs</a></li><li><a href="dowel-bar-retrofit.html">Dowel Bar Retrofit</a></li></ul></details></li><li><a href="paving-operations.html">Paving Operations</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="paving-operations-12.html">Paving Operations</a></li></ul></details></li><li><a href="quality-assurance.html">Quality Assurance</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="quality-control-1-0.html">Quality Control</a></li><li><a href="project-management.html">Project Management</a></li><li><a href="quality-assurance-1-2.html">Quality Assurance</a></li></ul></details></li><li><a href="quality-control.html">Quality Control</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-assessment.html">Pavement Assessment</a></li><li><a href="mixture-management.html" class="active" aria-current="page">Mixture Management</a></li><li><a href="concrete-sampling.html">Concrete Sampling</a></li><li><a href="concrete-strength-10-3.html">Concrete Strength</a></li><li><a href="mixture-design-10-4.html">Mixture Design</a></li></ul></details></li><li><a href="reinforcement-techniques.html">Reinforcement Techniques</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="reinforcement-techniques-16.html">Reinforcement Techniques</a></li></ul></details></li><li><a href="surface-textures.html">Surface Textures</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="surface-textures-11.html">Surface Textures</a></li></ul></details></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">All concepts</a><span class="crumb-sep">›</span><a href="quality-control.html">Quality Control</a><span class="crumb-sep">›</span><span class="crumb-current">Mixture Management</span></nav>
+<article><h1>Mixture Management</h1>
+<div class="meta"><div class="part-of">Part of: <a href="quality-control.html">Quality Control</a> <span class="edge edge-taxonomic" title="Mixture Management is a topic under Quality Control.">is-subtopic-of</span></div><div class="edge-reading">Mixture Management is a topic under Quality Control.</div><div><a class="tag" href="index.html?q=concrete-mixture-management">concrete-mixture-management</a><a class="tag" href="index.html?q=quality-control">quality-control</a><a class="tag" href="index.html?q=aggregate-variability">aggregate-variability</a><a class="tag" href="index.html?q=workability-factor">workability-factor</a><a class="tag" href="index.html?q=trial-batches">trial-batches</a></div><div>Created 2026-09-01 · Updated 2026-09-02</div></div>
+<p>Mixture management is the systematic practice of defining, producing, and controlling material blends to ensure that each batch satisfies predetermined performance specifications. The process begins with material selection and laboratory proportioning to establish target properties such as workability, strength, and durability before scaling up to production [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. During construction, the mix is continuously monitored and adjusted within approved limits to maintain uniformity despite fluctuations in raw material quality or environmental conditions [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Statistical control principles are applied to distinguish between random process variation and assignable causes, ensuring that the production remains stable and consistent [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#key-findings">Key findings</a></li><li><a href="#concrete-mixture-design-and-control">Concrete Mixture Design And Control</a></li><li><a href="#related-concepts">Related concepts</a></li><li><a href="#source-coverage">Source coverage</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (2)</summary><div class="sources-body"><a href="#ref-1">Best Practices Manual: Quality Control and Quality Acceptance of Concrete Airport Pavement (2025)</a>, <a href="#ref-2">Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL (2019)</a></div></details>
+
+<h2 id="key-findings">Key findings</h2>
+<ul>
+<li>Field verification of laboratory designs through trial batches is mandatory before paving to confirm workability targets after simulated transport and ensure proper consolidation [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Successful mixture management requires maintaining batch-to-batch uniformity by batching concrete by mass to mitigate errors from aggregate bulking and inherent raw material variability [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Effective airport concrete production relies on a two-stage process involving pre-approval of mix designs with accredited lab data and mandatory NRMCA certification for batch plants [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Continuous statistical control is essential to limit variability, requiring comprehensive quality control plans that monitor mean and standard deviation to address both chance-cause and assignable-cause variations [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Achieving the target air-void system remains one of the most challenging aspects of mixture control during construction [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Contractors must continuously adjust equipment settings and concrete component ratios during production, using coarseness factor and workability factor as primary quality control metrics to ensure placeability [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Daily aggregate sieve analyses, precise moisture monitoring, and strict maintenance of mixer blade wear are essential practices to maintain mix consistency throughout production [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Economic constraints at the bidding stage necessitate optimizing mixture proportions for cost, specifications, and performance through trial laboratory batches that account for between-batch variability [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+</ul>
+<h2 id="concrete-mixture-design-and-control">Concrete Mixture Design And Control</h2>
+<p>Concrete mixture design and control is a systematic process of selecting material proportions to achieve target workability, strength, and durability while maintaining consistency across production batches [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. The water-to-cementitious material ratio and entrained air content are critical parameters that must be tightly controlled to balance fresh-state properties with long-term performance requirements [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Because raw materials vary in quality and environmental conditions fluctuate, mixture managers continuously monitor batch properties and adjust component ratios within specification limits to ensure uniformity [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p>The following figure illustrates how aggregate gradation influences workability relative to paste content.</p>
+<p><img alt="Effect of aggregate gradation on workability as a function o" src="assets/mixture-management/53be06df0af028b782df728f7b3bdbbdd5b63a5bb17b6d6681a3095ed9c0862b.jpg" />
+<em>Effect of aggregate gradation on workability as a function of paste content</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure plots the V-Kelly Index against Paste Content for three different aggregate types, showing that higher paste content generally increases workability.</p>
+<p><strong>Research problem</strong> — Inherent variability in raw materials and plant conditions prevents the production of uniform concrete batches, forcing operators to make frequent adjustments that risk poor surface finishes, cracking, and durability issues [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Uncontrolled factors such as inadequate aggregate stockpile management, fluctuating moisture content, and equipment wear cause key mixture properties to drift from approved values, leading to segregation, strength loss, and failure to meet acceptance criteria [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. The need for continuous proportion adjustments when material sources change or assignable-cause variation occurs challenges the ability to maintain statistical control over production quality while ensuring long-term pavement performance [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p>The following figure illustrates how these uncontrolled variations can lead to early-age cracking.</p>
+<p><img alt="Early-age cracking" src="assets/mixture-management/6bc5adb3847961da87691f37cbd3867342716133358844fe5bf8de3022cb0311.jpg" />
+<em>Early-age cracking</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure illustrates a concrete pavement slab exhibiting various forms of distress, including map cracking (crazing), plastic shrinkage cracks, random longitudinal and transverse cracks, corner breaks, and contraction joints.</p>
+<p><strong>State of the art</strong> — Current practice relies on accredited laboratory design using standardized methods like ACI 211, followed by rigorous field validation through trial batches and control strips to calibrate plant parameters before mass production [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Real-time mixture control is achieved by continuously monitoring aggregate moisture and using statistical process control metrics, such as Coarseness and Workability Factors, to maintain batch-to-batch uniformity within specification limits [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. The industry consensus emphasizes minimizing equipment adjustments by blending imperfect inputs within strict specification boundaries, ensuring that fresh properties like air-void systems and slump remain consistent despite raw material variability [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p>The figure below illustrates how Coarseness Factor and Workability Factor limits are adjusted to accommodate tolerance ranges for production paving data.</p>
+<p><img alt="CF and WF parallelogram showing the allowable limits box adj" src="assets/mixture-management/dd276ffc0c75347d213f8a092db3e736bd5aab1d61a9666fd4868aa78a68f303.jpg" />
+<em>CF and WF parallelogram showing the allowable limits box adjusted to show tolerance limits with data from production paving lots.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays a scatter plot of Workability Factor versus Coarseness Factor, where red lines define an allowable range for concrete mixtures.</p>
+<p><strong>Findings from the reports</strong></p>
+<ul>
+<li>Field verification of laboratory designs through trial batches is mandatory before paving to confirm workability targets after simulated transport and ensure proper consolidation [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Successful mixture management requires maintaining batch-to-batch uniformity by batching concrete by mass to mitigate errors from aggregate bulking and inherent raw material variability [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Effective airport concrete production relies on a two-stage process involving pre-approval of mix designs with accredited lab data and mandatory NRMCA certification for batch plants [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Continuous statistical control is essential to limit variability, requiring comprehensive quality control plans that monitor mean and standard deviation to address both chance-cause and assignable-cause variations [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Achieving the target air-void system remains one of the most challenging aspects of mixture control during construction [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+<li>Contractors must continuously adjust equipment settings and concrete component ratios during production, using coarseness factor and workability factor as primary quality control metrics to ensure placeability [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Daily aggregate sieve analyses, precise moisture monitoring, and strict maintenance of mixer blade wear are essential practices to maintain mix consistency throughout production [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Economic constraints at the bidding stage necessitate optimizing mixture proportions for cost, specifications, and performance through trial laboratory batches that account for between-batch variability [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</li>
+</ul>
+<p><strong>Novelty &amp; rigor</strong> — The approach redefines mixture management as an active, feedback-driven system that elevates stockpile control to a central function by computing Coarseness and Workability Factors from systematic coarse-aggregate sampling to fine-tune batch proportions for uniform gradation [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Reproducibility is ensured through the mandatory use of approved material sources with verified physical properties, laboratory-based design studies that establish baseline Coarseness and Workability targets, and full-scale trial batches on calibrated plants to dial in water-to-cement ratios and admixture dosages [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. A novel procedural element for portable mixing plants mandates a two-stage workability check where fresh mix is tested immediately after batching and again after a simulated transport period, requiring iterative remaking of batches until target workability is achieved at the later time to guarantee on-site performance [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p>The following figure illustrates the modified coarseness factor chart used in this system.</p>
+<p><img alt="Modified coarseness factor chart" src="assets/mixture-management/48bd0db3b90828203e095376a3515ca2c7a13c9f9fcbc7ccda23bbe17701b9c5.jpg" />
+<em>Modified coarseness factor chart</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays a Shilstone Chart that plots Workability Factor against Coarseness Factor to define five distinct zones for concrete mixtures. Zone II indicates a mixture for concretes with nominal maximum aggregate size from 2 in. through ¾ in., while other regions are labeled as Gap, Sandy, Small Agg, and Coarse.</p>
+<p><strong>Reported values</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Context</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>coarseness factor drift</td>
+<td>±5</td>
+<td>expected change during a paving day quantified by Air Force research in 1996</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>mixer blade wear limit</td>
+<td>10%</td>
+<td>concrete mixer blades or paddles compared to new blades or paddles</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>workability factor drift</td>
+<td>±3</td>
+<td>expected change during a paving day quantified by Air Force research in 1996</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>air volume</td>
+<td>5 percent%</td>
+<td>behind the paver in cold climates</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+<tr>
+<td>water-to-cementitious material ratio</td>
+<td>0.38 to 0.42</td>
+<td>cold climates</td>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+</tr>
+</tbody>
+</table>
+<p>Across the reviewed reports, effective concrete mixture design and control rely on a rigorous pre-construction validation phase that mandates trial batches to verify laboratory designs against field conditions and establish baseline plastic properties. Both studies emphasize that maintaining batch-to-batch uniformity requires continuous statistical monitoring of fresh concrete properties, such as workability and air-void systems, alongside precise adjustments to mix proportions based on real-time moisture and material variability data. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The following figure illustrates a conservative timeline for mixture and materials approval in a DOD airport concrete paving project.</p>
+<p><img alt="Conservative timeline for mixture and materials approval for" src="assets/mixture-management/b81e8297777c245a0477ca7625b2eedbec5f1dee777b0ed4b5c93caabc9623a6.jpg" />
+<em>Conservative timeline for mixture and materials approval for DOD airport concrete paving project.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays a Gantt chart illustrating the sequential testing phases required to approve aggregate materials and concrete mixtures, including freeze-thaw resistance, deleterious content analysis, alkali-silica reaction potential, trial batching, and strength testing. The timeline is divided into aggregate testing and concrete testing phases, with the former taking approximately 7.25 months to complete before the latter begins. This figure illustrates a critical component of mixture management by demonstrating how rigorous pre-construction validation and material selection dictate the project schedule before production can commence.</p>
+<p><strong>Implications</strong> — Concrete mixture management must be treated as an active, continuous control process rather than a one-time laboratory design, requiring ongoing adjustments to maintain batch-to-batch uniformity despite variations in raw materials and environmental conditions [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Any change in material source or admixture product necessitates a new proportioning study and trial batches to verify that laboratory designs translate into acceptable fresh properties for the specific construction equipment [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. A formal quality control plan must be implemented to prescribe practices that reduce variability through calibrated equipment, qualified personnel, and continuous statistical monitoring of key parameters such as temperature, air content, and mix ratios [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p>The figure below illustrates the sequential steps for adjusting concrete mixture proportions as part of this proactive process control.</p>
+<p><img alt="Sequential steps for adjusting concrete mixture proportions" src="assets/mixture-management/466a782c2f52e63d0051b8e64262228526688896b9de50921189005edac54991.jpg" />
+<em>Sequential steps for adjusting concrete mixture proportions as part of proactive process control.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays a four-stage linear workflow starting with Laboratory Developed Mixture Design, followed by Contractor Full-Scale Test Batches (Validating), Control Strip - Test Section (Fine Tuning), and concluding with Production (Managing). The progression from laboratory design through validation and fine-tuning to final production demonstrates how mixture adjustments are expected as proactive management in response to process control monitoring.</p>
+<p><strong>Limitations</strong> — Batch-to-batch variations are difficult for operators to accommodate because adjusting paving equipment takes time, which increases the risk of unsatisfactory finishes and durability issues [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Achieving target air content and a proper air-void system is particularly challenging due to the influence of numerous variables on the air system [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Process-control tools such as moisture sensors are not infallible and require periodic calibration and stable baselines before adjustments can be trusted [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Meeting laboratory specifications does not guarantee successful placement with slipform paving equipment, as ambient conditions and operator skill significantly alter mix behavior [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p><small>Evidence: 2 reports (2 primary)</small></p>
+<h2 id="related-concepts">Related concepts</h2>
+<p><strong>In this hierarchy</strong></p>
+<ul>
+<li>Parent: <a href="quality-control.html">Quality Control</a></li>
+<li>Sibling: <a href="concrete-sampling.html">Concrete Sampling</a></li>
+<li>Sibling: <a href="concrete-strength-10-3.html">Concrete Strength</a></li>
+<li>Sibling: <a href="mixture-design-10-4.html">Mixture Design</a></li>
+<li>Sibling: <a href="pavement-assessment.html">Pavement Assessment</a></li>
+</ul>
+<p><strong>Related by shared evidence</strong></p>
+<ul>
+<li><a href="aggregate-impact.html">Aggregate Impact</a> — shares 2 reports</li>
+<li><a href="aggregate-management.html">Aggregate Management</a> — shares 2 reports</li>
+<li><a href="aggregate-management-3-1.html">Aggregate Management</a> — shares 2 reports</li>
+<li><a href="cement-chemistry.html">Cement Chemistry</a> — shares 2 reports</li>
+<li><a href="cementitious-materials.html">Cementitious Materials</a> — shares 2 reports</li>
+<li><a href="concrete-cracking.html">Concrete Cracking</a> — shares 2 reports</li>
+<li><a href="concrete-mixture-design.html">Concrete Mixture Design</a> — shares 2 reports</li>
+<li><a href="concrete-production-8-3.html">Concrete Production</a> — shares 2 reports</li>
+</ul>
+<p><strong>Similar topics</strong></p>
+<ul>
+<li><a href="quality-assurance-1-2.html">Quality Assurance</a></li>
+<li><a href="quality-control.html">Quality Control</a></li>
+<li><a href="mixture-design-10-4.html">Mixture Design</a></li>
+<li><a href="aggregate-management-3-1.html">Aggregate Management</a></li>
+<li><a href="quality-control-3-2.html">Quality Control</a></li>
+<li><a href="quality-assurance.html">Quality Assurance</a></li>
+<li><a href="project-management.html">Project Management</a></li>
+<li><a href="pavement-assessment.html">Pavement Assessment</a></li>
+</ul>
+<h2 id="source-coverage">Source coverage</h2>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Concrete Mixture Design And Control</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+<td>✓</td>
+</tr>
+</tbody>
+</table>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1">Best Practices Manual: Quality Control and Quality Acceptance of Concrete Airport Pavement (2025)</li><li id="ref-2">Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL (2019)</li>
+</ol>
+</section></article>
+<section class="comments" aria-labelledby="comments-heading">
+<h2 id="comments-heading">Feedback on this page</h2>
+<iframe data-tally-src="https://tally.so/embed/q4qql9?url=https%3A%2F%2Fig0r.github.io%2Fcnrt-guides-wiki-stage%2Fmixture-management.html&amp;hideTitle=1&amp;transparentBackground=1&amp;dynamicHeight=1" loading="lazy" width="100%" frameborder="0" title="Feedback form for this page"></iframe>
+<script async src="https://tally.so/widgets/embed.js"></script>
+</section>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

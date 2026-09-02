@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maturity Methods</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-16: per-page Tally feedback embed (md->html reverse builder) */
+.comments { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+.comments h2 { color: var(--accent); border: none; margin: 0 0 .75rem; font-size: 1.1rem; }
+.comments iframe { width: 100%; border: 0; min-height: 320px; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /Users/igor/dev/llm/ak-llm-wiki/llm-wiki-tools/hierarchy_v2_guides/16-guides-concept-visual -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">75 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="aggregate-management.html">Aggregate Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="aggregate-classification.html">Aggregate Classification</a></li><li><a href="aggregate-management-3-1.html">Aggregate Management</a></li><li><a href="quality-control-3-2.html">Quality Control</a></li><li><a href="aggregate-impact.html">Aggregate Impact</a></li><li><a href="mixture-design.html">Mixture Design</a></li></ul></details></li><li><a href="cementitious-materials.html">Cementitious Materials</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="cement-chemistry.html">Cement Chemistry</a></li><li><a href="concrete-mixture-design.html">Concrete Mixture Design</a></li><li><a href="sustainable-scms.html">Sustainable SCMs</a></li><li><a href="cement-production.html">Cement Production</a></li><li><a href="concrete-durability.html">Concrete Durability</a></li></ul></details></li><li><a href="concrete-production.html">Concrete Production</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-production-15.html">Concrete Production</a></li></ul></details></li><li><a href="cracking-mitigation.html">Cracking Mitigation</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-cracking.html">Concrete Cracking</a></li><li><a href="moisture-management.html">Moisture Management</a></li><li><a href="sealant-application.html">Sealant Application</a></li><li><a href="temperature-management.html">Temperature Management</a></li></ul></details></li><li><a href="diamond-grinding.html">Diamond Grinding</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="diamond-grinding-5.html">Diamond Grinding</a></li></ul></details></li><li><a href="drainage-management.html">Drainage Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="drainage-management-7.html">Drainage Management</a></li></ul></details></li><li><a href="joint-sealing.html">Joint Sealing</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="joint-maintenance.html">Joint Maintenance</a></li><li><a href="sealant-installation.html">Sealant Installation</a></li><li><a href="pavement-maintenance.html">Pavement Maintenance</a></li><li><a href="sealant-performance.html">Sealant Performance</a></li></ul></details></li><li><a href="material-testing.html">Material Testing</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-testing.html">Concrete Testing</a></li><li><a href="concrete-durability-9-1.html">Concrete Durability</a></li><li><a href="concrete-strength.html">Concrete Strength</a></li><li><a href="concrete-standards.html">Concrete Standards</a></li><li><a href="material-testing-9-4.html">Material Testing</a></li><li><a href="maturity-methods.html" class="active" aria-current="page">Maturity Methods</a></li></ul></details></li><li><a href="other.html">Other</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="other-17.html">Other</a></li></ul></details></li><li><a href="pavement-design.html">Pavement Design</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="overlay-technology.html">Overlay Technology</a></li><li><a href="pavement-types.html">Pavement Types</a></li><li><a href="construction-insights.html">Construction Insights</a></li><li><a href="recycling-innovation.html">Recycling Innovation</a></li></ul></details></li><li><a href="pavement-management-14.html">Pavement Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-smoothness.html">Pavement Smoothness</a></li><li><a href="pavement-systems.html">Pavement Systems</a></li><li><a href="subgrade-insights.html">Subgrade Insights</a></li><li><a href="excavation-safety.html">Excavation Safety</a></li><li><a href="slab-jacking.html">Slab Jacking</a></li></ul></details></li><li><a href="pavement-management.html">Pavement Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-evaluation.html">Pavement Evaluation</a></li><li><a href="preservation-strategies.html">Preservation Strategies</a></li><li><a href="pavement-design-8-2.html">Pavement Design</a></li><li><a href="concrete-production-8-3.html">Concrete Production</a></li><li><a href="design-methodologies.html">Design Methodologies</a></li><li><a href="design-considerations.html">Design Considerations</a></li></ul></details></li><li><a href="pavement-repair.html">Pavement Repair</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="slab-stabilization.html">Slab Stabilization</a></li><li><a href="pavement-repairs.html">Pavement Repairs</a></li><li><a href="dowel-bar-retrofit.html">Dowel Bar Retrofit</a></li></ul></details></li><li><a href="paving-operations.html">Paving Operations</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="paving-operations-12.html">Paving Operations</a></li></ul></details></li><li><a href="quality-assurance.html">Quality Assurance</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="quality-control-1-0.html">Quality Control</a></li><li><a href="project-management.html">Project Management</a></li><li><a href="quality-assurance-1-2.html">Quality Assurance</a></li></ul></details></li><li><a href="quality-control.html">Quality Control</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-assessment.html">Pavement Assessment</a></li><li><a href="mixture-management.html">Mixture Management</a></li><li><a href="concrete-sampling.html">Concrete Sampling</a></li><li><a href="concrete-strength-10-3.html">Concrete Strength</a></li><li><a href="mixture-design-10-4.html">Mixture Design</a></li></ul></details></li><li><a href="reinforcement-techniques.html">Reinforcement Techniques</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="reinforcement-techniques-16.html">Reinforcement Techniques</a></li></ul></details></li><li><a href="surface-textures.html">Surface Textures</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="surface-textures-11.html">Surface Textures</a></li></ul></details></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">All concepts</a><span class="crumb-sep">›</span><a href="material-testing.html">Material Testing</a><span class="crumb-sep">›</span><span class="crumb-current">Maturity Methods</span></nav>
+<article><h1>Maturity Methods</h1>
+<div class="meta"><div class="part-of">Part of: <a href="material-testing.html">Material Testing</a> <span class="edge edge-taxonomic" title="Maturity Methods is a topic under Material Testing.">is-subtopic-of</span></div><div class="edge-reading">Maturity Methods is a topic under Material Testing.</div><div><a class="tag" href="index.html?q=maturity-methods">maturity-methods</a><a class="tag" href="index.html?q=concrete-strength-assessment">concrete-strength-assessment</a><a class="tag" href="index.html?q=thermal-expansion">thermal-expansion</a><a class="tag" href="index.html?q=quality-control">quality-control</a><a class="tag" href="index.html?q=hiperpav-software">hiperpav-software</a></div><div>Created 2026-09-01 · Updated 2026-09-02</div></div>
+<p>Maturity methods are nondestructive techniques that estimate the in-place strength and modulus of concrete by linking its temperature-time history to material development. The underlying principle is that heat generated during cement hydration governs the degree of hydration, which controls strength gain, meaning each concrete mix possesses a unique strength-time relationship [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. A maturity function quantifies how temperature influences the rate of strength development, with common formulations including the time-temperature factor and equivalent-age method [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Temperature sensors embedded in fresh concrete record data over elapsed time to produce a cumulative maturity value that reflects the combined effects of time and temperature on hydration progress [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. By testing specimens under controlled conditions, engineers develop mix-specific correlation curves that allow in-place maturity readings to be converted into estimated strength values for construction scheduling and quality control [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#key-findings">Key findings</a></li><li><a href="#concrete-maturity-methods">Concrete Maturity Methods</a></li><li><a href="#related-concepts">Related concepts</a></li><li><a href="#source-coverage">Source coverage</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (3)</summary><div class="sources-body"><a href="#ref-1">Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL (2019)</a>, <a href="#ref-2">Best Practices Manual: Quality Control and Quality Acceptance of Concrete Airport Pavement (2025)</a>, <a href="#ref-3">Concrete Pavement Preservation Guide (Third Edition) (2022)</a></div></details>
+
+<h2 id="key-findings">Key findings</h2>
+<ul>
+<li>ASTM C1074‑based procedures were shown to use laboratory‑derived time‑temperature versus strength curves to predict in‑place pavement strength and to flag moments when applied stresses exceed the predicted strength, indicating a high risk of uncontrolled cracking [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Engineers found that maturity testing could estimate both compressive strength and modulus of concrete directly from its temperature history, enabling rapid decisions about opening pavements to traffic [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>The method demonstrated that each concrete mix follows a unique strength‑time relationship so that at any given maturity the same strength is achieved regardless of the specific time‑temperature path taken [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Researchers reported two mathematical functions for converting temperature data to maturity: the widely applied time‑temperature factor and the equivalent‑age function, which produced more accurate predictions under large temperature fluctuations but was less frequently used because of its complexity [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Implementation studies found that preliminary calibration of the chosen function to the specific mix is required, and that commercial maturity meters or standard temperature sensors can be employed at critical locations for field measurements [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>When such risk was identified, practitioners reported that modifying mix design, curing regimen, or placement timing could mitigate cracking, and analytical tools such as HIPERPAV III version 3.3 were released to support these adjustments [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+</ul>
+<h2 id="concrete-maturity-methods">Concrete Maturity Methods</h2>
+<p>Concrete maturity methods are nondestructive techniques that estimate in-place strength by linking the material&rsquo;s temperature-time history to its hydration progress [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. The underlying principle is that cement hydration heat governs the degree of reaction, meaning each concrete mix possesses a unique relationship between time, temperature, and strength gain [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. A maturity function quantifies how temperature influences the rate of strength development, allowing engineers to convert embedded sensor readings into a cumulative maturity value [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. By establishing a calibrated curve that correlates measured strengths with maturity values for a specific mix design, practitioners can predict when target strengths are reached in the field [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</p>
+<p>The following figure illustrates a sample maturity curve that demonstrates this correlation between cumulative maturity values and concrete strength.</p>
+<p><img alt="Sample maturity curve showing the relationship between concr" src="assets/maturity-methods/f1ebfc8f8797a2bbc4b6b83beffd6ef23b781de50b5cde93cae6a14151bd9530.jpg" />
+<em>Sample maturity curve showing the relationship between concrete compressive strength and maturity.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays a sample maturity curve plotting compressive strength against maturity in degree-Celsius-hours, illustrating how strength increases as the material develops.</p>
+<p><strong>Research problem</strong> — Engineers on fast-track projects often lack a reliable, nondestructive method to estimate in-place concrete strength during curing because full laboratory testing cannot be completed before placement and destructive cores are prohibited from finished pavements [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. There is a critical need to accurately predict when compressive and flexural strengths will meet specifications so that construction activities such as form removal, post-tensioning, or traffic loading can be scheduled without risking safety from premature loading or wasting resources through excessive delays [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Researchers seek to prevent uncontrolled cracking and subsequent degradation of pavement performance by determining the precise timing for applying stress relative to developing strength, thereby allowing proactive adjustments to mix design or curing regimes [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</p>
+<p>The following figure illustrates this challenge by displaying an example plot from HIPERPAV that indicates a high risk of cracking approximately six hours after paving.</p>
+<p><img alt="An example plot reported by HIPERPAV showing a high risk of" src="assets/maturity-methods/7307a8bc3d8c5bdf50c7b0bc0f8276eb624944559fa597b16b61e99e7e75e0e9.jpg" />
+<em>An example plot reported by HIPERPAV showing a high risk of cracking at about six hours after paving</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays two curves plotted against elapsed time since construction: a solid line representing the developing tensile strength and a dashed line representing the induced tensile stress. This visualization demonstrates how maturity methods are applied in practice to predict the timing of stress development relative to strength gain, allowing engineers to schedule construction activities or adjust mix designs before failure occurs.</p>
+<p><strong>State of the art</strong> — The concrete maturity field is standardized by ASTM C918 and C1074, which establish the use of time-temperature factors or equivalent-age functions to derive a maturity index for predicting in-place strength [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. Industry practice predominantly relies on the time-temperature factor due to its simplicity, requiring mix-specific calibration curves generated from laboratory specimens with embedded sensors to correlate early-age data with later strength [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. This nondestructive approach is now the accepted standard for quality control and determining when concrete pavements or repairs can safely withstand traffic loads, supported by guidance from ACPA and ACI alongside specialized software tools [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</p>
+<p>The following figure illustrates a typical example of such a mix-specific calibration curve.</p>
+<p><img alt="Example plot of compressive strength versus maturity for a c" src="assets/maturity-methods/0bbf8c2942fb240c14d75a75b094dca779ef12f46736db9b4cfaf269236e498d.jpg" />
+<em>Example plot of compressive strength versus maturity for a concrete mixture.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays a curve plotting compressive strength against maturity, illustrating the relationship between these two variables. This plot serves as an example of how the time-temperature versus strength relationship is determined in the laboratory for a specific mixture to estimate when desired concrete strength is expected to be reached.</p>
+<p><strong>Findings from the reports</strong></p>
+<ul>
+<li>Researchers found that maturity testing enabled engineers to estimate both compressive strength and modulus of concrete directly from its temperature history, allowing rapid decisions on pavement opening to traffic [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>The studies demonstrated that each concrete mix follows a unique strength‑time curve so that at any given maturity the same strength is achieved regardless of the specific time‑temperature path taken [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Investigators reported two mathematical functions for converting temperature data to maturity: the widely applied time‑temperature factor and the equivalent‑age function, which provides greater accuracy under large temperature fluctuations but is less commonly used due to its complexity [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>The reports found that preliminary calibration of the chosen function to the specific mix is required before field implementation, and that commercial maturity meters or standard temperature sensors can be employed for data collection [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>According to ASTM C1074, practitioners demonstrated that laboratory‑derived time‑temperature versus strength curves can be used in‑place to predict when a target pavement strength will be reached, including for full‑depth repairs [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>The methodology was shown to flag any moment when applied stresses exceed the predicted in‑place strength, indicating a high risk of uncontrolled cracking [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>When such risk was identified, engineers reported that they could modify mix design, curing regimen, or placement timing to mitigate potential cracking [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>The latest analytical tool supporting these assessments, HIPERPAV III version 3.3 released in 2015, was reported as the current software implementation of maturity‑based pavement evaluation [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+</ul>
+<p><strong>Novelty &amp; rigor</strong> — The novelty lies not in theoretical innovation but in the operationalization of established maturity principles through dedicated laboratory specimens and permanent field sensors to generate mix-specific strength curves [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Reproducibility requires strict adherence to standard testing protocols for specimen casting, continuous temperature logging, and the use of identical concrete mix designs to derive accurate prediction equations [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Distinctive applications include integrating these maturity principles with specialized software to predict in-place strength and assess cracking risks for existing pavements and full-depth repairs [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</p>
+<p>Across the reviewed reports, maturity methods are established as practical tools that estimate in-place concrete strength and modulus by correlating temperature history with mix-specific time-temperature curves. While both approaches require preliminary calibration for specific mixes to predict when target strengths are reached, they differ in their mathematical implementation, with one relying on the widely applied time-temperature factor and the other using a more complex equivalent-age function that may offer greater accuracy under large temperature fluctuations. These methods enable practitioners to identify moments when applied stress might exceed predicted strength, thereby signaling risks of uncontrolled cracking and allowing for adjustments in mix design or curing regimens before damage occurs. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p><strong>Implications</strong> — Practitioners should routinely employ maturity methods to estimate in-place concrete strength and modulus, enabling timely operational decisions such as pavement opening while accelerating mix design processes when laboratory testing is constrained [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Because each concrete mix has a unique strength-time relationship, engineers must develop specific maturity curves through preliminary calibration tests to ensure reliable predictions [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Construction timing and quality-control decisions should be driven by real-time strength forecasts rather than fixed calendar dates, allowing for proactive adjustments to curing or placement schedules to mitigate cracking risks [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</p>
+<p><strong>Limitations</strong> — The method requires preliminary calibration for each specific concrete mix to determine accurate maturity constants, as generic parameters do not apply universally [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. Selecting between equivalent-age and time-temperature factor functions involves trade-offs between mathematical complexity and precision depending on field temperature variability [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Reliable strength predictions depend heavily on proper sensor placement and sufficiently frequent temperature readings to ensure the laboratory-derived curve accurately reflects field conditions [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</p>
+<p><small>Evidence: 3 reports (2 primary)</small></p>
+<h2 id="related-concepts">Related concepts</h2>
+<p><strong>In this hierarchy</strong></p>
+<ul>
+<li>Parent: <a href="material-testing.html">Material Testing</a></li>
+<li>Sibling: <a href="concrete-durability-9-1.html">Concrete Durability</a></li>
+<li>Sibling: <a href="concrete-standards.html">Concrete Standards</a></li>
+<li>Sibling: <a href="concrete-strength.html">Concrete Strength</a></li>
+<li>Sibling: <a href="concrete-testing.html">Concrete Testing</a></li>
+<li>Sibling: <a href="material-testing-9-4.html">Material Testing</a></li>
+</ul>
+<p><strong>Related by shared evidence</strong></p>
+<ul>
+<li><a href="aggregate-management.html">Aggregate Management</a> — shares 3 reports</li>
+<li><a href="cement-chemistry.html">Cement Chemistry</a> — shares 3 reports</li>
+<li><a href="cementitious-materials.html">Cementitious Materials</a> — shares 3 reports</li>
+<li><a href="concrete-mixture-design.html">Concrete Mixture Design</a> — shares 3 reports</li>
+<li><a href="concrete-production-8-3.html">Concrete Production</a> — shares 3 reports</li>
+<li><a href="concrete-strength.html">Concrete Strength</a> — shares 3 reports</li>
+<li><a href="concrete-testing.html">Concrete Testing</a> — shares 3 reports</li>
+<li><a href="cracking-mitigation.html">Cracking Mitigation</a> — shares 3 reports</li>
+</ul>
+<p><strong>Similar topics</strong></p>
+<ul>
+<li><a href="concrete-strength.html">Concrete Strength</a></li>
+<li><a href="concrete-testing.html">Concrete Testing</a></li>
+<li><a href="material-testing-9-4.html">Material Testing</a></li>
+<li><a href="concrete-strength-10-3.html">Concrete Strength</a></li>
+<li><a href="cracking-mitigation.html">Cracking Mitigation</a></li>
+<li><a href="concrete-cracking.html">Concrete Cracking</a></li>
+<li><a href="concrete-standards.html">Concrete Standards</a></li>
+<li><a href="concrete-production-8-3.html">Concrete Production</a></li>
+</ul>
+<h2 id="source-coverage">Source coverage</h2>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Concrete Maturity Methods</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>[<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</td>
+<td>✓</td>
+</tr>
+</tbody>
+</table>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1">Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL (2019)</li><li id="ref-2">Best Practices Manual: Quality Control and Quality Acceptance of Concrete Airport Pavement (2025)</li><li id="ref-3">Concrete Pavement Preservation Guide (Third Edition) (2022)</li>
+</ol>
+</section></article>
+<section class="comments" aria-labelledby="comments-heading">
+<h2 id="comments-heading">Feedback on this page</h2>
+<iframe data-tally-src="https://tally.so/embed/q4qql9?url=https%3A%2F%2Fig0r.github.io%2Fcnrt-guides-wiki-stage%2Fmaturity-methods.html&amp;hideTitle=1&amp;transparentBackground=1&amp;dynamicHeight=1" loading="lazy" width="100%" frameborder="0" title="Feedback form for this page"></iframe>
+<script async src="https://tally.so/widgets/embed.js"></script>
+</section>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

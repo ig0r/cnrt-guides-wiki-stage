@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paving Operations</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-16: per-page Tally feedback embed (md->html reverse builder) */
+.comments { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+.comments h2 { color: var(--accent); border: none; margin: 0 0 .75rem; font-size: 1.1rem; }
+.comments iframe { width: 100%; border: 0; min-height: 320px; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /Users/igor/dev/llm/ak-llm-wiki/llm-wiki-tools/hierarchy_v2_guides/16-guides-concept-visual -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">75 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="aggregate-management.html">Aggregate Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="aggregate-classification.html">Aggregate Classification</a></li><li><a href="aggregate-management-3-1.html">Aggregate Management</a></li><li><a href="quality-control-3-2.html">Quality Control</a></li><li><a href="aggregate-impact.html">Aggregate Impact</a></li><li><a href="mixture-design.html">Mixture Design</a></li></ul></details></li><li><a href="cementitious-materials.html">Cementitious Materials</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="cement-chemistry.html">Cement Chemistry</a></li><li><a href="concrete-mixture-design.html">Concrete Mixture Design</a></li><li><a href="sustainable-scms.html">Sustainable SCMs</a></li><li><a href="cement-production.html">Cement Production</a></li><li><a href="concrete-durability.html">Concrete Durability</a></li></ul></details></li><li><a href="concrete-production.html">Concrete Production</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-production-15.html">Concrete Production</a></li></ul></details></li><li><a href="cracking-mitigation.html">Cracking Mitigation</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-cracking.html">Concrete Cracking</a></li><li><a href="moisture-management.html">Moisture Management</a></li><li><a href="sealant-application.html">Sealant Application</a></li><li><a href="temperature-management.html">Temperature Management</a></li></ul></details></li><li><a href="diamond-grinding.html">Diamond Grinding</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="diamond-grinding-5.html">Diamond Grinding</a></li></ul></details></li><li><a href="drainage-management.html">Drainage Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="drainage-management-7.html">Drainage Management</a></li></ul></details></li><li><a href="joint-sealing.html">Joint Sealing</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="joint-maintenance.html">Joint Maintenance</a></li><li><a href="sealant-installation.html">Sealant Installation</a></li><li><a href="pavement-maintenance.html">Pavement Maintenance</a></li><li><a href="sealant-performance.html">Sealant Performance</a></li></ul></details></li><li><a href="material-testing.html">Material Testing</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-testing.html">Concrete Testing</a></li><li><a href="concrete-durability-9-1.html">Concrete Durability</a></li><li><a href="concrete-strength.html">Concrete Strength</a></li><li><a href="concrete-standards.html">Concrete Standards</a></li><li><a href="material-testing-9-4.html">Material Testing</a></li><li><a href="maturity-methods.html">Maturity Methods</a></li></ul></details></li><li><a href="other.html">Other</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="other-17.html">Other</a></li></ul></details></li><li><a href="pavement-design.html">Pavement Design</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="overlay-technology.html">Overlay Technology</a></li><li><a href="pavement-types.html">Pavement Types</a></li><li><a href="construction-insights.html">Construction Insights</a></li><li><a href="recycling-innovation.html">Recycling Innovation</a></li></ul></details></li><li><a href="pavement-management-14.html">Pavement Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-smoothness.html">Pavement Smoothness</a></li><li><a href="pavement-systems.html">Pavement Systems</a></li><li><a href="subgrade-insights.html">Subgrade Insights</a></li><li><a href="excavation-safety.html">Excavation Safety</a></li><li><a href="slab-jacking.html">Slab Jacking</a></li></ul></details></li><li><a href="pavement-management.html">Pavement Management</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-evaluation.html">Pavement Evaluation</a></li><li><a href="preservation-strategies.html">Preservation Strategies</a></li><li><a href="pavement-design-8-2.html">Pavement Design</a></li><li><a href="concrete-production-8-3.html">Concrete Production</a></li><li><a href="design-methodologies.html">Design Methodologies</a></li><li><a href="design-considerations.html">Design Considerations</a></li></ul></details></li><li><a href="pavement-repair.html">Pavement Repair</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="slab-stabilization.html">Slab Stabilization</a></li><li><a href="pavement-repairs.html">Pavement Repairs</a></li><li><a href="dowel-bar-retrofit.html">Dowel Bar Retrofit</a></li></ul></details></li><li><a href="paving-operations.html" class="active" aria-current="page">Paving Operations</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="paving-operations-12.html">Paving Operations</a></li></ul></details></li><li><a href="quality-assurance.html">Quality Assurance</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="quality-control-1-0.html">Quality Control</a></li><li><a href="project-management.html">Project Management</a></li><li><a href="quality-assurance-1-2.html">Quality Assurance</a></li></ul></details></li><li><a href="quality-control.html">Quality Control</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-assessment.html">Pavement Assessment</a></li><li><a href="mixture-management.html">Mixture Management</a></li><li><a href="concrete-sampling.html">Concrete Sampling</a></li><li><a href="concrete-strength-10-3.html">Concrete Strength</a></li><li><a href="mixture-design-10-4.html">Mixture Design</a></li></ul></details></li><li><a href="reinforcement-techniques.html">Reinforcement Techniques</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="reinforcement-techniques-16.html">Reinforcement Techniques</a></li></ul></details></li><li><a href="surface-textures.html">Surface Textures</a><details><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="surface-textures-11.html">Surface Textures</a></li></ul></details></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Paving Operations</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=paving">paving</a><a class="tag" href="index.html?q=operations">operations</a></div><div>Created 2026-09-01 · Updated 2026-09-02</div></div>
+<p>Paving operations constitute a coordinated sequence that transforms a prepared subgrade into a continuous concrete slab through production, delivery, placement, consolidation, and finishing. The process relies on specialized equipment such as slipform or fixed-form pavers to extrude and shape the fresh concrete while vibration consolidates the mix to eliminate trapped air and achieve uniform density [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. Successful execution requires precise machine guidance using either physical string lines or modern three-dimensional control systems to maintain accurate alignment and elevation throughout the placement [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>] [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Operational success depends on maintaining a consistent concrete head and coordinating paver speed with vibration frequency to prevent surface irregularities such as bumps or voids [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. The integrity of the resulting pavement is further protected by managing subgrade drainage and load transfer to mitigate distress mechanisms like pumping, which forces soil and water from beneath the slab under heavy loads [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>] [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p><a href="paving-operations-12.html">Paving Operations</a> manages the systematic execution of concrete placement and finishing processes to guarantee structural integrity and surface quality. Concrete Slab Placement handles the precise positioning of fresh material, establishing the foundational geometry required for load-bearing performance. Surface Finishing Refinement applies mechanical or manual techniques to smooth and texture the top layer, ensuring durability and aesthetic consistency. Joint Cutting creates controlled weak points in the hardened concrete, directing crack formation to maintain long-term structural stability.</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#key-findings">Key findings</a></li><li><a href="#operational-coordination-and-quality-assurance">Operational Coordination and Quality Assurance</a></li><li><a href="#related-concepts">Related concepts</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (3)</summary><div class="sources-body"><a href="#ref-1">Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL (2019)</a>, <a href="#ref-2">Concrete Pavement Preservation Guide (Third Edition) (2022)</a>, <a href="#ref-3">Best Practices Manual: Quality Control and Quality Acceptance of Concrete Airport Pavement (2025)</a></div></details>
+<details class="subconcepts-toggle"><summary>Sub-concepts (1)</summary><div class="subconcepts-body"><a href="paving-operations-12.html">Paving Operations</a></div></details>
+<h2 id="key-findings">Key findings</h2>
+<ul>
+<li>Identified a stable, smooth trackline as the single most influential design factor for achieving consistently smooth pavement, regardless of the guidance system employed [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Demonstrated that reliable concrete delivery is the linchpin of successful paving, requiring careful balancing of truck numbers against plant capacity and mix setting time to maintain an appropriate concrete head at the paver [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Reported that rigorous documentation serves as the backbone of quality assurance by providing an auditable record of weather, labor, equipment, and test results to oversee construction progress [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Established that protecting early-age concrete from construction traffic is essential, requiring contractors to stage work with load-spreading measures and keep vehicles away from slab edges [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Found that maintaining a uniform hydraulic head in front of the slip-form paver governs surface smoothness, as any deviation in concrete height directly degrades slab flatness [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Measured paving speed requirements, noting that machines must maintain a forward motion above mandated minimums and synchronize with vibrator settings to avoid open surfaces or over-consolidation [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Identified smoothness as the primary surrogate measure of overall construction quality, relying on straightedge or profilograph testing supplemented by real-time sensors for immediate feedback [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Demonstrated that precise slip-form machine set-up before placement remains the most effective lever for meeting straightedge tolerances, enabling on-the-fly corrections during the early plastic stage [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+</ul>
+<h2 id="operational-coordination-and-quality-assurance">Operational Coordination and Quality Assurance</h2>
+<p><small>Evidence: 3 reports (2 primary)</small></p>
+<p>Operational coordination in paving requires synchronizing plant logistics, haulage delivery, and paver movement to maintain a consistent concrete head that prevents surface defects [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Quality assurance relies on precise machine guidance systems and rigorous equipment setup to ensure accurate alignment, elevation, and slab geometry throughout the placement process [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. Effective execution demands continuous communication among all crews and strict adherence to vibration and speed settings to achieve uniform density and surface smoothness while mitigating common distresses like pumping [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p>The following figure illustrates the critical process of depositing concrete directly in front of the paving machine.</p>
+<p><img alt="A dump truck deposits concrete into the hopper of a slipform" src="assets/paving-operations/8728dcba8167120384ee59f9496ba8108339d7f2554662e4960bb7b30e82d002.jpg" />
+<em>A dump truck deposits concrete into the hopper of a slipform paver equipped with a belt placer.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The image shows a large paving machine extruding a continuous concrete slab while a dump truck unloads fresh material directly in front of it. A belt placer/spreader ensures a consistent amount of concrete in front of the paver, which is essential for maintaining the required head during placement.</p>
+<p><strong>Research problem</strong> — Paving operations face systemic quality-control challenges stemming from inadequate workability assessment, unstable tracklines, and logistical inconsistencies that compromise surface smoothness and structural integrity [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. The industry lacks an integrated, consistently applied quality-assurance framework, characterized by documentation gaps, incomplete control programs, and insufficient equipment maintenance that allow non-conforming practices to persist across all paving stages [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. Cross-cutting deficiencies in controlling equipment-induced vibrations, ensuring proper tool calibration, and maintaining thorough site cleanliness create risks of concrete segregation, surface waviness, and early pavement failure that undermine long-term durability [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p>The following figure illustrates common consolidation defects that arise from these quality-control deficiencies.</p>
+<p><img alt="Examples of consolidation problems, unclosed surfaces, and e" src="assets/paving-operations/a74cfbf107f3bb8c4acc6f5bc9b374cf7216fbaa8378a20580f45de54ddb8303.jpg" />
+<em>Examples of consolidation problems, unclosed surfaces, and excessive mortar indicating segregation.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays three distinct defects in fresh concrete pavement: a surface with scattered dark debris, an edge exhibiting honeycombing where the aggregate is exposed due to voids, and a slab covered in a layer of excess mortar. The presence of excessive mortar on the surface serves as a visual sign of segregation, compromising the structural integrity and durability of the resulting pavement.</p>
+<p><strong>State of the art</strong> — Modern quality assurance integrates mix workability verification, logistics coordination, and advanced machine guidance to ensure uniform slab placement [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Vibration-sensitivity tests have largely replaced traditional slump testing as the primary method for predicting concrete behavior under aggressive placement conditions [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Stringless three-dimensional machine control systems are now standard, replacing physical string lines to improve dimensional accuracy and reduce field surveying efforts [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>] [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Real-time monitoring of hydraulic head, vibration levels, and smoothness allows for immediate operational corrections to prevent defects such as segregation or surface irregularities [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>] [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+<p>The following figure illustrates the VKelly index, which represents the slope of the plot of penetration depth versus root time.</p>
+<p><img alt="VKelly index is the slope of the plot of penetration depth v" src="assets/paving-operations/bbe587765d852e09f0bf8b2e8901243cb51471c1bfb3d62025d1bc9e9d04baa9.jpg" />
+<em>VKelly index is the slope of the plot of penetration depth versus root time</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays a scatter plot with vibration duration on the horizontal axis and penetration depth on the vertical axis, showing data points that form a linear trend. A regression equation is provided to calculate the VKelly index, which represents the slope of this relationship.</p>
+<p><strong>Findings from the reports</strong></p>
+<ul>
+<li>Identified a stable, smooth trackline as the single most influential design factor for achieving consistently smooth pavement, regardless of the guidance system employed [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Demonstrated that reliable concrete delivery is the linchpin of successful paving, requiring careful balancing of truck numbers against plant capacity and mix setting time to maintain an appropriate concrete head at the paver [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</li>
+<li>Reported that rigorous documentation serves as the backbone of quality assurance by providing an auditable record of weather, labor, equipment, and test results to oversee construction progress [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Established that protecting early-age concrete from construction traffic is essential, requiring contractors to stage work with load-spreading measures and keep vehicles away from slab edges [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Found that maintaining a uniform hydraulic head in front of the slip-form paver governs surface smoothness, as any deviation in concrete height directly degrades slab flatness [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Measured paving speed requirements, noting that machines must maintain a forward motion above mandated minimums and synchronize with vibrator settings to avoid open surfaces or over-consolidation [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Identified smoothness as the primary surrogate measure of overall construction quality, relying on straightedge or profilograph testing supplemented by real-time sensors for immediate feedback [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+<li>Demonstrated that precise slip-form machine set-up before placement remains the most effective lever for meeting straightedge tolerances, enabling on-the-fly corrections during the early plastic stage [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</li>
+</ul>
+<p><strong>Novelty &amp; rigor</strong> — Novelty lies in replacing static quality checks with dynamic, real-time monitoring of vibration frequencies and utilizing laser-guided machine control to maintain precise elevation without physical string lines [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Reproducibility is achieved by synchronizing concrete delivery logistics with equipment readiness through systematic verification of plant capacity, mixer calibration, and operator training protocols [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>] [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+<p>The following figure illustrates the vibration monitoring equipment used to enable this dynamic quality control.</p>
+<p><img alt="Vibration testing and monitoring equipment." src="assets/paving-operations/ca36007b2ab369e836e46a6baa72aeb872ea0cff3a1a2bea5b9c640b4877b03f.jpg" />
+<em>Vibration testing and monitoring equipment.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays a handheld vibration meter with a yellow casing and a digital display, alongside a separate black touchscreen unit showing real-time data graphs for temperature and humidity. This equipment is used to monitor the frequency and functionality of vibrators during concrete production to ensure acceptable consolidation without segregation or poor finishing quality.</p>
+<p><strong>Reported values</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Context</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>maximum clear distance between internal vibrators</td>
+<td>30 inches</td>
+<td>UFGS 32 13 14.13 (May 2024) specification limit</td>
+<td>[<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</td>
+</tr>
+<tr>
+<td>maximum distance of outside vibrators from paver edge</td>
+<td>12 inches</td>
+<td>UFGS 32 13 14.13 (May 2024) specification limit</td>
+<td>[<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</td>
+</tr>
+<tr>
+<td>minimum forward motion speed</td>
+<td>2.5 feet per minute</td>
+<td>DOD’s provision (UFGS 2024)</td>
+<td>[<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</td>
+</tr>
+<tr>
+<td>surface deviation limit</td>
+<td>3/8 to ½ inch</td>
+<td>Highest (or lowest) surface deviations</td>
+<td>[<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</td>
+</tr>
+<tr>
+<td>typical paving speed range</td>
+<td>3 to 7 feet per minute</td>
+<td>Typical paving operations</td>
+<td>[<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</td>
+</tr>
+<tr>
+<td>extra base width per side</td>
+<td>3 ft</td>
+<td>of base width on either side of the slab</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>maximum stake spacing on tangent sections</td>
+<td>25 ft</td>
+<td>between stakes on tangent sections</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>paving speed</td>
+<td>3 to 15 fpm</td>
+<td>typical paving speeds</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>trackline extension beyond slab edge</td>
+<td>3 ft</td>
+<td>outside either edge of the concrete slab</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+<tr>
+<td>vibration frequency</td>
+<td>5,000 to 8,000 vibrations per minute</td>
+<td>for most mixtures</td>
+<td>[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</td>
+</tr>
+</tbody>
+</table>
+<p>Across the reviewed reports, operational coordination and quality assurance in concrete paving are established as systemic challenges that rely on balancing equipment-specific parameters with rigorous procedural controls to ensure uniformity. Both studies identify vibration management and hydraulic head consistency as critical cross-cutting factors, where insufficient or excessive energy compromises durability while uneven concrete distribution directly degrades surface smoothness. The collective evidence indicates that successful paving requires synchronizing plant logistics, such as haul truck metering and site traffic flow, with precise machine set-up and real-time monitoring to maintain the continuous concrete head necessary for meeting strict smoothness tolerances. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>] [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The following figure illustrates how placer and spreader aids facilitate this even distribution by pre-striking the concrete ahead of the paver.</p>
+<p><img alt="A red dump truck unloads concrete into a yellow placer/sprea" src="assets/paving-operations/5e82581dd9386e2fffbb4661f8ec12a2bde376bd93c4dc850cf0e5c4fa5d3e9b.jpg" />
+<em>A red dump truck unloads concrete into a yellow placer/spreader machine on a construction site.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The image shows a large yellow placer/spreader machine positioned in front of a slipform paver, receiving material from an adjacent red dump truck with its bed raised. The machine ensures a uniform hydraulic head, which is critical for maintaining consistent pressure as the slipform mold extrudes the pavement.</p>
+<p><strong>Implications</strong> — Quality assurance must transition from isolated material tests to a systems-based approach that integrates mix design, equipment calibration, and real-time vibration monitoring to ensure consistent slab performance [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Achieving uniform pavement smoothness requires treating concrete delivery as a critical supply chain variable, necessitating precise coordination between plant logistics, haul truck metering, and paver placement speed [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>] [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Effective operational control depends on robust documentation practices and proactive protection of early-age concrete, balancing the adoption of digital monitoring tools against the persistent need for manual oversight and contingency planning [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</p>
+<p><strong>Limitations</strong> — The electronic elevation control systems on slipform pavers cannot compensate for significant vertical disturbances caused by an unstable base or trackline [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Excessive vibration frequencies used to overcome poor equipment setup, alignment, or mixtures can degrade air entrainment and cause aggregate segregation [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>] [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. The industry lacks a comprehensive understanding of optimal vibration parameters for ensuring durability and preventing segregation [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</p>
+<p>The following figure illustrates sensor control issues associated with stringline paving.</p>
+<p><img alt="Sensor control issues with stringline paving (ACPA 2013)." src="assets/paving-operations/4507ee10e9ff905bef48a33ade0057554185976652d7e9f00ddb6a2a42b622c3.jpg" />
+<em>Sensor control issues with stringline paving (ACPA 2013).</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays two schematic diagrams of a sensor mechanism interacting with a suspended stringline supported by vertical stakes. The top diagram illustrates the sensor following a sagging string, while the bottom diagram depicts scenarios where the sensor loses contact or pulls the string due to improper tensioning. These visual examples demonstrate deviations caused by loss of sensor contact and bumps created by sensors catching on knots or splices in the stringline. This figure illustrates specific operational challenges related to maintaining accurate alignment and elevation during paving operations using physical string lines.</p>
+<h2 id="related-concepts">Related concepts</h2>
+<p><strong>In this hierarchy</strong></p>
+<ul>
+<li>Child: <a href="paving-operations-12.html">Paving Operations</a></li>
+</ul>
+<p><strong>Related by shared evidence</strong></p>
+<ul>
+<li><a href="aggregate-management.html">Aggregate Management</a> — shares 3 reports</li>
+<li><a href="cement-chemistry.html">Cement Chemistry</a> — shares 3 reports</li>
+<li><a href="cementitious-materials.html">Cementitious Materials</a> — shares 3 reports</li>
+<li><a href="concrete-mixture-design.html">Concrete Mixture Design</a> — shares 3 reports</li>
+<li><a href="concrete-production-8-3.html">Concrete Production</a> — shares 3 reports</li>
+<li><a href="concrete-strength.html">Concrete Strength</a> — shares 3 reports</li>
+<li><a href="concrete-testing.html">Concrete Testing</a> — shares 3 reports</li>
+<li><a href="cracking-mitigation.html">Cracking Mitigation</a> — shares 3 reports</li>
+</ul>
+<p><strong>Similar topics</strong></p>
+<ul>
+<li><a href="concrete-production.html">Concrete Production</a></li>
+<li><a href="pavement-design.html">Pavement Design</a></li>
+<li><a href="paving-operations-12.html">Paving Operations</a></li>
+<li><a href="pavement-management.html">Pavement Management</a></li>
+<li><a href="pavement-management-14.html">Pavement Management</a></li>
+<li><a href="quality-control.html">Quality Control</a></li>
+<li><a href="other.html">Other</a></li>
+<li><a href="pavement-repair.html">Pavement Repair</a></li>
+</ul>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1">Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL (2019)</li><li id="ref-2">Concrete Pavement Preservation Guide (Third Edition) (2022)</li><li id="ref-3">Best Practices Manual: Quality Control and Quality Acceptance of Concrete Airport Pavement (2025)</li>
+</ol>
+</section></article>
+<section class="comments" aria-labelledby="comments-heading">
+<h2 id="comments-heading">Feedback on this page</h2>
+<iframe data-tally-src="https://tally.so/embed/q4qql9?url=https%3A%2F%2Fig0r.github.io%2Fcnrt-guides-wiki-stage%2Fpaving-operations.html&amp;hideTitle=1&amp;transparentBackground=1&amp;dynamicHeight=1" loading="lazy" width="100%" frameborder="0" title="Feedback form for this page"></iframe>
+<script async src="https://tally.so/widgets/embed.js"></script>
+</section>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>
