@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Concept hierarchy</title>
+<style>:root {
+  --bg: #ffffff;
+  --fg: #1a1a1a;
+  --muted: #6b6b6b;
+  --border: #e2e2e2;
+  --card: #fafafa;
+  --arrow: #9a9a9a;
+  --new-label: #0b57d0;
+  --accent-fg: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1a1a;
+    --fg: #f2f2f2;
+    --muted: #a3a3a3;
+    --border: #3a3a3a;
+    --card: #222222;
+    --arrow: #8a8a8a;
+    --new-label: #7cacf8;
+    --accent-fg: #10151c;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  padding: 2rem;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+header {
+  margin-bottom: 1.5rem;
+}
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+header h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+.toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+#export-toggle-original {
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.4rem 0.85rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--fg);
+}
+#export-toggle-original:hover {
+  background: var(--border);
+}
+#export-toggle-original[aria-pressed="true"] {
+  background: var(--new-label);
+  border-color: var(--new-label);
+  color: var(--accent-fg);
+}
+.toggle-hint {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+header .subtitle {
+  margin: 0.75rem 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+ul.tree, ul.children {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+ul.children {
+  margin-left: 0.6rem;
+  padding-left: 1rem;
+  border-left: 1px solid var(--border);
+}
+li.root-item {
+  margin-bottom: 0.15rem;
+}
+.row {
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+}
+.row.root-row {
+  font-weight: 600;
+}
+.row:hover {
+  background: var(--card);
+}
+.lbl-old {
+  display: none;
+}
+body.show-original .lbl-new {
+  display: none;
+}
+body.show-original .lbl-old {
+  display: inline;
+}
+.old-part {
+  color: var(--muted);
+}
+.arrow {
+  color: var(--arrow);
+}
+.new-part {
+  color: var(--new-label);
+}
+footer {
+  margin-top: 2rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+footer code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}</style>
+</head>
+<body>
+<header>
+<div class="header-top">
+<h1>Concept hierarchy</h1>
+<div class="toggle-wrap">
+<button type="button" id="export-toggle-original" aria-pressed="false">Original → New</button>
+<span class="toggle-hint">Toggle to show original → new labels</span>
+</div>
+</div>
+<p class="subtitle">18 parents · 50 children · 68 total concepts — generated 2026-09-03T18:13:30.146Z</p>
+</header>
+<main>
+<ul class="tree" role="list"><li class="root-item"><div class="row root-row" title="Cracking Mitigation"><span class="lbl-kept">Cracking Mitigation</span></div><ul class="children"><li><div class="row child-row" title="Concrete Cracking"><span class="lbl-kept">Concrete Cracking</span></div></li><li><div class="row child-row" title="Moisture Management"><span class="lbl-kept">Moisture Management</span></div></li><li><div class="row child-row" title="Sealant Application"><span class="lbl-kept">Sealant Application</span></div></li><li><div class="row child-row" title="Temperature Management"><span class="lbl-kept">Temperature Management</span></div></li></ul></li><li class="root-item"><div class="row root-row" title="Quality Assurance → Airport Concrete Pavement Quality Assurance"><span class="lbl-new">Airport Concrete Pavement Quality Assurance</span><span class="lbl-old"><span class="old-part">Quality Assurance</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Airport Concrete Pavement Quality Assurance</span></span></div><ul class="children"><li><div class="row child-row" title="Quality Control → Contractor Quality Control Program"><span class="lbl-new">Contractor Quality Control Program</span><span class="lbl-old"><span class="old-part">Quality Control</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Contractor Quality Control Program</span></span></div></li><li><div class="row child-row" title="Project Management"><span class="lbl-kept">Project Management</span></div></li><li><div class="row child-row" title="Quality Assurance → Airport Pavement Quality Management"><span class="lbl-new">Airport Pavement Quality Management</span><span class="lbl-old"><span class="old-part">Quality Assurance</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Airport Pavement Quality Management</span></span></div></li></ul></li><li class="root-item"><div class="row root-row" title="Pavement Repair → Concrete Pavement Repair Techniques"><span class="lbl-new">Concrete Pavement Repair Techniques</span><span class="lbl-old"><span class="old-part">Pavement Repair</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Concrete Pavement Repair Techniques</span></span></div><ul class="children"><li><div class="row child-row" title="Slab Stabilization"><span class="lbl-kept">Slab Stabilization</span></div></li><li><div class="row child-row" title="Pavement Repairs → Full-Depth Pavement Repairs"><span class="lbl-new">Full-Depth Pavement Repairs</span><span class="lbl-old"><span class="old-part">Pavement Repairs</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Full-Depth Pavement Repairs</span></span></div></li><li><div class="row child-row" title="Dowel Bar Retrofit"><span class="lbl-kept">Dowel Bar Retrofit</span></div></li></ul></li><li class="root-item"><div class="row root-row" title="Aggregate Management → Coarse Aggregate Management"><span class="lbl-new">Coarse Aggregate Management</span><span class="lbl-old"><span class="old-part">Aggregate Management</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Coarse Aggregate Management</span></span></div><ul class="children"><li><div class="row child-row" title="Aggregate Classification"><span class="lbl-kept">Aggregate Classification</span></div></li><li><div class="row child-row" title="Aggregate Management → Aggregate Handling and Consistency Management"><span class="lbl-new">Aggregate Handling and Consistency Management</span><span class="lbl-old"><span class="old-part">Aggregate Management</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Aggregate Handling and Consistency Management</span></span></div></li><li><div class="row child-row" title="Quality Control → Aggregate Testing Standards"><span class="lbl-new">Aggregate Testing Standards</span><span class="lbl-old"><span class="old-part">Quality Control</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Aggregate Testing Standards</span></span></div></li><li><div class="row child-row" title="Aggregate Impact"><span class="lbl-kept">Aggregate Impact</span></div></li><li><div class="row child-row" title="Mixture Design → Aggregate Grading and Gradation"><span class="lbl-new">Aggregate Grading and Gradation</span><span class="lbl-old"><span class="old-part">Mixture Design</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Aggregate Grading and Gradation</span></span></div></li></ul></li><li class="root-item"><div class="row root-row" title="Joint Sealing"><span class="lbl-kept">Joint Sealing</span></div><ul class="children"><li><div class="row child-row" title="Joint Maintenance"><span class="lbl-kept">Joint Maintenance</span></div></li><li><div class="row child-row" title="Sealant Installation"><span class="lbl-kept">Sealant Installation</span></div></li><li><div class="row child-row" title="Pavement Maintenance → Hot-Pour Sealant Application"><span class="lbl-new">Hot-Pour Sealant Application</span><span class="lbl-old"><span class="old-part">Pavement Maintenance</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Hot-Pour Sealant Application</span></span></div></li><li><div class="row child-row" title="Sealant Performance"><span class="lbl-kept">Sealant Performance</span></div></li></ul></li><li class="root-item"><div class="row root-row" title="Diamond Grinding"><span class="lbl-kept">Diamond Grinding</span></div></li><li class="root-item"><div class="row root-row" title="Cementitious Materials"><span class="lbl-kept">Cementitious Materials</span></div><ul class="children"><li><div class="row child-row" title="Cement Chemistry"><span class="lbl-kept">Cement Chemistry</span></div></li><li><div class="row child-row" title="Concrete Mixture Design"><span class="lbl-kept">Concrete Mixture Design</span></div></li><li><div class="row child-row" title="Sustainable SCMs"><span class="lbl-kept">Sustainable SCMs</span></div></li><li><div class="row child-row" title="Cement Production"><span class="lbl-kept">Cement Production</span></div></li><li><div class="row child-row" title="Concrete Durability → High-Durability Concrete Mixes"><span class="lbl-new">High-Durability Concrete Mixes</span><span class="lbl-old"><span class="old-part">Concrete Durability</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">High-Durability Concrete Mixes</span></span></div></li></ul></li><li class="root-item"><div class="row root-row" title="Drainage Management → Edgedrain Design and Maintenance"><span class="lbl-new">Edgedrain Design and Maintenance</span><span class="lbl-old"><span class="old-part">Drainage Management</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Edgedrain Design and Maintenance</span></span></div></li><li class="root-item"><div class="row root-row" title="Pavement Management → Concrete Pavement Preservation"><span class="lbl-new">Concrete Pavement Preservation</span><span class="lbl-old"><span class="old-part">Pavement Management</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Concrete Pavement Preservation</span></span></div><ul class="children"><li><div class="row child-row" title="Pavement Evaluation"><span class="lbl-kept">Pavement Evaluation</span></div></li><li><div class="row child-row" title="Preservation Strategies"><span class="lbl-kept">Preservation Strategies</span></div></li><li><div class="row child-row" title="Pavement Design → Mechanistic-Empirical Design"><span class="lbl-new">Mechanistic-Empirical Design</span><span class="lbl-old"><span class="old-part">Pavement Design</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Mechanistic-Empirical Design</span></span></div></li><li><div class="row child-row" title="Concrete Production → Concrete Pavement Production"><span class="lbl-new">Concrete Pavement Production</span><span class="lbl-old"><span class="old-part">Concrete Production</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Concrete Pavement Production</span></span></div></li><li><div class="row child-row" title="Design Methodologies → Pavement Structural and Functional Design"><span class="lbl-new">Pavement Structural and Functional Design</span><span class="lbl-old"><span class="old-part">Design Methodologies</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Pavement Structural and Functional Design</span></span></div></li><li><div class="row child-row" title="Design Considerations → Concrete Pavement Design"><span class="lbl-new">Concrete Pavement Design</span><span class="lbl-old"><span class="old-part">Design Considerations</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Concrete Pavement Design</span></span></div></li></ul></li><li class="root-item"><div class="row root-row" title="Material Testing → Concrete Property and Quality Testing"><span class="lbl-new">Concrete Property and Quality Testing</span><span class="lbl-old"><span class="old-part">Material Testing</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Concrete Property and Quality Testing</span></span></div><ul class="children"><li><div class="row child-row" title="Concrete Testing"><span class="lbl-kept">Concrete Testing</span></div></li><li><div class="row child-row" title="Concrete Durability → Concrete Property Assessment"><span class="lbl-new">Concrete Property Assessment</span><span class="lbl-old"><span class="old-part">Concrete Durability</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Concrete Property Assessment</span></span></div></li><li><div class="row child-row" title="Concrete Strength → Concrete Compressive Strength Testing"><span class="lbl-new">Concrete Compressive Strength Testing</span><span class="lbl-old"><span class="old-part">Concrete Strength</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Concrete Compressive Strength Testing</span></span></div></li><li><div class="row child-row" title="Concrete Standards"><span class="lbl-kept">Concrete Standards</span></div></li><li><div class="row child-row" title="Material Testing → Civil Engineering Material Testing"><span class="lbl-new">Civil Engineering Material Testing</span><span class="lbl-old"><span class="old-part">Material Testing</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Civil Engineering Material Testing</span></span></div></li><li><div class="row child-row" title="Maturity Methods"><span class="lbl-kept">Maturity Methods</span></div></li></ul></li><li class="root-item"><div class="row root-row" title="Quality Control → Concrete Mixture Uniformity and Workability"><span class="lbl-new">Concrete Mixture Uniformity and Workability</span><span class="lbl-old"><span class="old-part">Quality Control</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Concrete Mixture Uniformity and Workability</span></span></div><ul class="children"><li><div class="row child-row" title="Pavement Assessment"><span class="lbl-kept">Pavement Assessment</span></div></li><li><div class="row child-row" title="Mixture Management"><span class="lbl-kept">Mixture Management</span></div></li><li><div class="row child-row" title="Concrete Sampling"><span class="lbl-kept">Concrete Sampling</span></div></li><li><div class="row child-row" title="Concrete Strength → Concrete Strength Acceptance"><span class="lbl-new">Concrete Strength Acceptance</span><span class="lbl-old"><span class="old-part">Concrete Strength</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Concrete Strength Acceptance</span></span></div></li><li><div class="row child-row" title="Mixture Design → Aggregate Gradation and Workability"><span class="lbl-new">Aggregate Gradation and Workability</span><span class="lbl-old"><span class="old-part">Mixture Design</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Aggregate Gradation and Workability</span></span></div></li></ul></li><li class="root-item"><div class="row root-row" title="Surface Textures"><span class="lbl-kept">Surface Textures</span></div></li><li class="root-item"><div class="row root-row" title="Paving Operations → Concrete Paving Quality Control"><span class="lbl-new">Concrete Paving Quality Control</span><span class="lbl-old"><span class="old-part">Paving Operations</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Concrete Paving Quality Control</span></span></div></li><li class="root-item"><div class="row root-row" title="Pavement Design → Concrete Pavement Materials and Sustainability"><span class="lbl-new">Concrete Pavement Materials and Sustainability</span><span class="lbl-old"><span class="old-part">Pavement Design</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Concrete Pavement Materials and Sustainability</span></span></div><ul class="children"><li><div class="row child-row" title="Overlay Technology → Concrete Overlay Systems"><span class="lbl-new">Concrete Overlay Systems</span><span class="lbl-old"><span class="old-part">Overlay Technology</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Concrete Overlay Systems</span></span></div></li><li><div class="row child-row" title="Pavement Types → Concrete Pavement Types"><span class="lbl-new">Concrete Pavement Types</span><span class="lbl-old"><span class="old-part">Pavement Types</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Concrete Pavement Types</span></span></div></li><li><div class="row child-row" title="Construction Insights → Construction Techniques and Maintenance"><span class="lbl-new">Construction Techniques and Maintenance</span><span class="lbl-old"><span class="old-part">Construction Insights</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Construction Techniques and Maintenance</span></span></div></li><li><div class="row child-row" title="Recycling Innovation → Recycled Concrete Aggregates"><span class="lbl-new">Recycled Concrete Aggregates</span><span class="lbl-old"><span class="old-part">Recycling Innovation</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Recycled Concrete Aggregates</span></span></div></li></ul></li><li class="root-item"><div class="row root-row" title="Pavement Management → Pavement Construction and Assessment Technologies"><span class="lbl-new">Pavement Construction and Assessment Technologies</span><span class="lbl-old"><span class="old-part">Pavement Management</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Pavement Construction and Assessment Technologies</span></span></div><ul class="children"><li><div class="row child-row" title="Pavement Smoothness"><span class="lbl-kept">Pavement Smoothness</span></div></li><li><div class="row child-row" title="Pavement Systems → Base, Subbase, and Subgrade"><span class="lbl-new">Base, Subbase, and Subgrade</span><span class="lbl-old"><span class="old-part">Pavement Systems</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Base, Subbase, and Subgrade</span></span></div></li><li><div class="row child-row" title="Subgrade Insights → Subgrade and Subbase Preparation"><span class="lbl-new">Subgrade and Subbase Preparation</span><span class="lbl-old"><span class="old-part">Subgrade Insights</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Subgrade and Subbase Preparation</span></span></div></li><li><div class="row child-row" title="Excavation Safety"><span class="lbl-kept">Excavation Safety</span></div></li><li><div class="row child-row" title="Slab Jacking"><span class="lbl-kept">Slab Jacking</span></div></li></ul></li><li class="root-item"><div class="row root-row" title="Concrete Production → Concrete Batching and Handling"><span class="lbl-new">Concrete Batching and Handling</span><span class="lbl-old"><span class="old-part">Concrete Production</span> <span class="arrow" aria-hidden="true">→</span> <span class="new-part">Concrete Batching and Handling</span></span></div></li><li class="root-item"><div class="row root-row" title="Reinforcement Techniques"><span class="lbl-kept">Reinforcement Techniques</span></div></li><li class="root-item"><div class="row root-row" title="Other"><span class="lbl-kept">Other</span></div></li></ul>
+</main>
+<footer>
+<p>source fingerprint: <code>3f1bfb19b8048412554a84d35ad438f951094b37d813e012410e363435dde4fc</code></p>
+</footer>
+<script>(function () {
+  var btn = document.getElementById('export-toggle-original');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    var showingOriginal = document.body.classList.toggle('show-original');
+    btn.setAttribute('aria-pressed', showingOriginal ? 'true' : 'false');
+  });
+})();</script>
+</body>
+</html>
