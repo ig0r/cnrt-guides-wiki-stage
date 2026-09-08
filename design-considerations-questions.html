@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design Considerations</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/planning-questions-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">75 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="aggregate-management.html">Aggregate Management</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="aggregate-classification.html">Aggregate Classification</a></li><li><a href="aggregate-management-3-1.html">Aggregate Management</a></li><li><a href="quality-control-3-2.html">Quality Control</a></li><li><a href="aggregate-impact.html">Aggregate Impact</a></li><li><a href="mixture-design.html">Mixture Design</a></li></ul></details></li><li><a href="cementitious-materials.html">Cementitious Materials</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="cement-chemistry.html">Cement Chemistry</a></li><li><a href="concrete-mixture-design.html">Concrete Mixture Design</a></li><li><a href="sustainable-scms.html">Sustainable SCMs</a></li><li><a href="cement-production.html">Cement Production</a></li><li><a href="concrete-durability.html">Concrete Durability</a></li></ul></details></li><li><a href="concrete-production.html">Concrete Production</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-production-15.html">Concrete Production</a></li></ul></details></li><li><a href="cracking-mitigation.html">Cracking Mitigation</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-cracking.html">Concrete Cracking</a></li><li><a href="moisture-management.html">Moisture Management</a></li><li><a href="sealant-application.html">Sealant Application</a></li><li><a href="temperature-management.html">Temperature Management</a></li></ul></details></li><li><a href="diamond-grinding.html">Diamond Grinding</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="diamond-grinding-5.html">Diamond Grinding</a></li></ul></details></li><li><a href="drainage-management.html">Drainage Management</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="drainage-management-7.html">Drainage Management</a></li></ul></details></li><li><a href="joint-sealing.html">Joint Sealing</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="joint-maintenance.html">Joint Maintenance</a></li><li><a href="sealant-installation.html">Sealant Installation</a></li><li><a href="pavement-maintenance.html">Pavement Maintenance</a></li><li><a href="sealant-performance.html">Sealant Performance</a></li></ul></details></li><li><a href="material-testing.html">Material Testing</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-testing.html">Concrete Testing</a></li><li><a href="concrete-durability-9-1.html">Concrete Durability</a></li><li><a href="concrete-strength.html">Concrete Strength</a></li><li><a href="concrete-standards.html">Concrete Standards</a></li><li><a href="material-testing-9-4.html">Material Testing</a></li><li><a href="maturity-methods.html">Maturity Methods</a></li></ul></details></li><li><a href="other.html">Other</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="other-17.html">Other</a></li></ul></details></li><li><a href="pavement-design.html">Pavement Design</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="overlay-technology.html">Overlay Technology</a></li><li><a href="pavement-types.html">Pavement Types</a></li><li><a href="construction-insights.html">Construction Insights</a></li><li><a href="recycling-innovation.html">Recycling Innovation</a></li></ul></details></li><li><a href="pavement-management-14.html">Pavement Management</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-smoothness.html">Pavement Smoothness</a></li><li><a href="pavement-systems.html">Pavement Systems</a></li><li><a href="subgrade-insights.html">Subgrade Insights</a></li><li><a href="excavation-safety.html">Excavation Safety</a></li><li><a href="slab-jacking.html">Slab Jacking</a></li></ul></details></li><li><a href="pavement-management.html">Pavement Management</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-evaluation.html">Pavement Evaluation</a></li><li><a href="preservation-strategies.html">Preservation Strategies</a></li><li><a href="pavement-design-8-2.html">Pavement Design</a></li><li><a href="concrete-production-8-3.html">Concrete Production</a></li><li><a href="design-methodologies.html">Design Methodologies</a></li><li><a href="design-considerations.html">Design Considerations</a></li></ul></details></li><li><a href="pavement-repair.html">Pavement Repair</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="slab-stabilization.html">Slab Stabilization</a></li><li><a href="pavement-repairs.html">Pavement Repairs</a></li><li><a href="dowel-bar-retrofit.html">Dowel Bar Retrofit</a></li></ul></details></li><li><a href="paving-operations.html">Paving Operations</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="paving-operations-12.html">Paving Operations</a></li></ul></details></li><li><a href="quality-assurance.html">Quality Assurance</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="quality-control-1-0.html">Quality Control</a></li><li><a href="project-management.html">Project Management</a></li><li><a href="quality-assurance-1-2.html">Quality Assurance</a></li></ul></details></li><li><a href="quality-control.html">Quality Control</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-assessment.html">Pavement Assessment</a></li><li><a href="mixture-management.html">Mixture Management</a></li><li><a href="concrete-sampling.html">Concrete Sampling</a></li><li><a href="concrete-strength-10-3.html">Concrete Strength</a></li><li><a href="mixture-design-10-4.html">Mixture Design</a></li></ul></details></li><li><a href="reinforcement-techniques.html">Reinforcement Techniques</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="reinforcement-techniques-16.html">Reinforcement Techniques</a></li></ul></details></li><li><a href="surface-textures.html">Surface Textures</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="surface-textures-11.html">Surface Textures</a></li></ul></details></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">All concepts</a><span class="crumb-sep">›</span><a href="pavement-management.html">Pavement Management</a><span class="crumb-sep">›</span><span class="crumb-current">Design Considerations</span></nav>
+<article><h1>Design Considerations</h1>
+<div class="meta"><div class="part-of">Part of: <a href="pavement-management.html">Pavement Management</a> <span class="edge edge-taxonomic" title="Design Considerations is a topic under Pavement Management.">is-subtopic-of</span></div><div class="edge-reading">Design Considerations is a topic under Pavement Management.</div><div><a class="tag" href="index.html?q=concrete-pavement-design">concrete-pavement-design</a><a class="tag" href="index.html?q=structural-capacity">structural-capacity</a><a class="tag" href="index.html?q=durability">durability</a><a class="tag" href="index.html?q=concrete-properties">concrete-properties</a><a class="tag" href="index.html?q=aashto-methodology">aashto-methodology</a></div><div>Created 2026-09-01 · Updated 2026-09-08</div></div>
+<p><em>Planning &amp; decision-making review — 5/7 chunks kept, 1 guides.</em></p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#1-purpose-and-decision-context">1. Purpose and decision context</a><ul><li><a href="#what-decision-is-design-considerations-intended-to-support">What decision is Design Considerations intended to support?</a></li><li><a href="#what-problem-need-or-performance-goal-does-design-considerations-address">What problem, need, or performance goal does Design Considerations address?</a></li></ul></li><li><a href="#2-scope-and-applicability">2. Scope and applicability</a><ul><li><a href="#for-what-project-types-asset-conditions-or-stages-of-project-development-is-design-considerations-appropriate">For what project types, asset conditions, or stages of project development is Design Considerations appropriate?</a></li><li><a href="#when-is-design-considerations-not-appropriate-or-when-is-a-different-approach-preferable">When is Design Considerations not appropriate, or when is a different approach preferable?</a></li></ul></li><li><a href="#3-information-needs">3. Information needs</a><ul><li><a href="#what-condition-data-site-information-cost-data-traffic-data-environmental-information-or-stakeholder-input-does-design-considerations-need">What condition data, site information, cost data, traffic data, environmental information, or stakeholder input does Design Considerations need?</a></li></ul></li><li><a href="#4-alternatives">4. Alternatives</a><ul><li><a href="#what-feasible-options-should-be-compared-under-design-considerations">What feasible options should be compared under Design Considerations?</a></li></ul></li><li><a href="#5-decision-criteria">5. Decision criteria</a><ul><li><a href="#which-criteria-should-control-the-decision-for-design-considerations-safety-performance-cost-durability-schedule-sustainability-accessibility-or-public-impact">Which criteria should control the decision for Design Considerations: safety, performance, cost, durability, schedule, sustainability, accessibility, or public impact?</a></li><li><a href="#how-should-competing-criteria-for-design-considerations-be-weighted-or-prioritized">How should competing criteria for Design Considerations be weighted or prioritized?</a></li></ul></li><li><a href="#6-analysis-methods-and-tools">6. Analysis methods and tools</a><ul><li><a href="#what-assumptions-and-uncertainties-influence-the-results-for-design-considerations">What assumptions and uncertainties influence the results for Design Considerations?</a></li></ul></li><li><a href="#7-stakeholders-and-constraints">7. Stakeholders and constraints</a><ul><li><a href="#who-needs-to-provide-input-make-the-decision-or-approve-it-for-design-considerations">Who needs to provide input, make the decision, or approve it for Design Considerations?</a></li><li><a href="#what-permits-standards-policies-funding-rules-or-design-requirements-constrain-the-choice-for-design-considerations">What permits, standards, policies, funding rules, or design requirements constrain the choice for Design Considerations?</a></li></ul></li><li><a href="#8-timing-and-implementation">8. Timing and implementation</a><ul><li><a href="#what-events-thresholds-or-deadlines-would-trigger-action-for-design-considerations">What events, thresholds, or deadlines would trigger action for Design Considerations?</a></li></ul></li><li><a href="#9-outcomes-and-follow-up">9. Outcomes and follow-up</a><ul><li><a href="#what-does-success-look-like-for-design-considerations-and-how-will-it-be-measured">What does success look like for Design Considerations, and how will it be measured?</a></li></ul></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (1)</summary><div class="sources-body"><a href="#ref-1">Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL (2019)</a></div></details>
+
+<h2 id="1-purpose-and-decision-context">1. Purpose and decision context</h2>
+<h3 id="what-decision-is-design-considerations-intended-to-support">What decision is Design Considerations intended to support?</h3>
+<p>Design Considerations help the engineer decide which structural and functional performance targets, service‑life expectations, and concrete material specifications should be adopted for a given concrete pavement project. By defining the required level of structural and functional performance, the target design life, and the acceptable ranges for strength, stiffness, dimensional stability and other properties, the designer can select the appropriate configuration—slab thickness, reinforcement, load‑transfer details, subgrade support, and concrete strength and elastic modulus—to meet those objectives while resisting environmental effects. The concept therefore guides the decision of which concrete material characteristics (strength, stiffness, dimensional stability, durability) to use as inputs that determine slab thickness and overall structural capacity, ensuring the pavement will achieve its intended performance over the specified service life. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>IMCP — Ch. 3 (pp. 52–56)</small></p>
+<h3 id="what-problem-need-or-performance-goal-does-design-considerations-address">What problem, need, or performance goal does Design Considerations address?</h3>
+<p>Design Considerations address the fundamental problem of ensuring that a concrete pavement can meet both its structural capacity and functional performance requirements throughout its intended service life. The goal is to define target levels for key material attributes—strength, stiffness, dimensional stability, and durability—so that the pavement can safely support present and future heavy traffic loads while providing a safe, comfortable ride and resisting environmental stresses such as thermal movement and drying shrinkage. By specifying these property thresholds and using performance‑based specifications, designers aim to prevent load‑related cracking, achieve required early‑age strength for construction traffic, and guarantee long‑term reliability. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>IMCP — Ch. 3 (pp. 52–56), Ch. 6 (pp. 161–162), Ch. 10 (p. 325)</small></p>
+<h2 id="2-scope-and-applicability">2. Scope and applicability</h2>
+<h3 id="for-what-project-types-asset-conditions-or-stages-of-project-development-is-design-considerations-appropriate">For what project types, asset conditions, or stages of project development is Design Considerations appropriate?</h3>
+<p>Design considerations apply to any concrete‑pavement undertaking, whether a new installation or work on an existing asset, because every project requires the designer to establish the intended structural and functional performance, the target service life, and the required levels of concrete properties such as strength, stiffness and dimensional stability. These decisions are made during the design stage of the project, before construction or rehabilitation begins, ensuring that the pavement will meet the defined performance objectives throughout its intended lifespan. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>IMCP — Ch. 3 (pp. 52–53)</small></p>
+<h3 id="when-is-design-considerations-not-appropriate-or-when-is-a-different-approach-preferable">When is Design Considerations not appropriate, or when is a different approach preferable?</h3>
+<p>When a pavement design depends only on compressive strength as a stand‑in for other performance traits—particularly when early high strength is achieved with chemical admixtures or heating that can create a poorer microstructure and higher permeability—the approach is not appropriate because durability may be compromised. In those cases the designer should switch to a method that directly tests the required properties such as flexural strength, fatigue resistance, or abrasion resistance according to the relevant standards rather than inferring them from strength alone. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><img alt="Effect of compressive strength and aggregate type on the abr" src="assets/design-considerations/3cdc5914eb424d509aadafde4e886cb0a55862778f144f4842ca076952e1019a.jpg" />
+<em>Effect of compressive strength and aggregate type on the abrasion resistance of concrete using ASTM C1138</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>IMCP — Ch. 6 (pp. 161–162)</small></p>
+<h2 id="3-information-needs">3. Information needs</h2>
+<h3 id="what-condition-data-site-information-cost-data-traffic-data-environmental-information-or-stakeholder-input-does-design-considerations-need">What condition data, site information, cost data, traffic data, environmental information, or stakeholder input does Design Considerations need?</h3>
+<p>Design Considerations must be supplied with a defined level of structural performance—reflecting imposed truck loads—and the functional performance required for safety and ride quality, together with a target service life or design life. The designer must also specify concrete property levels, including strength, stiffness (elastic modulus), dimensional stability (thermal movement and drying shrinkage) and permeability, as well as fundamental engineering properties such as resilient modulus and fatigue characteristics. Site‑specific condition data are required, notably subgrade support conditions and overall structural conditions of the existing pavement. Traffic information must capture expected heavy traffic loadings, while environmental data should address influences that affect performance (e.g., temperature cycles, moisture). Predictors representing roadbed attributes complete the input set for performance‑based models. Cost figures and stakeholder preferences are not explicitly called out in these specifications. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>IMCP — Ch. 3 (pp. 52–54), Ch. 10 (p. 325)</small></p>
+<h2 id="4-alternatives">4. Alternatives</h2>
+<h3 id="what-feasible-options-should-be-compared-under-design-considerations">What feasible options should be compared under Design Considerations?</h3>
+<p>The designer must compare a defined set of feasible options that govern both structural capacity and functional performance. These alternatives include slab thickness; reinforcement and load‑transfer configurations; concrete strength levels (compressive strength); elastic modulus or mix stiffness; dimensional stability expressed through drying shrinkage and thermal‑expansion behavior; permeability; and the suite of durability‑related characteristics. As the report states, the designer must &ldquo;compare acceptable levels of key concrete properties such as strength, stiffness, dimensional stability and permeability&rdquo; and also evaluate &ldquo;slab thickness, reinforcement and load‑transfer configurations, concrete strength levels, elastic modulus (stiffness) of the mix, and the quality of subgrade support conditions.&rdquo; Moreover, design considerations require comparing concrete mixes based on &ldquo;variations in compressive strength, mix stiffness, the degree of dimensional stability expressed through drying shrinkage and thermal‑expansion behavior, and the suite of durability‑related characteristics&rdquo; to meet the targeted service life. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><img alt="Measuring the coefficient of thermal expansion" src="assets/design-considerations/1a1587e9c2e6193fcfe1beb80b81f1cf7eec90e418eacc08165ced72fe5b31ce.jpg" />
+<em>Measuring the coefficient of thermal expansion</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>IMCP — Ch. 3 (pp. 52–56)</small></p>
+<h2 id="5-decision-criteria">5. Decision criteria</h2>
+<h3 id="which-criteria-should-control-the-decision-for-design-considerations-safety-performance-cost-durability-schedule-sustainability-accessibility-or-public-impact">Which criteria should control the decision for Design Considerations: safety, performance, cost, durability, schedule, sustainability, accessibility, or public impact?</h3>
+<p>The decision for design considerations in concrete pavements should be governed primarily by performance criteria. Performance includes the pavement’s structural capacity to carry imposed truck traffic loads and its functional ability to provide safety and a comfortable, quiet ride, while durability is treated as an essential supporting requirement that must be ensured through material testing. Cost, schedule, sustainability, accessibility, and public impact are not identified as controlling factors in the source. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>IMCP — Ch. 3 (pp. 52–56), Ch. 10 (p. 325)</small></p>
+<h3 id="how-should-competing-criteria-for-design-considerations-be-weighted-or-prioritized">How should competing criteria for Design Considerations be weighted or prioritized?</h3>
+<p>When balancing the various design considerations for a concrete pavement, the designer should first give priority to structural capacity, using concrete strength as the dominant input for slab thickness because it most directly governs the ability to carry traffic loads. Next, functional performance and the desired service life are set, after which stiffness and dimensional stability are evaluated to fine‑tune ride quality and crack control, recognizing that they have historically been secondary to strength. Finally, durability is addressed through material testing and specifications rather than as a direct design variable, ensuring long‑term performance without weighting it as a primary structural factor. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>IMCP — Ch. 3 (pp. 52–53)</small></p>
+<h2 id="6-analysis-methods-and-tools">6. Analysis methods and tools</h2>
+<h3 id="what-assumptions-and-uncertainties-influence-the-results-for-design-considerations">What assumptions and uncertainties influence the results for Design Considerations?</h3>
+<p>The design outcome assumes that the engineer first establishes a target service life, defines the desired structural and functional performance levels, and specifies acceptable ranges for concrete strength, stiffness, dimensional stability and permeability. It further assumes that these concrete properties are known and can be entered as inputs to the design model, while other traits are either assumed when calculating slab thickness or omitted entirely. In practice, measured compressive strength is often used as a proxy for broader suitability, including abrasion resistance and durability. This reliance on assumed values introduces uncertainty because durability cannot be measured directly, stiffness and thermal movement/shrinkage have traditionally been excluded from calculations, and the correlation between strength and other performance characteristics is not reliable. Early‑age high strength achieved through admixtures or heating may degrade the microstructure, increase permeability, and reduce durability, leading to potential discrepancies between predicted and actual field behavior. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><img alt="Comparison of compressive and flexural strength correlations" src="assets/design-considerations/f5af3228e812f02a2e3fb2f9a9e3f06a6ff73dbbcb96ed526494bfbe0fe323b7.jpg" />
+<em>Comparison of compressive and flexural strength correlations, based on equations 3.1 and 3.2</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>IMCP — Ch. 3 (pp. 52–56), Ch. 6 (pp. 161–162)</small></p>
+<h2 id="7-stakeholders-and-constraints">7. Stakeholders and constraints</h2>
+<h3 id="who-needs-to-provide-input-make-the-decision-or-approve-it-for-design-considerations">Who needs to provide input, make the decision, or approve it for Design Considerations?</h3>
+<p>The source indicates that the responsibility for supplying the input and making decisions on design considerations rests with the pavement designer, who must define the required structural and functional performance levels, target service life, and the specific concrete property thresholds needed to achieve optimal performance. Contractors provide input about the need for early‑strength concrete so that construction traffic can be allowed onto the pavement, while the owner determines and approves the ultimate strength requirements that are needed at later ages, thereby shaping the design considerations. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>IMCP — Ch. 3 (pp. 52–53), Ch. 6 (pp. 161–162)</small></p>
+<h3 id="what-permits-standards-policies-funding-rules-or-design-requirements-constrain-the-choice-for-design-considerations">What permits, standards, policies, funding rules, or design requirements constrain the choice for Design Considerations?</h3>
+<p>The selection of concrete‑pavement design considerations is limited by the project‑specific requirements that must be defined: a prescribed level of structural and functional performance, a target service or design life, and minimum thresholds for concrete properties such as strength, stiffness, dimensional stability and permeability. These criteria are embedded in the pavement design specifications and material‑construction standards, which set the property limits needed to achieve the desired performance over the intended lifespan. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>IMCP — Ch. 3 (pp. 52–53)</small></p>
+<h2 id="8-timing-and-implementation">8. Timing and implementation</h2>
+<h3 id="what-events-thresholds-or-deadlines-would-trigger-action-for-design-considerations">What events, thresholds, or deadlines would trigger action for Design Considerations?</h3>
+<p>Action is triggered when the concrete reaches the strength level required for its intended purpose, whether that is an early‑age target to allow construction traffic or a later‑age target specified by the owner, establishing a deadline based on the needed age. If the observed rate of strength development indicates an increased risk of early‑age cracking, corrective actions such as mix adjustments or altered curing must be taken. These strength‑and‑age thresholds dictate when design decisions are implemented to ensure performance and durability. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><img alt="An example plot reported by HIPERPAV showing a high risk of" src="assets/design-considerations/7307a8bc3d8c5bdf50c7b0bc0f8276eb624944559fa597b16b61e99e7e75e0e9.jpg" />
+<em>An example plot reported by HIPERPAV showing a high risk of cracking at about six hours after paving</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>IMCP — Ch. 6 (pp. 161–162)</small></p>
+<h2 id="9-outcomes-and-follow-up">9. Outcomes and follow-up</h2>
+<h3 id="what-does-success-look-like-for-design-considerations-and-how-will-it-be-measured">What does success look like for Design Considerations, and how will it be measured?</h3>
+<p>&ldquo;Success for design considerations is realized when the designer establishes and then meets defined structural and functional performance levels—ensuring the pavement can carry imposed truck loads while providing safety and a comfortable, quiet ride—for the targeted service life, and simultaneously achieves the required concrete property thresholds such as strength, stiffness, dimensional stability and permeability.&rdquo; &ldquo;Success for design considerations is achieved when a concrete pavement exhibits the required structural performance—its ability to support current and future heavy traffic while withstanding environmental influences—and does so without showing load‑related cracking such as corner, transverse, longitudinal or shattered slabs.&rdquo; &ldquo;Success for design considerations is achieved when the concrete pavement meets the specified target values for fundamental engineering properties—most notably resilient modulus and fatigue resistance—that are known predictors of long‑term performance.&rdquo; These success criteria are measured by (1) confirming structural capacity through load‑capacity analysis and verifying functional attributes with ride‑quality evaluation; (2) validating material test results—compressive strength, permeability, elastic modulus, resilient modulus, fatigue resistance—against the specifications for concrete properties; (3) checking that principal design variables (slab thickness, reinforcement, load transfer mechanisms, subgrade support) meet their intended levels; and (4) monitoring the pavement over time for the absence of load‑related cracking. The measured property values are then entered into primary prediction models to forecast stress, distress, or overall performance under anticipated traffic, environmental, roadbed, and structural conditions. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><img alt="Corner cracking in jointed concrete pavement" src="assets/design-considerations/73aed2994adf9b85d882a93e5b96b88aa047adbbeaddeb82cd6dbc9ee590d50c.jpg" />
+<em>Corner cracking in jointed concrete pavement</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>IMCP — Ch. 3 (pp. 52–54), Ch. 10 (p. 325)</small></p>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1">Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL (2019)</li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Overlay Technology</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/planning-questions-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">75 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="aggregate-management.html">Aggregate Management</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="aggregate-classification.html">Aggregate Classification</a></li><li><a href="aggregate-management-3-1.html">Aggregate Management</a></li><li><a href="quality-control-3-2.html">Quality Control</a></li><li><a href="aggregate-impact.html">Aggregate Impact</a></li><li><a href="mixture-design.html">Mixture Design</a></li></ul></details></li><li><a href="cementitious-materials.html">Cementitious Materials</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="cement-chemistry.html">Cement Chemistry</a></li><li><a href="concrete-mixture-design.html">Concrete Mixture Design</a></li><li><a href="sustainable-scms.html">Sustainable SCMs</a></li><li><a href="cement-production.html">Cement Production</a></li><li><a href="concrete-durability.html">Concrete Durability</a></li></ul></details></li><li><a href="concrete-production.html">Concrete Production</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-production-15.html">Concrete Production</a></li></ul></details></li><li><a href="cracking-mitigation.html">Cracking Mitigation</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-cracking.html">Concrete Cracking</a></li><li><a href="moisture-management.html">Moisture Management</a></li><li><a href="sealant-application.html">Sealant Application</a></li><li><a href="temperature-management.html">Temperature Management</a></li></ul></details></li><li><a href="diamond-grinding.html">Diamond Grinding</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="diamond-grinding-5.html">Diamond Grinding</a></li></ul></details></li><li><a href="drainage-management.html">Drainage Management</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="drainage-management-7.html">Drainage Management</a></li></ul></details></li><li><a href="joint-sealing.html">Joint Sealing</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="joint-maintenance.html">Joint Maintenance</a></li><li><a href="sealant-installation.html">Sealant Installation</a></li><li><a href="pavement-maintenance.html">Pavement Maintenance</a></li><li><a href="sealant-performance.html">Sealant Performance</a></li></ul></details></li><li><a href="material-testing.html">Material Testing</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-testing.html">Concrete Testing</a></li><li><a href="concrete-durability-9-1.html">Concrete Durability</a></li><li><a href="concrete-strength.html">Concrete Strength</a></li><li><a href="concrete-standards.html">Concrete Standards</a></li><li><a href="material-testing-9-4.html">Material Testing</a></li><li><a href="maturity-methods.html">Maturity Methods</a></li></ul></details></li><li><a href="other.html">Other</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="other-17.html">Other</a></li></ul></details></li><li><a href="pavement-design.html">Pavement Design</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="overlay-technology.html">Overlay Technology</a></li><li><a href="pavement-types.html">Pavement Types</a></li><li><a href="construction-insights.html">Construction Insights</a></li><li><a href="recycling-innovation.html">Recycling Innovation</a></li></ul></details></li><li><a href="pavement-management-14.html">Pavement Management</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-smoothness.html">Pavement Smoothness</a></li><li><a href="pavement-systems.html">Pavement Systems</a></li><li><a href="subgrade-insights.html">Subgrade Insights</a></li><li><a href="excavation-safety.html">Excavation Safety</a></li><li><a href="slab-jacking.html">Slab Jacking</a></li></ul></details></li><li><a href="pavement-management.html">Pavement Management</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-evaluation.html">Pavement Evaluation</a></li><li><a href="preservation-strategies.html">Preservation Strategies</a></li><li><a href="pavement-design-8-2.html">Pavement Design</a></li><li><a href="concrete-production-8-3.html">Concrete Production</a></li><li><a href="design-methodologies.html">Design Methodologies</a></li><li><a href="design-considerations.html">Design Considerations</a></li></ul></details></li><li><a href="pavement-repair.html">Pavement Repair</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="slab-stabilization.html">Slab Stabilization</a></li><li><a href="pavement-repairs.html">Pavement Repairs</a></li><li><a href="dowel-bar-retrofit.html">Dowel Bar Retrofit</a></li></ul></details></li><li><a href="paving-operations.html">Paving Operations</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="paving-operations-12.html">Paving Operations</a></li></ul></details></li><li><a href="quality-assurance.html">Quality Assurance</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="quality-control-1-0.html">Quality Control</a></li><li><a href="project-management.html">Project Management</a></li><li><a href="quality-assurance-1-2.html">Quality Assurance</a></li></ul></details></li><li><a href="quality-control.html">Quality Control</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-assessment.html">Pavement Assessment</a></li><li><a href="mixture-management.html">Mixture Management</a></li><li><a href="concrete-sampling.html">Concrete Sampling</a></li><li><a href="concrete-strength-10-3.html">Concrete Strength</a></li><li><a href="mixture-design-10-4.html">Mixture Design</a></li></ul></details></li><li><a href="reinforcement-techniques.html">Reinforcement Techniques</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="reinforcement-techniques-16.html">Reinforcement Techniques</a></li></ul></details></li><li><a href="surface-textures.html">Surface Textures</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="surface-textures-11.html">Surface Textures</a></li></ul></details></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">All concepts</a><span class="crumb-sep">›</span><a href="pavement-design.html">Pavement Design</a><span class="crumb-sep">›</span><span class="crumb-current">Overlay Technology</span></nav>
+<article><h1>Overlay Technology</h1>
+<div class="meta"><div class="part-of">Part of: <a href="pavement-design.html">Pavement Design</a> <span class="edge edge-taxonomic" title="Overlay Technology is a topic under Pavement Design.">is-subtopic-of</span></div><div class="edge-reading">Overlay Technology is a topic under Pavement Design.</div><div><a class="tag" href="index.html?q=concrete-overlays">concrete-overlays</a><a class="tag" href="index.html?q=bonded-systems">bonded-systems</a><a class="tag" href="index.html?q=unbonded-systems">unbonded-systems</a><a class="tag" href="index.html?q=sustainability">sustainability</a><a class="tag" href="index.html?q=pavement-preservation">pavement-preservation</a></div><div>Created 2026-09-01 · Updated 2026-09-08</div></div>
+<p><em>Planning &amp; decision-making review — 20/24 chunks kept, 2 guides.</em></p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#1-purpose-and-applicability">1. Purpose and applicability</a><ul><li><a href="#what-problem-does-overlay-technology-solve">What problem does Overlay Technology solve?</a></li><li><a href="#when-is-overlay-technology-appropriate-and-when-should-another-method-be-used">When is Overlay Technology appropriate, and when should another method be used?</a></li></ul></li><li><a href="#2-required-inputs">2. Required inputs</a><ul><li><a href="#what-materials-mixture-properties-and-site-conditions-does-overlay-technology-require">What materials, mixture properties, and site conditions does Overlay Technology require?</a></li><li><a href="#what-design-details-dimensions-tolerances-or-preconstruction-tests-govern-overlay-technology">What design details, dimensions, tolerances, or preconstruction tests govern Overlay Technology?</a></li></ul></li><li><a href="#4-work-sequence">4. Work sequence</a><ul><li><a href="#what-must-be-completed-before-overlay-technology-begins">What must be completed before Overlay Technology begins?</a></li></ul></li><li><a href="#5-staging-and-logistics">5. Staging and logistics</a><ul><li><a href="#what-space-site-access-weather-or-environmental-constraints-affect-overlay-technology">What space, site access, weather, or environmental constraints affect Overlay Technology?</a></li></ul></li><li><a href="#6-quality-control-and-acceptance">6. Quality control and acceptance</a><ul><li><a href="#what-characteristics-must-be-inspected-or-tested-for-overlay-technology">What characteristics must be inspected or tested for Overlay Technology?</a></li></ul></li><li><a href="#7-safety-and-environmental-controls">7. Safety and environmental controls</a><ul><li><a href="#what-hazards-does-overlay-technology-present-for-workers-and-the-public">What hazards does Overlay Technology present for workers and the public?</a></li></ul></li><li><a href="#8-curing-protection-and-handoff">8. Curing, protection, and handoff</a><ul><li><a href="#when-can-work-completed-under-overlay-technology-carry-construction-traffic-or-open-to-users">When can work completed under Overlay Technology carry construction traffic or open to users?</a></li></ul></li><li><a href="#9-expected-performance-and-maintenance">9. Expected performance and maintenance</a><ul><li><a href="#what-common-failures-or-distresses-can-occur-with-overlay-technology">What common failures or distresses can occur with Overlay Technology?</a></li><li><a href="#what-preventive-maintenance-monitoring-or-repairs-may-overlay-technology-need">What preventive maintenance, monitoring, or repairs may Overlay Technology need?</a></li></ul></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (2)</summary><div class="sources-body"><a href="#ref-1">Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL (2019)</a>, <a href="#ref-2">Concrete Pavement Preservation Guide (Third Edition) (2022)</a></div></details>
+
+<h2 id="1-purpose-and-applicability">1. Purpose and applicability</h2>
+<h3 id="what-problem-does-overlay-technology-solve">What problem does Overlay Technology solve?</h3>
+<p>Overlay technology provides a systematic solution to the pervasive problem of aging, distressed, or structurally deficient pavements. By applying a thin (2–4 in.) high‑strength concrete layer—either bonded to a sound base or placed over a separation medium—the method restores load‑carrying capacity, repairs surface defects, and adds structural value without resorting to full‑depth reconstruction. Overlay technology addresses the chronic problem of aging concrete or composite pavements that are approaching the end of their useful life and would otherwise require costly, disruptive full‑depth reconstruction, enabling agencies to extend service life (typically 15–30 years) while avoiding expensive, disruptive rebuilds. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><img alt="Bonded Concrete Overlays on Composite Pavements Figure 3-12." src="assets/overlay-technology/bccb11b47ffe9a7957336ae9f3462dd1cf06bb168238242c45b06767a97302b6.jpg" />
+<em>Bonded Concrete Overlays on Composite Pavements Figure 3-12. Examples of bonded overlays</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>IMCP — Ch. 3 (pp. 65–67), Ch. 10 (pp. 316–332); CPP Guide — Ch. 9 (pp. 261–264)</small></p>
+<h3 id="when-is-overlay-technology-appropriate-and-when-should-another-method-be-used">When is Overlay Technology appropriate, and when should another method be used?</h3>
+<p>The review finds that overlay technology should be used only when the existing pavement can provide uniform support and adequate movement control, or when those conditions can be achieved cost‑effectively through preliminary repairs. In such situations a thin (≤4 in.) concrete overlay—either bonded or unbonded—can be placed to extend service life by roughly 15–30 years. &ldquo;Concrete overlays placed on existing concrete and composite (i.e., asphalt on concrete) pavements can be effective in extending pavement life by typically 15 to 30 years.&rdquo; A bonded overlay is appropriate only if the underlying concrete is in good structural condition (or asphalt at least fair), free of cracks or other distress, with joints aligned and any cracks repaired; it creates a monolithic structure that improves ride quality, skid resistance, and reflectivity. &ldquo;Bonded overlays help eliminate surface distresses and add some structural value to the pavement system by forming a monolithic pavement structure with the existing pavement.&rdquo; When the base is stable but does not meet those stricter thresholds, an unbonded overlay may be applied; it relies on a separation layer (e.g., one‑inch hot‑mix asphalt or thick geotextile) and adds structural capacity without requiring bonding. &ldquo;Unbonded overlays add structural capacity to the pavement system but do not require bonding to the existing pavement.&rdquo; &ldquo;Concrete overlays require uniform support conditions to deliver satisfactory performance.&rdquo; Conversely, if the existing pavement shows extensive material‑related distress (e.g., D‑cracking, alkali‑silica reaction), widespread slab or fatigue cracking, inadequate subgrade support, drainage deficiencies, needs more than four inches of additional thickness for anticipated traffic loads, or would create clearance conflicts with curbs, gutters, sidewalks, utilities, or structures, the risk of premature failure is high and a full reconstruction or an alternative preservation method should be selected instead. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><img alt="Unbonded Concrete Overlays on Concrete Pavements –previously" src="assets/overlay-technology/6f10509d75864ee787b769eacc422bab1842ec76c13801e69e4d642877a8c8d8.jpg" />
+<em>Unbonded Concrete Overlays on Concrete Pavements –previously called unbonded overlay–</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>IMCP — Ch. 3 (pp. 65–66); CPP Guide — Ch. 9 (pp. 261–262)</small></p>
+<h2 id="2-required-inputs">2. Required inputs</h2>
+<h3 id="what-materials-mixture-properties-and-site-conditions-does-overlay-technology-require">What materials, mixture properties, and site conditions does Overlay Technology require?</h3>
+<p>Overlay technology relies on a conventional concrete paving mixture that can be modified to meet specific performance needs. The mix is composed of the usual concrete constituents—cement, supplementary cementitious materials, aggregate, water and chemical admixtures—and may be upgraded to high‑strength or fiber‑reinforced versions for ultra‑thin whitetopping, or to accelerated mixtures when rapid strength gain is required for early traffic opening. For bonded overlays the concrete is placed as a thin surface layer—typically 2 to 5 in. thick—over an existing pavement that is free of structural distress, in relatively good condition, and without cracks that could reflect into the new slab; joint layout should be aligned with underlying joints and thermal expansion properties matched to the existing concrete substrate. Unbonded systems use a separation layer (e.g., 1‑in. hot‑mix asphalt sheet or thick geotextile) and are built to a thickness of roughly 6 to 11 in.; they require adequate support from the substrate, at least 3 in. of intact asphalt remaining after milling, and avoidance of severely deteriorated conditions such as D‑cracking or alkali–silica reaction. Design must also consider edge support, pre‑overlay repairs, anticipated traffic loads and prevailing climate to ensure long‑term performance. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><img alt="Unbonded Concrete Overlays on Composite Pavements Figure 3-1" src="assets/overlay-technology/7e719271a516a5870a368d2cb3127b1e68672b6b963d6080f4ec031782448601.jpg" />
+<em>Unbonded Concrete Overlays on Composite Pavements Figure 3-13. Examples of unbonded overlays</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>IMCP — Ch. 3 (pp. 66–68), Ch. 10 (pp. 332–334); CPP Guide — Ch. 9 (p. 264)</small></p>
+<h3 id="what-design-details-dimensions-tolerances-or-preconstruction-tests-govern-overlay-technology">What design details, dimensions, tolerances, or preconstruction tests govern Overlay Technology?</h3>
+<p>Overlay design is divided into bonded and unbonded systems, with the selection based on the condition of the existing pavement. For bonded concrete overlays (BCO), the overlay functions as a thin surface layer typically 2 to 5 in thick (often limited to ≤4 in for preservation treatments) and may be placed only when the underlying concrete is free of structural distress, cracks are repaired, and joint locations can be matched; “the joints should be aligned with joints in the underlying pavement” to prevent reflective cracking and allow the two layers to act as a single unit. When the substrate is asphalt, bonded overlays are generally 4‑6 in thick; if milling is required, at least 3 in of intact asphalt must remain to retain load‑carrying capacity, and the slab may be divided into square panels 3‑8 ft on a side to control thermal movement. Unbonded overlays rely on a separation layer—traditionally 1 in of hot‑mix asphalt or a thick geotextile fabric—and are designed with an overlay thickness generally 6‑11 in, effectively forming a new concrete pavement structure.</p>
+<p>All design parameters must satisfy the limits imposed by the Mechanistic‑Empirical Pavement Design Guide (MEPDG); thin bonded overlays on asphalt “must be less than six inches thick” and no additional dimensional tolerances beyond these thickness constraints are prescribed. Joint design follows normal concrete practices, and edge support must be adequate to resist slab movement. Material properties include high‑strength, fiber‑reinforced concrete; inclusion of fibers is recommended because “For BCOA pavements, including fibers in the overlay concrete mixture … can help control plastic shrinkage cracking and provide post‑cracking integrity.” Matching the coefficient of thermal expansion (CTE) of the overlay to that of the existing concrete is required for bonded systems: “Materials with similar temperature sensitivity will expand and contract similarly at the interface.”</p>
+<p>Pre‑construction testing focuses on three primary activities: (1) a visual and structural inspection of the existing surface to assess crack presence, material‑related distress, and uniformity; (2) verification that the substrate can provide sufficient bearing for the proposed thickness, with removal and replacement of areas lacking adequate support; and (3) confirmation that the overlay mix’s CTE matches the underlying concrete when a bonded system is used. Additional checks may include confirming that accelerated mixtures meet early‑strength requirements if earlier traffic opening is desired. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><img alt="Recreated from ©2022 Applied Pavement Technology, Inc., afte" src="assets/overlay-technology/b71f0c37afa2f79fd5d478bb843671d760fe615a15f69f07f3d3f9107595ad01.jpg" />
+<em>Recreated from ©2022 Applied Pavement Technology, Inc., after ACPA 1995, used with permission Figure 6.4. Full-depth repair recommendations for a CRCP</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>IMCP — Ch. 3 (pp. 65–68), Ch. 10 (pp. 316–334); CPP Guide — Ch. 9 (pp. 261–264)</small></p>
+<h2 id="4-work-sequence">4. Work sequence</h2>
+<h3 id="what-must-be-completed-before-overlay-technology-begins">What must be completed before Overlay Technology begins?</h3>
+<p>The reviewer notes that before any concrete overlay—bonded or unbonded—can be placed, the existing pavement must first be thoroughly evaluated to confirm it can provide a uniform, sound support interface. The most important aspect of concrete overlay design is the interface with the existing pavement. Consequently, major structural repairs should not be required; any cracks in an existing concrete slab must be repaired, joint patterns identified and aligned, and distressed asphalt must retain at least three inches after milling to preserve load‑carrying capacity. For unbonded systems the base need only be uniform and stable—Concrete overlays require uniform support conditions to deliver satisfactory performance—and any areas incapable of supporting the 6‑to‑11‑inch thick overlay must be removed and replaced. The surface should be cleaned and treated as necessary to promote proper adhesion. Potential construction impacts such as clearance at structures, shoulder width, curbs, gutters, sidewalks or utility elevations must be identified, and the expected service life of the overlay must meet or exceed the agency’s desired lifespan. Successful concrete overlay design addresses all overlay system design components (e.g., thickness, panel dimensions, bond condition, joint design, edge support, material properties, pre‑overlay repairs) in a manner that achieves the desired performance before installation. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><img alt="Determining appropriate concrete overlay solution based on e" src="assets/overlay-technology/fa6d72fb7887b6ae3066d0dbc4a0e6cc451a73af4997f89339d16bda0be42d63.jpg" />
+<em>Determining appropriate concrete overlay solution based on existing pavement condition and resulting preliminary repairs needed</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>IMCP — Ch. 3 (pp. 65–66), Ch. 10 (pp. 316–334); CPP Guide — Ch. 9 (pp. 261–264)</small></p>
+<h2 id="5-staging-and-logistics">5. Staging and logistics</h2>
+<h3 id="what-space-site-access-weather-or-environmental-constraints-affect-overlay-technology">What space, site access, weather, or environmental constraints affect Overlay Technology?</h3>
+<p>Overlay design must accommodate site‑specific climatic conditions because temperature cycles induce thermal expansion and contraction at the bond line. For bonded overlays on existing concrete slabs, the overlay mix must have a coefficient of thermal expansion comparable to that of the substrate; otherwise differential movement can overstress the interface, a problem driven primarily by differences in coarse aggregate types between the old slab and the new overlay. When planning a concrete overlay, the primary spatial and site‑access concerns stem from the added thickness of the new layer. This extra depth can create clearance problems at bridges, overpasses, or other structures, narrow shoulders, steepen foreslopes, and raise the elevations of curbs, gutters, sidewalks, driveways, and nearby utilities, often requiring reconstruction or adjustment. No additional weather‑related or broader environmental constraints were identified beyond these thermal and geometric considerations. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><img alt="Recreated from Gaspard and Morvant 2004, Louisiana Transport" src="assets/overlay-technology/8a66c9dbcd492e5debedcf29c52c422d71f1aae79102f987698431396f71c6af.jpg" />
+<em>Recreated from Gaspard and Morvant 2004, Louisiana Transportation Research Center Figure 4.20. Bridge approach slab profile before and after slab jacking</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>IMCP — Ch. 3 (pp. 67–68); CPP Guide — Ch. 9 (pp. 261–262)</small></p>
+<h2 id="6-quality-control-and-acceptance">6. Quality control and acceptance</h2>
+<h3 id="what-characteristics-must-be-inspected-or-tested-for-overlay-technology">What characteristics must be inspected or tested for Overlay Technology?</h3>
+<p>Inspectors must first verify the condition of the existing pavement‑overlay interface, confirming it is sound and free of distress that would preclude an overlay. “The most important aspect of concrete overlay design is the interface with the existing pavement.” For bonded overlays the underlying concrete must be in good structural condition; any cracks must be repaired because unrepaired cracks will reflect through the new layer. The existing slab should also be examined for material‑related problems such as D‑cracking or alkali‑silica reaction, and areas lacking adequate support must be removed or stabilized before placement. Joint deterioration, slab or fatigue cracking, rutting, inadequate subgrade support, and poor drainage are additional conditions that must be identified. “Major structural repairs should not be required.” Uniformity and stability of the base are essential for both bonded and unbonded systems; “Concrete overlays require uniform support conditions to deliver satisfactory performance,” and the base must be stable and uniform when an unbonded overlay is selected. The proposed overlay thickness must be checked to fall within the typical 2 to 10 in range (thin surface courses 2‑5 in). Joint placement should be inspected for proper alignment with underlying joints to prevent reflective cracking and promote composite action. The presence and uniformity of a separation layer—typically a one‑inch hot‑mix asphalt sheet or approved geotextile fabric—must be confirmed to provide independent movement between the old and new concrete layers. Finally, inspectors must identify potential construction‑related issues such as reduced shoulder width, altered curbs, gutters, sidewalks, driveways, or utility elevations, and verify that the projected service life meets agency expectations. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><img alt="Bonded Concrete Overlays on Asphalt Pavements –previously ca" src="assets/overlay-technology/977b12a7267f9c99abe254f5b4a294542653923d1a441c64353b35dac225d189.jpg" />
+<em>Bonded Concrete Overlays on Asphalt Pavements –previously called ultra-thin whitetopping–</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>IMCP — Ch. 3 (pp. 65–66); CPP Guide — Ch. 9 (pp. 261–262)</small></p>
+<h2 id="7-safety-and-environmental-controls">7. Safety and environmental controls</h2>
+<h3 id="what-hazards-does-overlay-technology-present-for-workers-and-the-public">What hazards does Overlay Technology present for workers and the public?</h3>
+<p>During overlay construction, the added thickness can create clearance problems at structures and may narrow shoulders or steepen foreslopes, exposing motorists to collision risk. In built‑up areas the raised deck can alter curb, gutter, sidewalk and driveway elevations, increasing the chance of trips or vehicle‑impact incidents for pedestrians and drivers. Adjustments to utilities and roadway fixtures may also be required, further complicating public safety during installation. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>CPP Guide — Ch. 9 (pp. 261–262)</small></p>
+<h2 id="8-curing-protection-and-handoff">8. Curing, protection, and handoff</h2>
+<h3 id="when-can-work-completed-under-overlay-technology-carry-construction-traffic-or-open-to-users">When can work completed under Overlay Technology carry construction traffic or open to users?</h3>
+<p>When an accelerated concrete mixture is employed, the overlay gains strength more quickly, permitting the pavement to be opened to construction vehicles or the traveling public sooner than with standard mixes. The timing of traffic opening depends on achieving sufficient early‑age strength as defined by the project specifications, rather than a fixed calendar date. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><img alt="Recreated from ©2022 Applied Pavement Technology, Inc., used" src="assets/overlay-technology/0bbf8c2942fb240c14d75a75b094dca779ef12f46736db9b4cfaf269236e498d.jpg" />
+<em>Recreated from ©2022 Applied Pavement Technology, Inc., used with permission</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>CPP Guide — Ch. 9 (p. 264)</small></p>
+<h2 id="9-expected-performance-and-maintenance">9. Expected performance and maintenance</h2>
+<h3 id="what-common-failures-or-distresses-can-occur-with-overlay-technology">What common failures or distresses can occur with Overlay Technology?</h3>
+<p>The review of both sections makes clear that overlay technology is prone to a range of failures when the underlying pavement condition or material compatibility is inadequate. Existing defects are the primary catalyst: if cracks, joint deterioration, or subgrade problems are not remedied, they tend to manifest in the new layer as reflective cracking or other distress. In bonded systems, unrepaired cracks propagate through the new layer, producing reflective cracking; similarly, any structural weakness—such as widespread slab cracking, poor drainage, or insufficient support—can compromise both bonded and unbonded overlays. Material incompatibilities also generate problems: a mismatch in coefficients of thermal expansion between the existing slab and the overlay creates bond‑line stresses that may crack or debond the interface, while thin bonded overlays lacking fiber reinforcement are especially vulnerable to plastic shrinkage cracking. Finally, geometric constraints introduced by the added thickness of an overlay can lead to clearance conflicts at structures, narrowing of shoulders, and steepening of foreslopes, further limiting performance. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><img alt="Corner cracking in jointed concrete pavement" src="assets/overlay-technology/73aed2994adf9b85d882a93e5b96b88aa047adbbeaddeb82cd6dbc9ee590d50c.jpg" />
+<em>Corner cracking in jointed concrete pavement</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>IMCP — Ch. 3 (pp. 65–68); CPP Guide — Ch. 9 (pp. 261–262)</small></p>
+<h3 id="what-preventive-maintenance-monitoring-or-repairs-may-overlay-technology-need">What preventive maintenance, monitoring, or repairs may Overlay Technology need?</h3>
+<p>Preventive maintenance for concrete overlays begins with a comprehensive condition survey of the existing pavement. The survey must verify that support and movement control are uniform; if non‑uniform conditions are found, preliminary repairs such as correcting subgrade irregularities or stabilizing weak sections are required before an overlay can be placed. For bonded systems any pre‑existing cracks must be repaired because “If an existing concrete pavement is cracked and is to have a bonded overlay, the crack needs to be repaired or it will reflect through the overlay.” In unbonded applications a separation layer isolates the new slab from underlying cracking, so monitoring focuses on keeping that layer intact – “If the overlay is unbonded, a separation layer prevents the cracks from reflecting up through the new layer.” Sections of pavement that cannot provide adequate support must be removed and replaced, and the underlying surface should be examined for advanced material‑related distresses (e.g., D‑cracking, ASR) that could render the overlay unsuitable. After construction, overlays are designed for limited maintenance; therefore “Routine visual inspections of the interface and underlying pavement constitute the primary preventive actions.” These inspections detect separation‑layer degradation, new cracking, or loss of support, allowing timely repairs to preserve performance. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><img alt="Unbonded Concrete Overlays on Asphalt Pavements –previously" src="assets/overlay-technology/0e44e49cd6e7f0cb70b8ddf1fba73790fbd440076cb0215b14c2a8af93083200.jpg" />
+<em>Unbonded Concrete Overlays on Asphalt Pavements –previously called conventional whitetopping–</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>IMCP — Ch. 3 (pp. 65–66); CPP Guide — Ch. 9 (p. 262)</small></p>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1">Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL (2019)</li><li id="ref-2">Concrete Pavement Preservation Guide (Third Edition) (2022)</li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slab Stabilization</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/planning-questions-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">75 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="aggregate-management.html">Aggregate Management</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="aggregate-classification.html">Aggregate Classification</a></li><li><a href="aggregate-management-3-1.html">Aggregate Management</a></li><li><a href="quality-control-3-2.html">Quality Control</a></li><li><a href="aggregate-impact.html">Aggregate Impact</a></li><li><a href="mixture-design.html">Mixture Design</a></li></ul></details></li><li><a href="cementitious-materials.html">Cementitious Materials</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="cement-chemistry.html">Cement Chemistry</a></li><li><a href="concrete-mixture-design.html">Concrete Mixture Design</a></li><li><a href="sustainable-scms.html">Sustainable SCMs</a></li><li><a href="cement-production.html">Cement Production</a></li><li><a href="concrete-durability.html">Concrete Durability</a></li></ul></details></li><li><a href="concrete-production.html">Concrete Production</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-production-15.html">Concrete Production</a></li></ul></details></li><li><a href="cracking-mitigation.html">Cracking Mitigation</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-cracking.html">Concrete Cracking</a></li><li><a href="moisture-management.html">Moisture Management</a></li><li><a href="sealant-application.html">Sealant Application</a></li><li><a href="temperature-management.html">Temperature Management</a></li></ul></details></li><li><a href="diamond-grinding.html">Diamond Grinding</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="diamond-grinding-5.html">Diamond Grinding</a></li></ul></details></li><li><a href="drainage-management.html">Drainage Management</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="drainage-management-7.html">Drainage Management</a></li></ul></details></li><li><a href="joint-sealing.html">Joint Sealing</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="joint-maintenance.html">Joint Maintenance</a></li><li><a href="sealant-installation.html">Sealant Installation</a></li><li><a href="pavement-maintenance.html">Pavement Maintenance</a></li><li><a href="sealant-performance.html">Sealant Performance</a></li></ul></details></li><li><a href="material-testing.html">Material Testing</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="concrete-testing.html">Concrete Testing</a></li><li><a href="concrete-durability-9-1.html">Concrete Durability</a></li><li><a href="concrete-strength.html">Concrete Strength</a></li><li><a href="concrete-standards.html">Concrete Standards</a></li><li><a href="material-testing-9-4.html">Material Testing</a></li><li><a href="maturity-methods.html">Maturity Methods</a></li></ul></details></li><li><a href="other.html">Other</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="other-17.html">Other</a></li></ul></details></li><li><a href="pavement-design.html">Pavement Design</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="overlay-technology.html">Overlay Technology</a></li><li><a href="pavement-types.html">Pavement Types</a></li><li><a href="construction-insights.html">Construction Insights</a></li><li><a href="recycling-innovation.html">Recycling Innovation</a></li></ul></details></li><li><a href="pavement-management-14.html">Pavement Management</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-smoothness.html">Pavement Smoothness</a></li><li><a href="pavement-systems.html">Pavement Systems</a></li><li><a href="subgrade-insights.html">Subgrade Insights</a></li><li><a href="excavation-safety.html">Excavation Safety</a></li><li><a href="slab-jacking.html">Slab Jacking</a></li></ul></details></li><li><a href="pavement-management.html">Pavement Management</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-evaluation.html">Pavement Evaluation</a></li><li><a href="preservation-strategies.html">Preservation Strategies</a></li><li><a href="pavement-design-8-2.html">Pavement Design</a></li><li><a href="concrete-production-8-3.html">Concrete Production</a></li><li><a href="design-methodologies.html">Design Methodologies</a></li><li><a href="design-considerations.html">Design Considerations</a></li></ul></details></li><li><a href="pavement-repair.html">Pavement Repair</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="slab-stabilization.html">Slab Stabilization</a></li><li><a href="pavement-repairs.html">Pavement Repairs</a></li><li><a href="dowel-bar-retrofit.html">Dowel Bar Retrofit</a></li></ul></details></li><li><a href="paving-operations.html">Paving Operations</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="paving-operations-12.html">Paving Operations</a></li></ul></details></li><li><a href="quality-assurance.html">Quality Assurance</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="quality-control-1-0.html">Quality Control</a></li><li><a href="project-management.html">Project Management</a></li><li><a href="quality-assurance-1-2.html">Quality Assurance</a></li></ul></details></li><li><a href="quality-control.html">Quality Control</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="pavement-assessment.html">Pavement Assessment</a></li><li><a href="mixture-management.html">Mixture Management</a></li><li><a href="concrete-sampling.html">Concrete Sampling</a></li><li><a href="concrete-strength-10-3.html">Concrete Strength</a></li><li><a href="mixture-design-10-4.html">Mixture Design</a></li></ul></details></li><li><a href="reinforcement-techniques.html">Reinforcement Techniques</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="reinforcement-techniques-16.html">Reinforcement Techniques</a></li></ul></details></li><li><a href="surface-textures.html">Surface Textures</a><details open><summary aria-label="Toggle sub-concepts">▸</summary><ul><li><a href="surface-textures-11.html">Surface Textures</a></li></ul></details></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">All concepts</a><span class="crumb-sep">›</span><a href="pavement-repair.html">Pavement Repair</a><span class="crumb-sep">›</span><span class="crumb-current">Slab Stabilization</span></nav>
+<article><h1>Slab Stabilization</h1>
+<div class="meta"><div class="part-of">Part of: <a href="pavement-repair.html">Pavement Repair</a> <span class="edge edge-taxonomic" title="Slab Stabilization is a topic under Pavement Repair.">is-subtopic-of</span></div><div class="edge-reading">Slab Stabilization is a topic under Pavement Repair.</div><div><a class="tag" href="index.html?q=slab-stabilization">slab-stabilization</a><a class="tag" href="index.html?q=backfilling-techniques">backfilling-techniques</a><a class="tag" href="index.html?q=flowable-fill">flowable-fill</a><a class="tag" href="index.html?q=slab-jacking">slab-jacking</a><a class="tag" href="index.html?q=quality-assurance">quality-assurance</a></div><div>Created 2026-09-01 · Updated 2026-09-08</div></div>
+<p><em>Planning &amp; decision-making review — 17/19 chunks kept, 1 guides.</em></p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#1-purpose-and-applicability">1. Purpose and applicability</a><ul><li><a href="#what-problem-does-slab-stabilization-solve">What problem does Slab Stabilization solve?</a></li><li><a href="#when-is-slab-stabilization-appropriate-and-when-should-another-method-be-used">When is Slab Stabilization appropriate, and when should another method be used?</a></li></ul></li><li><a href="#2-required-inputs">2. Required inputs</a><ul><li><a href="#what-materials-mixture-properties-and-site-conditions-does-slab-stabilization-require">What materials, mixture properties, and site conditions does Slab Stabilization require?</a></li><li><a href="#what-design-details-dimensions-tolerances-or-preconstruction-tests-govern-slab-stabilization">What design details, dimensions, tolerances, or preconstruction tests govern Slab Stabilization?</a></li></ul></li><li><a href="#3-equipment-and-personnel">3. Equipment and personnel</a><ul><li><a href="#what-equipment-does-slab-stabilization-need-for-preparation-placement-compaction-or-consolidation-finishing-curing-and-testing">What equipment does Slab Stabilization need for preparation, placement, compaction or consolidation, finishing, curing, and testing?</a></li><li><a href="#what-operator-skills-crew-roles-or-qualified-personnel-does-slab-stabilization-require">What operator skills, crew roles, or qualified personnel does Slab Stabilization require?</a></li></ul></li><li><a href="#4-work-sequence">4. Work sequence</a><ul><li><a href="#what-must-be-completed-before-slab-stabilization-begins">What must be completed before Slab Stabilization begins?</a></li><li><a href="#what-is-the-step-by-step-sequence-of-operations-for-slab-stabilization">What is the step-by-step sequence of operations for Slab Stabilization?</a></li><li><a href="#what-timing-limits-apply-between-critical-steps-of-slab-stabilization">What timing limits apply between critical steps of Slab Stabilization?</a></li></ul></li><li><a href="#5-staging-and-logistics">5. Staging and logistics</a><ul><li><a href="#what-space-site-access-weather-or-environmental-constraints-affect-slab-stabilization">What space, site access, weather, or environmental constraints affect Slab Stabilization?</a></li></ul></li><li><a href="#6-quality-control-and-acceptance">6. Quality control and acceptance</a><ul><li><a href="#what-characteristics-must-be-inspected-or-tested-for-slab-stabilization">What characteristics must be inspected or tested for Slab Stabilization?</a></li><li><a href="#when-and-how-often-are-measurements-taken-for-slab-stabilization">When and how often are measurements taken for Slab Stabilization?</a></li><li><a href="#what-are-the-acceptance-criteria-tolerances-and-corrective-actions-for-nonconforming-work-under-slab-stabilization">What are the acceptance criteria, tolerances, and corrective actions for nonconforming work under Slab Stabilization?</a></li></ul></li><li><a href="#7-safety-and-environmental-controls">7. Safety and environmental controls</a><ul><li><a href="#what-hazards-does-slab-stabilization-present-for-workers-and-the-public">What hazards does Slab Stabilization present for workers and the public?</a></li></ul></li><li><a href="#8-curing-protection-and-handoff">8. Curing, protection, and handoff</a><ul><li><a href="#how-is-the-completed-work-protected-or-cured-under-slab-stabilization">How is the completed work protected or cured under Slab Stabilization?</a></li><li><a href="#when-can-work-completed-under-slab-stabilization-carry-construction-traffic-or-open-to-users">When can work completed under Slab Stabilization carry construction traffic or open to users?</a></li></ul></li><li><a href="#9-expected-performance-and-maintenance">9. Expected performance and maintenance</a><ul><li><a href="#what-common-failures-or-distresses-can-occur-with-slab-stabilization">What common failures or distresses can occur with Slab Stabilization?</a></li><li><a href="#what-preventive-maintenance-monitoring-or-repairs-may-slab-stabilization-need">What preventive maintenance, monitoring, or repairs may Slab Stabilization need?</a></li></ul></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (1)</summary><div class="sources-body"><a href="#ref-1">Concrete Pavement Preservation Guide (Third Edition) (2022)</a></div></details>
+
+<h2 id="1-purpose-and-applicability">1. Purpose and applicability</h2>
+<h3 id="what-problem-does-slab-stabilization-solve">What problem does Slab Stabilization solve?</h3>
+<p>Slab stabilization addresses the fundamental problem of lost subgrade support beneath concrete pavements. When voids develop—whether from base or sub‑base deterioration, pumping, or faulting—they cause excessive slab deflection, settlement and poor load transfer at cracks, compromising the slab’s bearing capacity. Slab stabilization is defined as the insertion of a material beneath the slab or subbase to fill voids, thereby reducing deflections and associated distresses. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><img alt="Recreated from ©2022 Applied Pavement Technology, Inc., used" src="assets/slab-stabilization/b2bc2d59ea7ec17f84f0fb15c2b1ce115449f6e6c48e7505c8e0c0deada6d6d8.jpg" />
+<em>Recreated from ©2022 Applied Pavement Technology, Inc., used with permission Figure 3.9. Center slab deflection variation along a project normalized to a 9,000 lbf loading</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>CPP Guide — Ch. 4 (pp. 81–95), Ch. 6 (pp. 156–157)</small></p>
+<h3 id="when-is-slab-stabilization-appropriate-and-when-should-another-method-be-used">When is Slab Stabilization appropriate, and when should another method be used?</h3>
+<p>Slab stabilization should be employed only after confirming that loss of support exists and is confined to a limited area. When subsurface voids or loss of support have been positively identified—typically at joints or working cracks—through deflection testing, GPR, or a simple water‑filled hole test, and the pavement shows only localized settlement without extensive cracking, stabilization is appropriate. It is also suitable when the slab remains structurally sound, rests on a granular or otherwise stabilized sub‑base, and the distress appears as an isolated depression such as over a culvert or bridge approach. The procedure must be carried out before surface distress develops and under temperature conditions compatible with the selected material. Conversely, stabilization should not be used if no voids are present, if joints are faulted or load‑transfer devices are deficient, when major structural damage (corner breaks, widespread cracking) exists, or when the subgrade is composed of extensive fine‑grained, high‑water‑content soils. In those situations, other preservation methods—dowel‑bar retrofitting, diamond grinding, joint sealing, full‑depth reclamation, or complete slab replacement—are required. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>CPP Guide — Ch. 4 (pp. 81–91)</small></p>
+<h2 id="2-required-inputs">2. Required inputs</h2>
+<h3 id="what-materials-mixture-properties-and-site-conditions-does-slab-stabilization-require">What materials, mixture properties, and site conditions does Slab Stabilization require?</h3>
+<p>Slab stabilization is performed by <strong>pressure insertion of a flowable material (commonly polyurethane or a cement grout but occasionally asphalt cement)</strong> into verified voids beneath concrete slabs. The technique relies on materials that can travel through drilled holes, fill irregular cavities, and then develop sufficient strength to support the slab.</p>
+<p><strong>Materials</strong>
+- <strong>Polyurethane injection foam</strong> – the most common choice; it is hydrophobic, cures rapidly (15‑30 min), and can penetrate openings as small as 0.25 in. 
+- <strong>Cement‑based grouts</strong> – limestone‑dust cement grout, pozzolanic cement grout, or other low‑flow mixes injected under controlled pressure.
+- <strong>Flowable fill</strong> – a self‑leveling blend used as backfill; it is described as <strong>&ldquo;flowable fill—a controlled low‑strength, self‑leveling material made with cement, supplementary cementitious materials (SCMs), and water&rdquo;</strong> and can be poured directly to the slab bottom without compaction.
+- <strong>Granular backfill</strong>, or <strong>cement‑treated sand/soil</strong>, may be placed beneath the slab when a granular support layer is preferred.</p>
+<p><strong>Mixture properties</strong>
+- Polyurethane must have a density of about 3 to 4 lb/ft³ and develop compressive strengths in the range of 60–145 psi (<strong>&ldquo;For slab stabilization purposes, the polyurethane density is about 3 to 4 lb/ft3 and the compressive strength ranges from about 60 to 145 lbf/in2&rdquo;</strong>). Its high flowability allows it to fill tiny voids.
+- Cement grout injections are limited to low pressures (typically 40–60 psi) with a pump rate near 1.5 gpm; steady‑flow pressures should stay between 25 and 200 psi but not exceed 100 psi during the main injection phase.
+- Flowable fill is a low‑strength, self‑leveling mix that reaches usable strength within a few hours, providing uniform support without the need for mechanical compaction.</p>
+<p><strong>Site conditions and procedural requirements</strong>
+- The slab must be structurally sound and resting on a granular or cement‑treated subbase; stabilization is limited to joints and working cracks where loss of support has been confirmed.
+- Ambient temperature should be above 40 °F before material placement begins.
+- Injection holes are drilled through the slab (maximum diameter 0.625 in.) and, when the pavement is bonded to a cement‑treated base, must penetrate that base as well.
+- Lift monitoring is critical: no individual hole should raise the slab more than 0.25 in., and the entire surface must remain within a quarter‑inch of uniformity (final profiles toleranced to about 0.25–0.38 in.).
+- When granular backfill is used, it <strong>&ldquo;should be placed in 6 to 8 in. lifts and adequately compacted (95% of density as determined by AASHTO T 99) to minimize settlement&rdquo;</strong>; cement‑treated sand/soil receives only enough cement to “cake” the mix, preserving future excavability.</p>
+<p>By adhering to these material specifications, mixture properties, and site‑condition controls, slab stabilization provides reliable bearing support and extends the service life of concrete pavements. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>CPP Guide — Ch. 4 (pp. 81–95), Ch. 6 (pp. 156–157)</small></p>
+<h3 id="what-design-details-dimensions-tolerances-or-preconstruction-tests-govern-slab-stabilization">What design details, dimensions, tolerances, or preconstruction tests govern Slab Stabilization?</h3>
+<p>The design process for slab stabilization starts with a detailed pre‑construction investigation to confirm void presence and assess support conditions. Deflection testing using an FWD is required in cool weather; <strong>deflection testing be conducted when the ambient temperature is below 70°F</strong>. The test applies three load levels (6 k, 9 k, 14 k lbf) and triggers stabilization when a corner deflection exceeds 0.03 in or the corner‑to‑interior support ratio falls below 0.75. Ground‑penetrating radar and dynamic cone penetrometer testing locate air‑filled gaps as thin as 0.25 in.</p>
+<p>Material selection for polyurethane foam calls for a density of 3–4 lb/ft³, compressive strength of 60–145 psi, and the ability to flow into openings ≥0.25 in (occasionally down to 0.125 in) with cure times of 15–30 min.</p>
+<p>Injection‑hole layout is governed by strict spacing rules: <strong>holes should be spaced not less than 12 in. but not more than 18 in. from a transverse joint or slab edge</strong>, and overall hole spacing shall not exceed 6 ft on center so that each lift influences ≤30 ft² of slab. Maximum hole diameters are 0.625 in for polyurethane and 1.25–2.0 in for cement‑based grout; drilling force is limited to 200 lbf, and a water‑test is performed before injection.</p>
+<p>Pump pressures are maintained between 25–200 psi (typically 40–60 psi); the maximum allowable pressure for cement grout is <strong>A maximum allowable pressure of 100 lbf/in2 is obtained</strong>, with a brief surge to 200 psi allowed only at start‑up. Flow rates are kept low (~1.5 gpm) to control uplift.</p>
+<p>Uplift tolerances are stringent: overall slab lift must not exceed 0.05 in, and <strong>no more than 0.25 in. at a time when pumping at each hole</strong>. The slab profile must remain within 0.25–0.38 in of a common plane, verified continuously with laser level or string‑line methods capable of detecting movement greater than 0.001 in.</p>
+<p>Temperature constraints require ambient conditions above 40°F for material injection. After stabilization, backfill is placed in <strong>6 to 8 in. lifts</strong> and compacted to at least 95 % of maximum dry density per AASHTO T‑99. Where rapid construction sequencing is needed, flowable fill—a low‑strength, self‑leveling cementitious blend—may be poured directly beneath the slab without compaction, achieving usable strength within a few hours.</p>
+<p>These design details, dimensions, tolerances, and pre‑construction tests collectively govern successful slab stabilization and ensure long‑term pavement performance. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>CPP Guide — Ch. 4 (pp. 82–94), Ch. 6 (pp. 156–157)</small></p>
+<h2 id="3-equipment-and-personnel">3. Equipment and personnel</h2>
+<h3 id="what-equipment-does-slab-stabilization-need-for-preparation-placement-compaction-or-consolidation-finishing-curing-and-testing">What equipment does Slab Stabilization need for preparation, placement, compaction or consolidation, finishing, curing, and testing?</h3>
+<p>Preparation begins with drilling equipment to bore the required holes and the immediate placement of tapered wooden plugs or small wooden blocks to seal each opening. Placement uses a low‑pressure grout injection system that relies on &ldquo;positive‑displacement injection pumps or nonpulsing progressive‑cavity pumps&rdquo; capable of &ldquo;maintaining pressures between 25 and 200 lbf/in2 during grout injection&rdquo;; drive packers are inserted for the one‑inch holes, and the injection line incorporates &ldquo;a fast‑control reverse switch to stop grout injection quickly when slab movement is detected on the uplift gauge&rdquo;. No separate compaction equipment is required because the controlled pump flow consolidates the material in situ. Finishing involves withdrawing the wooden plugs after the grout has set, trimming any excess flush with the surface, and patching the holes with compatible repair material. Curing is achieved by protecting the slab from temperatures below 40 °F and restricting traffic for at least three hours; no dedicated curing apparatus is specified. Testing and monitoring employ &ldquo;With a laser level, profiles are established (typical maximum spacing of 5 ft)&rdquo; to check elevation during injection, while an uplift‑monitoring device records deflections as small as 0.001 in before and after stabilization to verify restored support. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><img alt="Injection of asphalt undersealing material" src="assets/slab-stabilization/0695281859a6ea11eeb351dea4c12f2ae13b97e4f66716f6f964cc616bfc8cd3.jpg" />
+<em>Injection of asphalt undersealing material</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>CPP Guide — Ch. 4 (pp. 87–94)</small></p>
+<h3 id="what-operator-skills-crew-roles-or-qualified-personnel-does-slab-stabilization-require">What operator skills, crew roles, or qualified personnel does Slab Stabilization require?</h3>
+<p>The slab‑stabilization crew is composed of an experienced contractor who operates the low‑rate cement grout pump, controls pressure, maintains the prescribed pumping rate, recognises flow from adjacent holes, and stops injection when voids are filled; a qualified inspector conducts continuous visual checks to verify that voids are completely filled without damaging the slab. Both must continuously monitor slab uplift with high‑resolution devices and ensure lift limits are not exceeded. The team also includes personnel skilled in evaluating the repair area and establishing an appropriate injection‑hole pattern, because “the appropriate location of holes for a given site can only be determined by experienced personnel.” Quality‑assurance staff are required to track lift heights at each hole, keeping elevations within 0.25 in tolerance using a string line or other leveling system (“These elevations can be monitored using a string line or other leveling system”). Coordination among the contractor, inspector, and QA staff is essential to prevent over‑grouting, avoid blowouts on embankments or bridge approaches, and maintain slab deflection within acceptable limits. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>CPP Guide — Ch. 4 (pp. 88–95)</small></p>
+<h2 id="4-work-sequence">4. Work sequence</h2>
+<h3 id="what-must-be-completed-before-slab-stabilization-begins">What must be completed before Slab Stabilization begins?</h3>
+<p>The reviewer notes that before any slab‑stabilization work can commence a sequence of prerequisite actions must be satisfied. First, the pavement segment must be thoroughly evaluated to confirm loss of support; deflection testing is required because “Deflection testing—This is the most common method for identifying loss of support and one that is very effective.” The results identify void locations and verify that distress is limited to pumping or faulting. Concurrently, project documentation (specifications, drawings, inspection plan) must be prepared and the contractor must have the stabilization material, mobile injection equipment, and an ambient temperature of at least 40 °F.</p>
+<p>Next, a detailed ground investigation must be performed; “Prior to injection of the material, a detailed ground investigation of the damaged pavement section must be carried out”. This includes subsurface testing (e.g., dynamic cone penetrometer) to confirm that the condition is due to non‑uniform support. Any preparatory rehabilitation—patching, diamond grinding, deep‑bed recycling, or joint sealing—that addresses the root cause of voids must be completed or coordinated before backfilling.</p>
+<p>Finally, the utility trench beneath the slab must be filled with an approved material that will provide solid support for the new slab. “The preferred backfill is either a select granular material placed in 6‑to‑8‑inch lifts and compacted to at least 95 % of its AASHTO T 99 density, a cement‑treated sand or soil that is only lightly ‘caked,’ or a flowable fill—a low‑strength, self‑leveling mix of cement, SCMs, and water that fills the trench without compaction and reaches usable strength within hours.” Once these evaluations, documentation, material readiness, ground investigation, preparatory repairs, and backfill are completed, drilling of injection holes and subsequent slab raising may begin. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>CPP Guide — Ch. 4 (pp. 81–95), Ch. 6 (pp. 156–157)</small></p>
+<h3 id="what-is-the-step-by-step-sequence-of-operations-for-slab-stabilization">What is the step-by-step sequence of operations for Slab Stabilization?</h3>
+<ol>
+<li><strong>Investigate the pavement</strong> – Conduct a detailed ground investigation of the damaged section to confirm that slab stabilization (polyurethane or cement grout injection) is appropriate and that the slab rests on a granular sub‑base. </li>
+<li><strong>Locate low points and drill holes</strong> – Identify the depressed areas, then drill the required insertion holes (≈1 in for drive packers or 1½ in for expandable packers). If needed, cut any relief opening before drilling. </li>
+<li><strong>Set up injection equipment</strong> – Use a positive‑displacement or progressive‑cavity pump capable of about 1.5 gpm at pressures between 25 and 200 psi. &ldquo;The injection equipment should include either a return hose &hellip; or a fast‑control reverse switch to stop grout injection quickly when slab movement is detected on the uplift gauge.&rdquo; A short initial surge (up to 200 psi) may be used only to get material into the void network; thereafter maintain low pressure and flow. </li>
+<li><strong>Begin pumping at the centre of the dip</strong> – Start with the hole at the lowest point, monitoring lift with a laser level or string line. &ldquo;A good rule is not to raise a slab more than 0.25 in. while pumping in any one hole.&rdquo; Lift must never exceed 0.25 in at any location and no portion of the slab may be more than 0.25 in higher than another. </li>
+<li><strong>Monitor pressure and uplift</strong> – Stop pumping as soon as any of the following occurs: pressure reaches 100 psi, slab lift exceeds 0.05 in, grout appears at adjacent cracks or joints, material flows under the shoulder, or more than about one minute elapses (indicating flow into a cavity). </li>
+<li><strong>Seal each hole after injection</strong> – Once material is placed, withdraw the packer and &ldquo;After grouting has been completed, the packer is withdrawn and the hole is plugged immediately with a temporary wooden plug.&rdquo; The plug retains pressure while the material cures. </li>
+<li><strong>Proceed outward in an alternating pattern</strong> – After the central zone reaches its target profile, move to adjacent holes on each side, repeating steps 4‑6 until the entire slab attains a uniform elevation. </li>
+<li><strong>Finalize the work</strong> – Remove the temporary plugs, trim any excess material flush with the surface, and patch openings with an approved patching material. Keep traffic off for at least three hours (longer if a standard‑setting grout is used) to allow curing. </li>
+<li><strong>Verify performance</strong> – Measure slab corner deflections before and after stabilization; if support loss remains, drill new holes and repeat the injection sequence, but do not exceed three attempts before considering alternative repairs such as full‑depth reconstruction.</li>
+</ol>
+<p>&ldquo;It is recommended that positive‑displacement injection pumps or nonpulsing progressive‑cavity pumps be used for cement grout slab stabilization.&rdquo; [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>CPP Guide — Ch. 4 (pp. 87–95)</small></p>
+<h3 id="what-timing-limits-apply-between-critical-steps-of-slab-stabilization">What timing limits apply between critical steps of Slab Stabilization?</h3>
+<p>After the two liquid chemicals are injected beneath a slab, the foam cures quickly; the pavement may be reopened or additional load applied only after roughly fifteen to thirty minutes. For cement‑grout stabilization, the grout must be mixed and placed within one hour—any longer in the mixer or pump hopper exceeds the recommended limit. Pumping is stopped if more than about one minute passes without reaching a termination criterion, as this indicates flow into an open cavity. Once grouting is finished, the packer is withdrawn and the hole plugged immediately; the temporary plug remains until the grout sets, after which traffic must be kept off the slab for at least three hours unless a fast‑setting material is used. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>CPP Guide — Ch. 4 (pp. 84–89)</small></p>
+<h2 id="5-staging-and-logistics">5. Staging and logistics</h2>
+<h3 id="what-space-site-access-weather-or-environmental-constraints-affect-slab-stabilization">What space, site access, weather, or environmental constraints affect Slab Stabilization?</h3>
+<p>Slab stabilization is constrained by several site‑specific and environmental factors. Highly plastic, fine‑grained subgrade soils that retain high in‑situ water contents can preclude the technique because pumping material into such conditions creates stress points and accelerates deterioration; therefore the method should be limited to slab locations where deflection testing confirms loss of support. Temperature limits also govern both diagnostics and execution: deflection testing must be performed only under ambient temperatures below 70 °F to avoid slab curling or joint lockup that could falsely indicate a void, while actual stabilization work is prohibited when ambient temperature falls below 40 °F. Sufficient on‑site space is required for the injection pump, return hose or fast‑control reverse switch, and uplift monitoring gauge, and traffic must be restricted from the treated area for at least three hours after grouting to allow proper curing. Finally, elevated embankments and bridge approaches present a heightened risk of blowouts during jacking; if a breach occurs, it must be plugged or allowed to set before work can resume, which may further limit access to those locations. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>CPP Guide — Ch. 4 (pp. 81–94)</small></p>
+<h2 id="6-quality-control-and-acceptance">6. Quality control and acceptance</h2>
+<h3 id="what-characteristics-must-be-inspected-or-tested-for-slab-stabilization">What characteristics must be inspected or tested for Slab Stabilization?</h3>
+<p>The inspector must first confirm that the slab is suffering loss of support before any stabilization work begins. This requires a combination of deflection testing, ground‑penetrating radar (GPR) surveys, and visual distress checks. Deflection tests should be performed under appropriate temperature conditions and must identify corner deflections exceeding roughly 0.03 in or a corner‑to‑interior support ratio below 0.75, which signal inadequate subgrade support. GPR signatures are used to locate air‑filled voids as small as about 0.25 in, while visual cues such as joint faulting, cracking, pumping, and shoulder drop‑off further confirm deterioration.</p>
+<p>The underlying subgrade is then examined for disqualifying conditions—pumping or highly plastic, water‑rich fine soils with high in‑situ moisture must eliminate the slab from treatment. Subsurface testing (e.g., dynamic cone penetrometer) characterizes soil and base properties and delineates the settlement extent. Pavement type (JPCP, JRCP, CRCP) and transverse joint spacing are recorded to dictate grout‑injection hole patterns and proximity to existing cracks and joints.</p>
+<p>Void size and shape estimated from GPR guide material selection. The stabilization material must meet specified flowability and physical properties; for polyurethane foams the density should be about 3–4 lb/ft³, compressive strength 60–145 psi, and it must be able to penetrate openings as small as 0.25 in (occasionally down to 0.125 in). Hydrophobic behavior is preferred.</p>
+<p>Drilled injection holes are inspected for cleanliness, correct diameter (≤0.625 in), and absence of surface spalling; drilling force must not exceed 200 lbf. During injection the pump pressure is kept within the allowable range—typically 25–200 psi, with a practical operating window of 40–60 psi—and flow rates are low (~1.5 gpm) to avoid slab uplift. Continuous slab‑height monitoring must detect any lift greater than 0.05 in; if exceeded, pumping is stopped.</p>
+<p>Lift control during jacking is critical: no more than a quarter‑inch (0.25 in.) may be added at any one location, and the entire working slab and adjacent slabs must remain within that same tolerance throughout the operation, verified with laser or string‑line leveling equipment.</p>
+<p>After material placement, post‑stabilization deflection testing is required to confirm that corner deflections have been reduced by roughly 30 % and full support restored without inducing new cracking. Backfill, when used, is placed in 6–8 in. lifts and each lift must achieve at least 95 % of maximum dry density (AASHTO T‑99). Flowable fill, if specified, must be verified for rapid early strength before it bears the slab. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><img alt="Recreated from ©2022 Applied Pavement Technology, Inc., used" src="assets/slab-stabilization/b6ddddf8c6ca15b3ed976a5d44f313f17ece5097063ad0399b43a08d6fbe6a9f.jpg" />
+<em>Recreated from ©2022 Applied Pavement Technology, Inc., used with permission Figure 4.1. Approach and leave corner deflection profiles</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>CPP Guide — Ch. 4 (pp. 81–95), Ch. 6 (pp. 156–157)</small></p>
+<h3 id="when-and-how-often-are-measurements-taken-for-slab-stabilization">When and how often are measurements taken for Slab Stabilization?</h3>
+<p>Measurements for slab stabilization begin before any material is placed; a laser level or string line is used to set profile points at intervals of up to five feet across the wheel paths (&ldquo;Measurements are taken before any material is pumped to establish the target elevation, with a laser level (or string line) setting profile points at intervals of up to five feet across the wheel paths.&rdquo;) and deflection testing is performed to locate voids and confirm loss of support. A second round of deflection testing is required after the grout or flowable fill has been pumped beneath the slab to verify that full support has been restored (&ldquo;Measurements are taken before work to identify slabs that have lost support, and a second round of deflection testing is performed after the material has been pumped beneath the slab to verify that the treatment has restored full support.&rdquo;). During the actual jacking or grout‑injection operation, measurements are taken continuously—essentially after each pumping increment at every injection hole—to monitor slab elevation with a string line or other leveling system and ensure no lift exceeds 0.25 in (&ldquo;Measurements are taken continuously throughout the slab‑jacking process, essentially after each pumping increment at every injection hole. The crew monitors slab elevation with a string line or another leveling system to confirm that no lift exceeds 0.25 in.&rdquo;). [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><img alt="Recreated from ©2022 Applied Pavement Technology, Inc., used" src="assets/slab-stabilization/9c2b1ba670317ef40eb5595d8c9535515630e2102f8adcab20a6053a72d5f3b4.jpg" />
+<em>Recreated from ©2022 Applied Pavement Technology, Inc., used with permission Figure 4.15. String line method of slab jacking</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>CPP Guide — Ch. 4 (pp. 81–95)</small></p>
+<h3 id="what-are-the-acceptance-criteria-tolerances-and-corrective-actions-for-nonconforming-work-under-slab-stabilization">What are the acceptance criteria, tolerances, and corrective actions for nonconforming work under Slab Stabilization?</h3>
+<p>Acceptance of a slab‑stabilization job is based on three primary elements: (1) the quality and dimensions of the injection holes, (2) the hydraulic and uplift limits during jacking, and (3) the final surface profile. Any handheld or mechanical drill that produces clean holes with no surface spalling or breakouts on the underside of the slab is acceptable, and the maximum hole diameter should not exceed 0.625 in.; downward force must be limited to 200 lbf to avoid conical spalling. During material injection the pressure may not exceed a maximum allowable pressure of 100 lbf/in² (a brief surge to 200 psi is permitted only at start‑up). Uplift monitoring equipment must detect movement as small as 0.001 in., and slab lift per hole must be kept below 0.25 in.; no portion of the slab may rise more than a quarter‑inch above any adjacent area, with the overall finished profile required to stay within the 0.25‑ to 0.38‑inch tolerance established by string‑line or laser monitoring. If any of these limits are exceeded—spalled holes, over‑pressure, excessive lift, grout bleeding from cracks, or surface unevenness—the work is deemed non‑conforming and corrective action is required. Spalled or blocked holes must be cleaned, debris removed, and the void patched with an approved material; hole patterns should be adjusted (smaller spacing for poor flow, larger spacing when flow is easy). When lift limits are breached, pumping is stopped, excess grout or foam is trimmed flush with the pavement surface, and the opened holes are sealed with an approved patching material. If voids remain after three re‑grouting attempts, a different repair method such as full‑depth replacement must be considered. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><img alt="Onyango et al. 2018, University of Tennessee at Chattanooga," src="assets/slab-stabilization/6bbccab594fbf8126fd579c4b63132cfa161890a06302d3ad9ed16faed3909cd.jpg" />
+<em>Onyango et al. 2018, University of Tennessee at Chattanooga, used with permission Figure 4.18. Injection holes in concrete slab</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>CPP Guide — Ch. 4 (pp. 86–94)</small></p>
+<h2 id="7-safety-and-environmental-controls">7. Safety and environmental controls</h2>
+<h3 id="what-hazards-does-slab-stabilization-present-for-workers-and-the-public">What hazards does Slab Stabilization present for workers and the public?</h3>
+<p>During slab stabilization the chief safety hazard is over‑lifting, which can generate excessive tensile stresses that cause the concrete to crack and potentially fail suddenly, endangering workers and nearby users. The use of handheld electric‑pneumatic rock drills or pneumatic/hydraulic rotary percussion drills must be limited to a 0.625 in. hole diameter and a downward force of about 200 lbf; if this limit is exceeded large pieces can break off (spall) from the slab, creating falling debris that endangers workers and, if not contained, could pose a hazard to nearby pedestrians or the public. Uncontrolled uplift caused by excessive grout‑injection pressure also presents a risk—low pressures (40‑60 psi) and a slow pump rate are required, together with a rapid‑shutoff switch, to prevent sudden slab movement that can eject grout or slurry in a blowout, producing impact injuries. Additional hazards include pinch‑point and impact exposure when installing drive or expandable packers, and the potential for fresh grout to set in hoses, which can block equipment and create trip hazards. Traffic should be kept off a stabilized slab for at least 3 hours after grouting to protect the public. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>CPP Guide — Ch. 4 (pp. 86–94)</small></p>
+<h2 id="8-curing-protection-and-handoff">8. Curing, protection, and handoff</h2>
+<h3 id="how-is-the-completed-work-protected-or-cured-under-slab-stabilization">How is the completed work protected or cured under Slab Stabilization?</h3>
+<p>After the polyurethane liquids are injected beneath the slab they expand to fill voids and then cure quickly, typically within fifteen to thirty minutes. Because the foam is hydrophobic, it repels water and the cured material remains unaffected by moisture, eliminating the need for additional curing blankets or moisture control measures. After grouting has been completed, the packer is withdrawn and the hole is plugged immediately with a temporary wooden plug; when sufficient time has elapsed to permit the grout to set, the temporary plug is removed and the opening is sealed flush with an acceptable patching material. Unless a fast‑setting material is used, traffic should be kept off a stabilized slab for at least 3 hours after grouting to allow adequate curing of the grout. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>CPP Guide — Ch. 4 (pp. 84–94)</small></p>
+<h3 id="when-can-work-completed-under-slab-stabilization-carry-construction-traffic-or-open-to-users">When can work completed under Slab Stabilization carry construction traffic or open to users?</h3>
+<p>After slab stabilization, the slab may be opened to construction traffic or to users once the injected material has achieved sufficient compressive strength. For polyurethane foam, curing is rapid – “the work can be opened … once the material has cured, which typically occurs within fifteen to thirty minutes after injection” (the foam attains adequate strength in 15‑30 min). When cementitious grout or other non‑fast‑setting materials are used, traffic must be prohibited for a longer period: “the slab must remain traffic‑free for at least three hours following grouting” unless a fast‑setting product is specified. In all cases the curing environment must meet minimum temperature requirements; stabilization should not be performed when ambient temperatures are below 40 °F to ensure proper strength development before loads are applied. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>CPP Guide — Ch. 4 (pp. 84–88)</small></p>
+<h2 id="9-expected-performance-and-maintenance">9. Expected performance and maintenance</h2>
+<h3 id="what-common-failures-or-distresses-can-occur-with-slab-stabilization">What common failures or distresses can occur with Slab Stabilization?</h3>
+<p>Common failures and distresses associated with slab stabilization stem largely from improper diagnosis and execution. When the treatment is applied to slabs that actually have adequate support, the injected material merely pumps beneath the slab, creating stress points and accelerating pavement deterioration. Excessive uplift—typically more than 0.25 in. at any location—introduces tensile stresses that can crack the concrete, especially if pumping starts at the ends of a dip or the middle is flattened too rapidly. Improper drilling may spall large pieces from the slab underside, blocking voids and preventing grout or foam from fully filling the gap. If underlying causes such as excess moisture, poor joint load transfer, or inadequate consolidation are not corrected, loss‑of‑support conditions recur, leading to persistent deflection, settlement dips, and overall pavement deterioration. Over‑grouting or material blowouts on steep sections can further damage the slab, while incomplete filling of voids leaves residual unsupported areas that continue to deteriorate. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><img alt="Recreated from Gaspard and Morvant 2004, Louisiana Transport" src="assets/slab-stabilization/8a66c9dbcd492e5debedcf29c52c422d71f1aae79102f987698431396f71c6af.jpg" />
+<em>Recreated from Gaspard and Morvant 2004, Louisiana Transportation Research Center Figure 4.20. Bridge approach slab profile before and after slab jacking</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>CPP Guide — Ch. 4 (pp. 81–95)</small></p>
+<h3 id="what-preventive-maintenance-monitoring-or-repairs-may-slab-stabilization-need">What preventive maintenance, monitoring, or repairs may Slab Stabilization need?</h3>
+<p>Preventive maintenance for slab stabilization starts with a comprehensive inspection to verify that loss of support is present and to pinpoint contributing factors such as moisture, joint load transfer deficiencies, or inadequate backfill. &ldquo;Effective slab stabilization begins with a thorough pavement evaluation to confirm that loss of support actually exists and to identify underlying causes such as excess moisture, poor joint load transfer, or inadequate backfill consolidation.&rdquo; Prior to any intervention, visual surveys and subsurface testing (e.g., dynamic cone penetrometer) define the extent of settlement. During the jacking operation, the slab’s profile is closely watched; &ldquo;During the lift the emerging slab profile is continuously monitored with a laser level, taut string line, or similar leveling device,&rdquo; and uplift is limited to 0.25 in per hole with pressure kept below specified maxima. After the material is placed, performance is confirmed through deflection testing: &ldquo;After placement, post‑stabilization deflection testing should verify that uniform support has been restored and that corner deflections have been reduced by roughly 30 % or more.&rdquo; Ongoing preventive monitoring involves periodic deflection surveys over a five‑to‑ten year horizon to detect any recurrence of settlement. Should loss of support reappear, the maintenance plan calls for additional preservation actions; &ldquo;If loss of support reappears, additional preservation actions—dense bituminous resurfacing, diamond grinding, joint sealing, dowel bar retrofitting, or full‑depth reclamation—must be considered as part of a preventive maintenance plan.&rdquo; These steps, combined with quality‑assurance checks for blowouts and proper hole sealing, ensure that slab stabilization delivers lasting performance. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><img alt="Recreated from ©2022 Applied Pavement Technology, Inc., used" src="assets/slab-stabilization/555db0e9b10fc2d432ee5e374e59755ecd9f1f2a1489a7c023443b6bc65cf170.jpg" />
+<em>Recreated from ©2022 Applied Pavement Technology, Inc., used with permission Figure 3.11. Void detection plot using FWD data</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>CPP Guide — Ch. 4 (pp. 81–95)</small></p>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1">Concrete Pavement Preservation Guide (Third Edition) (2022)</li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>
