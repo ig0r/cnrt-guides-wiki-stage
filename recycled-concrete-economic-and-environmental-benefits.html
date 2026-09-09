@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recycled Concrete Economic and Environmental Benefits</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html" class="active" aria-current="page">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Recycled Concrete Economic and Environmental Benefits</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=recycled-concrete">recycled-concrete</a><a class="tag" href="index.html?q=concrete-recycling">concrete-recycling</a><a class="tag" href="index.html?q=economic-benefits">economic-benefits</a><a class="tag" href="index.html?q=environmental-impact">environmental-impact</a><a class="tag" href="index.html?q=transportation-costs">transportation-costs</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>The Recycled Concrete Economic and Environmental Benefits concept provides a decision‑support framework for determining whether recycled concrete aggregate (RCA) should replace virgin aggregate on a construction project. It directs stakeholders to evaluate early‑stage cost inputs—removal, hauling, processing, quality control versus purchase and disposal costs—along with transportation distances, equipment availability, and local market conditions, recognizing that the economic and environmental advantage of RCA is tightly linked to reduced haul mileage and fuel use (especially when on‑site or mobile crushing is feasible) [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. When the analysis shows lower total unit cost, acceptable performance, and compliance with specifications, the project can achieve measurable cost reductions, emissions cuts, and shortened construction time while maintaining required performance standards [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-decision-context">Purpose and decision context</a></li><li><a href="#scope-and-applicability">Scope and applicability</a></li><li><a href="#information-needs">Information needs</a></li><li><a href="#alternatives">Alternatives</a></li><li><a href="#decision-criteria">Decision criteria</a></li><li><a href="#analysis-methods-and-tools">Analysis methods and tools</a></li><li><a href="#stakeholders-and-constraints">Stakeholders and constraints</a></li><li><a href="#timing-and-implementation">Timing and implementation</a></li><li><a href="#outcomes-and-follow-up">Outcomes and follow-up</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (1)</summary><div class="sources-body"><a href="#ref-1">RCA_practioner_guide_w_cvr</a></div></details>
+
+<h2 id="purpose-and-decision-context">Purpose and decision context</h2>
+<p>The concept is intended to support the decision of whether to specify recycled concrete aggregate (RCA) rather than virgin aggregate for a construction project – including the choice between on‑site/mobile crushing and off‑site/stationary processing. It directs stakeholders to compare early‑stage cost data (removal, hauling, processing, quality‑control versus purchase and disposal costs), transportation distances, equipment availability, and local market conditions. When the analysis shows lower total unit cost, reduced haul mileage or fuel use, acceptable performance, and compliance with specification limits, the decision should favor RCA as the preferred material option. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 2 (pp. 19–21), Ch. 3 (pp. 33–35), Ch. 5 (p. 58), Ch. 7 (pp. 81–82)</small></p>
+<p>The concept tackles the high cost and logistical burden of sourcing and transporting virgin aggregates for construction projects. Its primary need is “the reduction of overall project costs while maintaining required performance,” achieved by recapturing value from demolished concrete and shortening haul distances. Because “the economic and environmental benefits of selecting RCA over virgin aggregates are highly linked to transportation costs,” on‑site or mobile crushing can cut fuel use, emissions, and construction time. The approach also provides a cost‑effective alternative for unbound aggregate shoulders, where “the economic benefits of using RCA in aggregate shoulder surfacing depend mainly on the difference in cost between using virgin material and using recycled concrete aggregate.” [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 2 (pp. 19–21), Ch. 3 (pp. 33–35), Ch. 5 (p. 58), Ch. 7 (pp. 81–82)</small></p>
+<h2 id="scope-and-applicability">Scope and applicability</h2>
+<p>Recycled concrete aggregate (RCA) is appropriate whenever a project involves demolition or replacement of existing concrete pavement—highway resurfacing, lane widening, base‑course or shoulder construction, parking‑lot upgrades, and similar infrastructure—that can be reclaimed with minimal contaminants and where agency specifications permit its reuse. The economic and environmental case should be developed in the early phases (conceptual design, scoping, bidding) so that cost‑saving opportunities are identified before contracts are awarded. When site logistics allow on‑site or mobile crushing, reduced haul distances lower fuel use, emissions, and construction time; in urban settings where a permanent recycling plant is nearby, short transport distances make stationary processing economical. The procurement approach must give contractors the option to propose RCA solutions so that cost and environmental benefits can be evaluated alongside conventional material choices. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The following figure illustrates a well-implemented on-site material crushing program in an urban area.</p>
+<p><img alt="On-site concrete crushing operation in an urban environment." src="assets/recycled-concrete-economic-and-environmental-benefits/47311af11e5211a7a0a01450ab19e947147d1df87a30957511c4ceefbb970165.jpg" />
+<em>On-site concrete crushing operation in an urban environment.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The image displays a large pile of broken concrete rubble situated beneath a highway overpass, indicating the presence of demolition waste ready for processing. A black silt fence runs along the perimeter to contain debris and manage runoff during the operation.</p>
+<p><small>[1] — Ch. 2 (pp. 19–21), Ch. 3 (pp. 33–35), Ch. 5 (p. 58), Ch. 7 (pp. 81–82)</small></p>
+<p>Recycled concrete is unsuitable when the project’s early‑stage cost analysis shows no clear savings, such as when site logistics or local market conditions make hauling, processing, or tipping fees for RCA higher than the price of virgin aggregate; similarly, if the scope does not provide enough on‑site material to justify a mobile crushing plant or if quality assurance cannot be assured for off‑site RCA, a conventional aggregate approach is preferable. &ldquo;In the selection of project alternatives, decisions are often made based upon initial cost.&rdquo; and &ldquo;Project-specific conditions, such as scope, site logistics, local industry and market factors, and hauling and tipping fees, will control the costs of both virgin aggregates and RCA&rdquo; shift the dominant decision driver from recycling benefits to overall project cost and feasibility. When haul distances from demolition to a processing plant are long enough that transportation costs outweigh the savings from recycling, &ldquo;The economic and environmental benefits of selecting RCA over virgin aggregates are highly linked to transportation costs,&rdquo; and the advantage disappears, making virgin aggregate or an off‑site facility preferable. Insufficient on‑site space for crushing equipment, restrictive dust‑or runoff regulations, or broken concrete that yields very small pieces leading to lower recovery rates or contamination also erode technical and financial feasibility. If a project requires high‑performance Portland cement concrete and the only available stationary recycling plant handles mixed demolition debris, &ldquo;contamination may be an issue, particularly if RCA is to be used for PCC mixtures,&rdquo; making virgin aggregate or on‑site processing the preferred choice. In non‑urban locations where long transportation distances negate lower production costs at a stationary plant, recycling again becomes uneconomic and alternative material sourcing should be selected. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 2 (pp. 19–21), Ch. 3 (pp. 33–35), Ch. 5 (p. 58)</small></p>
+<h2 id="information-needs">Information needs</h2>
+<p>Evaluating the economic and environmental benefits of recycled concrete aggregate requires a set of project‑specific inputs. Condition and site data must detail the overall scope, haul distances, routes, access constraints, and whether on‑site crushing equipment can be accommodated or an off‑site plant is required; urban versus rural location influences transportation costs. Cost information should include local virgin‑aggregate prices, RCA production and tipping/processing fees, hauling rates, pavement removal and disposal expenses, equipment and plant capacity costs, and any economies of scale. Traffic or logistics data are needed to quantify haul routes, fuel use, and potential reductions in truck trips that affect emissions and construction duration. Environmental inputs must cover landfill availability, dust and runoff regulations, and other site‑specific environmental constraints. Stakeholder input should capture cost‑saving priorities, community impact concerns, and material‑quality specifications for RCA use. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 2 (pp. 19–21), Ch. 3 (pp. 33–35)</small></p>
+<h2 id="alternatives">Alternatives</h2>
+<p>The feasible alternatives that must be evaluated are: (1) the baseline use of virgin (or blended) aggregate; (2) recycled concrete aggregate (RCA) produced from demolished pavement, which can be generated either by on‑site or mobile crushing equipment or by sending the material to an off‑site stationary recycling plant (including permanent urban facilities); and (3) the end‑use disposition of RCA, i.e., disposal in a landfill/on‑site burial versus beneficial‑reuse options such as incorporating coarse RCA—alone or blended with virgin aggregate—into new concrete mixes, using RCA fines for soil or subgrade stabilization, or placing fines as pipe‑bedding material. Each option should be quantified with site‑specific costs (removal, hauling, processing, acquisition, tipping fees) and environmental impacts (fuel use, emissions, contamination risk), allowing a cost‑difference or life‑cycle comparison to identify the threshold where recycling provides an advantage. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 2 (pp. 19–21), Ch. 3 (pp. 33–35), Ch. 5 (p. 58), Ch. 7 (pp. 81–82)</small></p>
+<p>On‑site RCA production requires on‑site or mobile crushing and screening equipment together with breaking, excavating, steel‑removal tools, providing all material inputs directly at the project; this minimizes hauling distances, which reduces emissions and can shorten construction time compared with off‑site processing that involves transport to a permanent facility. Both options must meet dust, runoff and safety regulations, so risk management focuses on environmental and occupational compliance, while the source does not specify any future‑maintenance requirements for either option. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The following figure illustrates the mobile on-site crushing equipment used to produce recycled concrete aggregate directly at the project location.</p>
+<p><img alt="Mobile on-site crushing equipment" src="assets/recycled-concrete-economic-and-environmental-benefits/f4fdba76b9cd743801f55e76dbfb52b1fc720d795719168cf4f9203a9841bf16.jpg" />
+<em>Mobile on-site crushing equipment</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The image displays a large, red and yellow mobile crushing plant situated on unpaved ground. This apparatus represents the &ldquo;on-grade (or near-grade) crushing&rdquo; process used for producing recycled concrete aggregate (RCA).</p>
+<p><small>[1] — Ch. 3 (p. 33)</small></p>
+<h2 id="decision-criteria">Decision criteria</h2>
+<p>The decision to employ recycled concrete aggregate must be controlled chiefly by cost. As the guide states, &ldquo;decisions are often made based upon initial cost,&rdquo; and the economic advantage is driven by &ldquo;material, haul, and processing expenses&rdquo; that generally favor recycling. Performance and sustainability criteria—captured in the guidance that it &ldquo;should be governed primarily by cost, performance, and sustainability considerations&rdquo;—are acknowledged but serve only as secondary supports to the dominant economic driver. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 2 (pp. 19–21), Ch. 3 (pp. 33–35), Ch. 5 (p. 58), Ch. 7 (pp. 81–82)</small></p>
+<p>When comparing project alternatives that involve recycled concrete aggregate, the primary weight should be placed on overall cost savings identified early in design and bidding, because decisions are typically driven by initial cost; this includes recapturing material value, reduced haul distances, fuel use, and efficiencies from on‑site processing. Secondary criteria—such as site logistics, local market prices for virgin aggregates, hauling and tipping fees, and the need for quality assurance of RCA—are then weighted according to how they affect total project cost and feasibility, while broader economic or community impacts (job creation, reduced traffic) are considered only after the core cost analysis. Constraints like equipment availability and rising landfill tipping fees set thresholds that can elevate recycling from a lower‑ranked option to the preferred choice. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 2 (pp. 19–21)</small></p>
+<h2 id="analysis-methods-and-tools">Analysis methods and tools</h2>
+<p>The projected savings rely on a set of explicit assumptions: that project‑specific conditions (scope, site logistics, local market and hauling/tipping fees) will make RCA cheaper than virgin aggregate; that the recycling process can be performed close to the site—either by on‑site/mobile crushing or by locating a stationary plant within an urban area—so transportation costs remain low; that the chosen crushing‑screening system operates at sufficient capacity to achieve economies of scale and that QA/QC will deliver the expected yield advantage. It is also assumed that breaking and removal costs are identical for both options, that contamination levels are manageable (especially for non‑PCC applications), and that any tipping or processing fees can be offset by lower per‑ton production costs.</p>
+<p>Uncertainties stem from variability in those same factors: fluctuating local aggregate prices, changing landfill availability and tipping fees, actual haul distances and logistics, size distribution of broken concrete affecting recovery rates, the presence and type of contaminants, plant efficiency differences across sites, regulatory compliance costs, and the feasibility of deploying mobile crushing equipment. These uncertainties can shift cost‑benefit calculations either way. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 2 (pp. 19–21), Ch. 3 (pp. 33–35), Ch. 5 (p. 58)</small></p>
+<h2 id="stakeholders-and-constraints">Stakeholders and constraints</h2>
+<p>The owner or agency, together with other project stakeholders, must provide the early‑stage cost‑benefit input while contractors supply feasible recycling options and logistics data. Using that information, the owner decides whether the initial‑cost advantage of recycled concrete outweighs alternatives such as virgin aggregate, guided by criteria like haul distances, tipping fees, yield and quality‑assurance requirements. Final approval rests with the owner or agency once the projected savings meet the project&rsquo;s cost thresholds and any logistical constraints are satisfied. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 2 (pp. 19–21)</small></p>
+<p>The choice to use recycled concrete aggregate (RCA) is constrained by a suite of permitting and design requirements. Environmental permits that control dust emissions and storm‑water runoff must be obtained, and safety regulations govern crushing, screening, and hauling operations. These rules “Environmental regulations associated with dust and runoff (discussed in Chapter 7) and safety regulations may also play a role in scoping and selecting production options.” Additionally, both the economic and environmental advantage of RCA depend on short haul distances; consequently “hauling should be minimized” and “On‑site processing of RCA provides the advantages of reduced hauling distances.” Water‑quality permits further limit use: “NPDES construction permits often require concrete wash‑off management to prevent discharge of liquids and solids to soils/waters,” requiring BMPs, a SWPPP, and designated wash‑off zones. State transportation agency specifications also restrict mix designs; for example, “TxDOT specifications were developed for using RCA in new concrete mixtures; these specs currently limit RCA fine aggregate to 20% of the fine aggregate blend.” Agency policies may require that bid documents include recycling options while still complying with disposal regulations, and design criteria mandate designated wash‑off areas and documented handling methods. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 3 (p. 33), Ch. 7 (pp. 81–82)</small></p>
+<h2 id="timing-and-implementation">Timing and implementation</h2>
+<p>The decision to adopt recycled‑concrete solutions should be taken at the front end of a project. Cost savings need to be identified while the project is still being conceived, during design development and before bids are solicited, because alternatives are normally chosen on the basis of initial cost. Evaluating site logistics, market conditions and hauling fees at this early stage allows owners to position recycling as the preferred option and enables contractors to incorporate it into their proposals. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 2 (pp. 19–21)</small></p>
+<p>Action to pursue recycled concrete is triggered when cost‑saving opportunities are recognized early—during project conception, design, or bidding—and when a comparison shows that the total cost of RCA (including removal, hauling, and processing) falls below the cost of virgin aggregate because market prices for natural aggregates rise or landfill tipping fees increase as disposal space dwindles. At that point, if on‑site mobile crushing is feasible, the project can capitalize on reduced haul distances and fuel use, making recycling the preferred alternative. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The following figure illustrates a practical application of these economic advantages through an on-site concrete recycling operation.</p>
+<p><img alt="Aerial view of a concrete recycling operation set up inside" src="assets/recycled-concrete-economic-and-environmental-benefits/3149bd4b08fb5df069af4b613a07478c2c03aa1b6cc76e1b446121ccdbfa4a9f.jpg" />
+<em>Aerial view of a concrete recycling operation set up inside an expressway cloverleaf interchange.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The image displays a large-scale construction site situated within the curved lanes of a highway interchange, featuring heavy machinery and piles of aggregate material.</p>
+<p><small>[1] — Ch. 2 (pp. 19–21)</small></p>
+<p>To execute the selected recycled‑concrete option, the project team must first recognize that &ldquo;cost savings for the owner &hellip; should be identified during the early stages of project conception, design, and bidding&rdquo;. This timing secures the needed mobile or portable processing plant, crushers, screens, haul trucks, qualified operators, and a QA/QC program before demolition begins. The equipment suite is extensive: &ldquo;Production of RCA requires equipment for breaking, excavating, removing steel and other undesirable materials, crushing, screening, and hauling.&rdquo; Required tools include cutting‑tooth plows or high‑pressure water jets to strip sealants, pavement breakers, drop hammers, slab‑crab buckets on backhoes or loaders, and optional virgin material for blending. Once demolition is complete, the work follows a clear sequence – &ldquo;The work proceeds in a defined sequence—first hauling, then crushing and screening, followed by placement and compaction&rdquo; – with on‑site or mobile crushing minimizing haul distances and thereby shortening the overall construction schedule. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The following figure illustrates a typical off-site concrete pavement recycling operation that utilizes this equipment and sequence.</p>
+<p><img alt="Typical on-site mobile concrete pavement recycling operation" src="assets/recycled-concrete-economic-and-environmental-benefits/f801250ec75b11fcaa05ca48fdbc00f992f075560e2e6b88bd4637a213fb74a7.jpg" />
+<em>Typical on-site mobile concrete pavement recycling operation</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The image displays a heavy industrial setup featuring a yellow excavator, a white tanker truck, and a large red mobile crushing plant positioned on a dirt surface.</p>
+<p><small>[1] — Ch. 2 (pp. 19–21), Ch. 3 (p. 33), Ch. 5 (p. 58)</small></p>
+<h2 id="outcomes-and-follow-up">Outcomes and follow-up</h2>
+<p>Success for recycled concrete benefits is achieved when a project can demonstrate measurable cost reductions relative to using virgin aggregates, such that the identified savings cover material purchase, hauling, and processing expenses while also delivering ancillary gains like fuel avoidance and higher aggregate yield. Success is achieved when the selected RCA production method—especially on‑site processing—delivers measurable cuts in haul distance, associated emissions, and overall construction time relative to a virgin‑aggregate baseline. Success is realized when recycled concrete aggregate, including the fines generated during crushing, meets project specifications, demonstrates comparable in‑service performance to conventional materials, and delivers measurable cost reductions such as avoided landfill tipping fees while minimizing waste disposal. These outcomes are measured by (1) comparing documented project data—material costs, haul distances, fuel consumption, and QA/QC‑verified RCA quality—to a virgin‑aggregate baseline; (2) quantifying percentage cost cuts (e.g., 27% reduction), volume yield improvements (up to 15% greater than natural aggregates), and fuel saved; (3) tracking emissions reductions derived from reduced mileage; (4) confirming that RCA gradations satisfy state specifications and monitoring long‑term structural performance; and (5) accounting for avoided landfill tipping fees and other disposal cost savings. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 2 (pp. 19–21), Ch. 3 (p. 33), Ch. 7 (pp. 81–82)</small></p>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concrete Mixing and 3D Modeling</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html" class="active" aria-current="page">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Concrete Mixing and 3D Modeling</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=paving-equipment">paving-equipment</a><a class="tag" href="index.html?q=concrete-construction">concrete-construction</a><a class="tag" href="index.html?q=equipment-checks">equipment-checks</a><a class="tag" href="index.html?q=weather-preparation">weather-preparation</a><a class="tag" href="index.html?q=3d-modeling">3d-modeling</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>Concrete mixing and three‑dimensional modeling is an integrated construction methodology that couples a calibrated, moisture‑compensated batching plant with a computer‑generated pavement model to produce concrete mixes that consistently meet design specifications while being placed at precisely the intended elevations. The process eliminates batch variability through daily plant calibration, proportion verification by the batching control system and extensive quality‑control checklists, and it replaces traditional stringline staking with a robotic total‑station and prism system that provides real‑time three‑dimensional guidance to a laser‑guided screed, continuously checking surface elevations and directing the paver to achieve the required profile. Immediate texturing and curing applied right after placement further limit water loss and early‑age cracking, delivering smoother, waste‑reduced pavements with enhanced safety and drainage performance[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-applicability">Purpose and applicability</a></li><li><a href="#required-inputs">Required inputs</a></li><li><a href="#equipment-and-personnel">Equipment and personnel</a></li><li><a href="#work-sequence">Work sequence</a></li><li><a href="#staging-and-logistics">Staging and logistics</a></li><li><a href="#quality-control-and-acceptance">Quality control and acceptance</a></li><li><a href="#safety-and-environmental-controls">Safety and environmental controls</a></li><li><a href="#curing-protection-and-handoff">Curing, protection, and handoff</a></li><li><a href="#expected-performance-and-maintenance">Expected performance and maintenance</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (10)</summary><div class="sources-body"><a href="#ref-1">2019-12_IMCP_manual</a>, <a href="#ref-2">ACPTP-2022-4_QC_QA_of_concrete_airfield_pvmt_manual_w_cvr_508</a>, <a href="#ref-3">How_to_Reduce_Tire-Pavement_Noise_final</a>, <a href="#ref-4">IADOT_InTrans_RB33_014_Reeder_Implementation_Manual_3D_Engineered_Models_Highway_Const_2015_Final</a>, <a href="#ref-5">IPS</a>, <a href="#ref-6">QC_for_concrete_paving_web</a>, <a href="#ref-7">Sustainable_Concrete_Pavement_508</a>, <a href="#ref-8">hif13059</a>, <a href="#ref-9">overlays_parking_lots_guide_2nd_ed_web</a>, <a href="#ref-10">smooth_concrete_pvmt_guidelines_w_cvr</a></div></details>
+
+<h2 id="purpose-and-applicability">Purpose and applicability</h2>
+<p>The combined concrete‑mixing and 3‑D modeling approach solves the core problem of variability and inaccuracy that traditionally leads to non‑conforming mixes, uneven pavement geometry, excess waste, and safety hazards. &ldquo;The concrete mixing process is designed to eliminate variability in the batch so that every mix meets the required specifications&rdquo;, using calibrated plant equipment, moisture compensation for aggregate water, verification of proportions by the batching control system, and extensive QC measurements with checklists and corrective actions for any non‑conformance. At the same time, &ldquo;Integrating a computer‑generated three‑dimensional pavement model with laser‑guided screed equipment solves the problem of accurately placing concrete at design elevations while limiting waste&rdquo; and replaces less accurate string‑line techniques. &ldquo;The method replaces traditional stringline staking on slip‑form concrete pavers with a robotic total‑station and prism system that provides real‑time three‑dimensional guidance&rdquo;, thereby eliminating the chord effect of stringline pins and the logistical complications of laying and maintaining strings, as well as mitigating hazards such as loss of line‑of‑sight. By establishing control points on site, &ldquo;the system continuously checks surface elevations and directs the screed to achieve the required profile&rdquo;, which reduces labor and material consumption and ensures proper drainage. This real‑time guidance &ldquo;directly addresses the problem of inconsistent pavement smoothness that arises from stringline‑based control&rdquo; and allows the paver to follow a precise 3‑D model, maintaining a uniform concrete head without interruptions caused by misplaced or shifted strings. Immediate texturing and curing applied right after placement further curb water loss and early‑age cracking, especially in thin slabs. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p>The following figure illustrates the key components of this stringless control system used to guide the paving equipment.</p>
+<p><img alt="Stringless control components used for guiding a paving mach" src="assets/concrete-mixing-and-3d-modeling/48217c3d171e334ea2f1d21c0ae10ae1ec44e835acf97660fac6012668f17b1d.jpg" />
+<em>Stringless control components used for guiding a paving machine.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays the hardware interface of a stringless control system, featuring an on-board computer with a display screen and a complex operator console filled with switches and dials mounted to a vehicle frame. In the background, a robotic total station is set up on a tripod in an open field adjacent to a paved surface.</p>
+<p><small>[2] — Ch. 4 (pp. 167–169); [9] — Advantages of Using Laser-Guid… (pp. 41–42); [10] — Stringless Controls (pp. 36–38)</small></p>
+<p>Concrete mixing combined with three‑dimensional modeling should be used when the project meets both scale and technical criteria. It is appropriate for large parking‑lot pours whose width exceeds roughly one hundred feet, allowing laser‑guided screeds to reference the designer’s 3D surface model for elevation verification, material‑quantity control, and immediate texturing that reduces water loss and early cracking. In addition, 3D machine‑control is suitable only when a robotic total station can maintain an uninterrupted line‑of‑sight to the prism on the slipform paver, the distance remains within the accuracy range, environmental conditions such as wind, fog, dust or direct sunlight do not disturb the signal, and all hardware, software, wiring and power are functioning per the manufacturer’s procedures with pre‑paving IRI checks completed. When either the pour width does not reach the large‑scale threshold or any of the line‑of‑sight, distance, environmental or system‑integrity conditions cannot be guaranteed, the advantage of 3D control diminishes and a conventional stringline control method should be employed instead. [<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p>The following figure illustrates how real-time profile data reflects fluctuations in the International Roughness Index as the distance between the paver and the robotic total station varies.</p>
+<p><img alt="Real-time profile data illustrating fluctuation of IRI corre" src="assets/concrete-mixing-and-3d-modeling/0db99777b377f2491637438b8e4f3423135e640d0e08ae1eb7c85ea42c48cf07.jpg" />
+<em>Real-time profile data illustrating fluctuation of IRI corresponding to distance from the paver to the robotic total station</em> [<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p>The figure displays a graph plotting International Roughness Index (IRI) against distance, comparing surface profiles for the right and left sides of a pavement. Vertical dashed lines mark specific intervals along the distance axis where significant peaks in roughness occur, indicating localized variations in the concrete surface profile. This data illustrates a potential issue with 3D machine control technology that can affect concrete pavement smoothness during construction operations.</p>
+<p><small>[9] — Advantages of Using Laser-Guid… (pp. 41–42); [10] — Stringless Controls (pp. 36–38)</small></p>
+<h2 id="required-inputs">Required inputs</h2>
+<p>The guides specify that paving concrete must be sourced from a central or ready‑mix plant that is certified for batch production. Batching is performed by measuring the constituent ingredients by mass or volume according to the approved mixture design. The resulting mix must retain its slump and resist segregation during transport so it can be consolidated by the slip‑form paver’s vibrators at a compatible speed; the paving machine is required to maintain a forward motion of at least the minimum specified rate (2.5 ft/min) with typical speeds between 3 and 7 ft/min. Slip‑form operations call for a low‑slump mixture that will not slough after extrusion, whereas fixed‑form placements rely on a higher‑slump mix that flows readily into forms. When site congestion prevents on‑site production, the mix design must accommodate longer haul and placement times. Aggregate moisture in stockpiles is controlled to prevent segregation, and alternative mixtures are selected when temperature or material conditions change. The estimated mixture temperature at placement is monitored together with on‑site weather conditions so that hot‑ or cold‑weather specifications and protective measures can be applied. Continuous delivery is required; therefore planning must consider speed limits, haul‑road condition, active runway or taxiway crossings, backing movements, truck discharge times, weather, possible equipment breakdowns, and maximum haul times to keep travel time short enough that slump loss is minimized. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p><small>[2] — Ch. 5 (pp. 247–249); [5] — Construction (pp. 24–26); [8] — App. D (pp. 126–127)</small></p>
+<p>The design details, dimensions, tolerances, and pre‑construction tests that govern concrete mixing and three‑dimensional machine control are summarized as follows. Mix proportions must satisfy the limits set by ASTM C94/AASHTO M 157: the water‑to‑cement ratio, slump, and mixing or agitating time (or drum revolutions) may not exceed their maximum allowable values, and any remix requires a minimum of 30 revolutions at mixing speed until uniformity is achieved. Plant calibration and daily inspection of all weighing and batching equipment are required, with verification of mixture proportions by the batching control system and moisture compensation for free water in the aggregates performed before each batch.</p>
+<p>Placement‑method specific slump requirements are prescribed: slipform paving requires a low‑slump mixture that will not slough after extrusion, while fixed‑form paving relies on a higher slump mixture that will flow easily to fill the forms. Contraction joints must be formed or saw‑cut promptly to a depth equal to one‑third of the pavement thickness.</p>
+<p>Equipment set‑up tolerances include adjusting the extrusion pan to the required width and cross‑slope/crown, and setting machine height relative to the control string so that the finished pavement thickness meets design. A pre‑construction trial run of approximately 50 ft is performed on the reference line (or in the appropriate stringless mode) to recheck alignment, elevation, and crown/cross‑slope before full production. The three‑dimensional machine‑control system must be verified against the design model; tools are used to calculate the International Roughness Index (IRI) of the proposed surface and confirm it meets smoothness criteria. Site control points are established so that the computer on the screed equipment uses the model to check surface elevations and place the concrete at the proper heights.</p>
+<p>Vibrator performance is checked, with specifications for size, rating, spacing, height/orientation, and real‑time monitoring required. Tie‑bars, construction joint tie bars, and load‑transfer dowels must have their location, insertion depth, alignment, spacing, and offset verified before placement. Batch plant certification and mixer efficiency testing are also part of the pre‑construction coordination.</p>
+<p>Operational limits for the 3‑D control hardware are defined: acceptable distance between the robotic total station and the paver, clear line‑of‑sight to the prism, and stability under wind; any radio, software, hardware or power fault is treated as a critical system error. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p>The following figure illustrates stringless paving using a robotic laser and radio communication.</p>
+<p><img alt="Stringless Paving Using a Robotic Laser and Radio Communicat" src="assets/concrete-mixing-and-3d-modeling/9185a7f5e42255d4469ffd4eeb158ca90dc7945234e8cbf790fe63b11094858f.jpg" />
+<em>Stringless Paving Using a Robotic Laser and Radio Communication</em> [<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p>The image displays a large concrete paver operating on a roadway with workers in high-visibility gear, illustrating the placement phase of pavement construction. In the foreground, a robotic total station is mounted on a tripod, serving as the surveying instrument that provides real-time three-dimensional guidance to the paving equipment. This setup demonstrates stringless controls where models are used for fine grading and machine control without traditional physical stringlines.</p>
+<p><small>[1] — Ch. 8 (pp. 233–234); [2] — Ch. 4 (pp. 167–169); [5] — Construction (pp. 24–26); [6] — Ch. 4 (p. 61), App. C (p. 126); [8] — App. D (pp. 126–127); [9] — Advantages of Using Laser-Guid… (pp. 41–42); [10] — Stringless Controls (pp. 36–38)</small></p>
+<h2 id="equipment-and-personnel">Equipment and personnel</h2>
+<p>Preparation begins with a calibrated batching plant that undergoes &ldquo;Plant calibration and daily inspection – including weigh scales and all other equipment&rdquo; to ensure correct mix proportions, complemented by &ldquo;Batch plant certification and mixer efficiency testing&rdquo; for verification of plant performance. Machine‑control methods such as &ldquo;Stringline&rdquo; (or equivalent 3‑D positioning) are used to locate the grout box head, while stockpile control and traffic planning rely on &ldquo;Concrete haul route identification and estimated truck number needed for existing traffic along the route.&rdquo; </p>
+<p>Placement uses only approved transport means: &ldquo;nonagitating equipment, conforming to ASTM C94, be used to transport concrete (truck mixers are not allowed).&rdquo; The primary placement device is a &ldquo;Paving machine&rdquo;, with slip‑form operations employing &ldquo;Slipform pavers, curing machines, concrete saws, test equipment, and other equipment must meet the specification requirements.&rdquo; For projects that include drainage layers an &ldquo;A material transfer vehicle (MTV) (Figure 5.18) with a swing conveyor is required for all DOD projects that include a drainage layer.&rdquo; When specified, a &ldquo;Tamper bar, if used&rdquo; may be applied during placement. </p>
+<p>Compaction and consolidation are achieved with vibrators whose detailed parameters are prescribed. One guide specifies &ldquo;Vibrators 5.4.5.4.1 Size 5.4.5.4.2 Rating 5.4.5.4.3 Spacing (determined how – by spec maximum or rheology of concrete 5.4.5.4.4 Height and orientation 5.4.5.4.5 Frequency and amplitude 5.4.5.4.56 Real-time monitoring,&rdquo; while another lists &ldquo;Vibrators 5.4.3.4.1. Size 5.4.3.4.2. Rating 5.4.3.4.3. Spacing 5.4.3.4.4. Height and orientation 5.4.3.4.5. Real-time monitoring.&rdquo; Additional consolidation may employ &ldquo;gang‑mounted vibrators with adjustable depths&rdquo; and is verified through &ldquo;Vibrator testing/consolidation issues.&rdquo; </p>
+<p>Finishing employs both mechanized and manual tools: &ldquo;Machine finishing&rdquo; and &ldquo;Hand finishing&rdquo; are used together with &ldquo;Burlap or turf drag&rdquo; to achieve the required surface texture. Dedicated &ldquo;Curing and texturing equipment, rates and construction procedures&rdquo; support final surface preparation and edge‑slump control. </p>
+<p>Curing is controlled by timing and application rate as defined in &ldquo;Curing 5.4.6.1. Timing 5.4.6.2. Application rate,&rdquo; with the same curing machines referenced during placement providing consistent moisture retention. </p>
+<p>Testing includes the use of &ldquo;concrete saws&rdquo; and broader &ldquo;test equipment&rdquo; for dimensional checks, while surface quality is monitored through &ldquo;Smoothness measurements 5.4.8.1. Timing.&rdquo; Mixer performance continues to be validated by &ldquo;Batch plant certification and mixer efficiency testing,&rdquo; and vibrator effectiveness is confirmed via &ldquo;Vibrator testing/consolidation issues.&rdquo; [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p>The following figure illustrates a clean mixer drum and blades with minimal wear.</p>
+<p><img alt="Interior view of a clean concrete mixer drum with yellow bla" src="assets/concrete-mixing-and-3d-modeling/451894fe1cc8eac410dcd79c459e492e40097242aa38e3dad8319fe03b5cd05c.jpg" />
+<em>Interior view of a clean concrete mixer drum with yellow blades.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays the interior of a rotating drum containing several large, yellow mixing paddles or blades arranged radially around a central opening. This equipment is used for trial batches to determine plastic physical properties and ensure uniformity in concrete mixtures.</p>
+<p><small>[2] — Ch. 4 (pp. 167–169), Ch. 5 (pp. 204–211); [6] — App. C (p. 126); [8] — App. D (pp. 126–127)</small></p>
+<p>Equipment operators should be trained in the proper use of equipment, routine inspection protocols, and reporting procedures for any issues encountered. The QC Manager should ensure that the slipform paving machine is properly adjusted for elevation by verifying that the stringline or 3D control system is correctly set up and calibrated to match the specified design grade. QC technicians that monitor the pavement slab using straightedge tools must understand the geometry of a slipform mold or pan. The QC Manager should also confirm with the paver operator that the machine&rsquo;s hydraulic controls, grade sensors, and automatic adjustments are functioning correctly to prevent deviations in elevation. Ideally, the paver should move at a uniform speed. It is the paver operator’s responsibility to adjust the paver speed to match the delivery rate of concrete. Vibrator frequency should also be adjusted with the paver speed. These adjustments should be made by experienced personnel. Communication between the paver operator and the personnel involved in the dumping/spreading operation is vital. The paver operator should adjust the speed and following distance to find the best compromise between reacting to changes in concrete head and minimizing paver stops. Line of sight issues between the robotic total station and the prism mounted on the paver. 3D system errors (radio, software, hardware, wiring, batteries, etc.). [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p>The following figure illustrates potential sensor control issues that can arise during stringline paving operations.</p>
+<p><img alt="Sensor control issues with stringline paving (ACPA 2013)." src="assets/concrete-mixing-and-3d-modeling/4507ee10e9ff905bef48a33ade0057554185976652d7e9f00ddb6a2a42b622c3.jpg" />
+<em>Sensor control issues with stringline paving (ACPA 2013).</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure illustrates three distinct operational failures of a grade sensor interacting with a tensioned stringline: the sensor following a sagging string, losing contact due to clearance issues, and pulling the string when it is not properly tensioned.</p>
+<p><small>[2] — Ch. 5 (pp. 204–211); [8] — 5. Plant Site and Mixture Prod… (p. 72); [10] — Stringless Controls (pp. 36–38)</small></p>
+<h2 id="work-sequence">Work sequence</h2>
+<p>The guides agree that before any concrete mixing or 3‑D‑model‑driven paving can start, <strong>verified material sources and supplier‑provided CQCPs must be secured</strong>, <strong>aggregate stockpiles must be managed with proper handling, sampling and moisture control</strong>, and the plant—including weigh scales and all batching equipment—<strong>must be calibrated and inspected daily</strong>. Approved mixture designs that <strong>account for placement method and weather adjustments</strong> and include defined batching sequence, mixing time, proportion verification by the control system, and moisture compensation for free water in the aggregates must be completed and documented. The contractor must also complete pre‑mixing preparations identified in the preconstruction conference: <strong>Identification of central mix or ready mix supply source</strong>, <strong>Stockpile management to eliminate segregation</strong>, <strong>Batch plant certification and mixer efficiency testing</strong>, and <strong>Anticipated plant production rates</strong>; additionally, concrete haul routes, truck requirements, expected production rates, alternative mixes for weather changes, aggregate moisture checks, and wash‑out area designation must be planned. Prior to implementation, agencies are encouraged to <strong>discuss software capabilities with vendors</strong> and designers must <strong>understand how the 3‑D information they provide to contractors can be used</strong>, establishing accuracy, QA expectations, and intended file uses. At the site, <strong>once control points are set at the parking lot site</strong>, the laser‑guided screed’s computer can lock onto the <strong>computer‑generated three‑dimensional (3D) model of the pavement surface provided by the designer</strong>. Finally, the digital pavement model must be validated—<strong>tools are available for calculating the IRI of the 3D model before paving, and using these tools is highly recommended to identify any issues with the model before paving begins</strong>—and <strong>the system manufacturer’s procedures should be adhered to</strong>. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p>The following figure illustrates why proper plant set-up and maintenance are critical to providing uniform concrete.</p>
+<p><img alt="A large industrial concrete batching plant with a central mi" src="assets/concrete-mixing-and-3d-modeling/286f61d3da98dfa92e01f3eae8e5f97cb60b9ffc8b0c66617b14223c83e83fd3.jpg" />
+<em>A large industrial concrete batching plant with a central mixer and structural support framework.</em> [<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p>The image displays a heavy-duty concrete mixing facility featuring a large, cylindrical central mixer mounted on a steel frame alongside an aggregate hopper system.</p>
+<p><small>[2] — Ch. 4 (pp. 167–169); [4] — Ch. 3 (p. 43); [8] — App. D (pp. 126–127); [9] — Advantages of Using Laser-Guid… (pp. 41–42); [10] — Stringless Controls (pp. 36–38)</small></p>
+<p>After the laser‑guided screed places the concrete using the three‑dimensional model, the surface must be textured and cured right away; any delay can increase water evaporation and raise the risk of early‑age cracking, especially on thin slabs. The guidance does not give a numeric interval but stresses that curing be performed immediately after placement to satisfy the timing requirement. [<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>]</p>
+<p>The following figure illustrates the laser-guided screed used for this precise concrete placement.</p>
+<p><img alt="A laser-guided screed machine in operation on a concrete pav" src="assets/concrete-mixing-and-3d-modeling/742e08ea2d126e61b0d920147171e5c1edc2bb9f2edacd2332d23fb4f05c79e6.jpg" />
+<em>A laser-guided screed machine in operation on a concrete pavement.</em> [<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>]</p>
+<p>The image displays a large piece of construction machinery, identified as a laser-guided screed, positioned on a freshly placed concrete surface with an operator seated at the controls. This equipment is used to place concrete to proper elevations by utilizing a computer-generated three-dimensional model of the pavement surface. The integration of this 3D profile software with laser-guided equipment allows for precise construction of pavements while helping control material amounts.</p>
+<p><small>[9] — Advantages of Using Laser-Guid… (pp. 41–42)</small></p>
+<h2 id="staging-and-logistics">Staging and logistics</h2>
+<p>The guides keep work zones orderly by &ldquo;Concrete mixing and paving operations keep work zones orderly by following the detailed paving schedule and machine‑setup procedures, using a 3D‑based machine control method to guide placement and strike‑off while continuous QC checklists and visual inspections enforce action limits.&rdquo; Material delivery is coordinated through strict haul‑route maintenance; as described, &ldquo;Material delivery is coordinated through strict haul‑route maintenance and cleanout of hauling units, ensuring that access routes remain clear and traffic is staged according to the paving sequence before opening to construction traffic.&rdquo; Stockpiles are controlled under a dedicated program, with the source stating: &ldquo;Aggregate stockpiles are managed under a dedicated stockpile management program that monitors moisture variability and uses calibrated plant scales for accurate batching, with any non‑conformance triggering corrective actions per the QC plan.&rdquo; Equipment movement follows prescribed procedures: &ldquo;Equipment movement is supported by documented breakdown procedures and timing constraints for placement, ensuring that mixers, vibrators and curing equipment remain within the planned zone.&rdquo; [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p><small>[2] — Ch. 4 (pp. 167–169); [8] — App. D (pp. 126–127)</small></p>
+<p>&ldquo;wide placements can be utilized, i.e., pour areas that have a width of over 100 ft&rdquo; to accommodate laser‑guided screeds and subsequent texturing equipment. Before concrete is placed, &ldquo;Once control points are set at the parking lot site, a computer on the screed equipment uses the model to check surface elevations and place the concrete to the proper elevations.&rdquo; The site must also allocate areas for stockpiles and cleaning; &ldquo;Haul units should be cleaned to remove dried concrete and other contaminants, and an adequate washout area should be provided and maintained.&rdquo; Haul‑road layout must be &ldquo;compatible with project haul road conditions,&rdquo; yet &ldquo;soft and muddy conditions&rdquo; can reduce the &ldquo;Average speed of haul units, considering urban routes with multiple stops and traffic impacts.&rdquo;</p>
+<p>Site‑access constraints are pronounced in dense environments: &ldquo;densely populated urban areas require careful evaluation to determine whether traffic delays will hamper concrete delivery.&rdquo; Planning must evaluate &ldquo;the number of available haul trucks…speed limits, haul road conditions, active runway or taxiway crossings, backing movements required, truck discharge times, weather, and possible equipment breakdowns.&rdquo; When travel time lengthens, &ldquo;Extra trucks may be needed as the haul time increases,&rdquo; and the paver must maintain at least a &ldquo;minimum forward motion of 2.5 feet per minute (UFGS 2024). Typical paving speed is 3 to 7 feet per minute&rdquo; to avoid interruptions.</p>
+<p>Weather imposes explicit adjustments: &ldquo;6.1 Hot weather paving,&rdquo; &ldquo;6.2 Cold weather paving,&rdquo; and &ldquo;6.3 Imminent rain&rdquo; each trigger specific mix modifications, protective coverings, and curing actions. High evaporation—&ldquo;6.4 Evaporation rates above 0.2 lb/yd2/hr&rdquo;—requires immediate moisture‑retaining curing to prevent early‑age cracking. In cooler conditions, &ldquo;Adjustments for cool or falling temperatures are less critical with respect to the w/cm ratio and strength,&rdquo; but operators often add &ldquo;Heated water is a common mix adjustment when cooler temperatures occur&rdquo; and may need &ldquo;Consistent cool temperatures…the addition of an accelerating admixture to minimize the risk of random cracking due to delayed sawing operations.&rdquo; When temperature extremes arise, &ldquo;Consideration of alternative mixtures to meet weather changes&rdquo; and &ldquo;Hot/cold weather specifications and precautions&rdquo; guide mix selection, while &ldquo;On site weather condition monitoring - Who and how it entered into the decision to pave and cover or not to pave&rdquo; determines whether concrete must be covered.</p>
+<p>Environmental factors further affect mixing and 3‑D control. A surface finish is applied for wet conditions: &ldquo;Texture is applied to the surface of the concrete after placement and before curing. The purpose is to increase friction and improve wet weather driving conditions.&rdquo; Reliable three‑dimensional machine control depends on an uninterrupted visual link; any &ldquo;Line of sight issues between the robotic total station and the prism mounted on the paver,&rdquo; including &ldquo;Direct sunlight on the prism,&rdquo; &ldquo;Heavy fog and mist,&rdquo; or &ldquo;Excessive dust,&rdquo; can degrade positioning accuracy. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p>The following figure illustrates the burlap drag textures applied to concrete surfaces for improved friction and wet weather conditions.</p>
+<p><img alt="A close-up perspective view of a concrete pavement surface f" src="assets/concrete-mixing-and-3d-modeling/edecb5be84419b2960d581653fbe9771fd68b048f68b8789351475211674d579.jpg" />
+<em>A close-up perspective view of a concrete pavement surface featuring a uniform burlap drag texture.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a wide expanse of light gray concrete pavement with a distinct, linear fibrous pattern running longitudinally across the surface. The timing for this operation must be carefully managed so that drag textures are not applied until the bleed water is no longer visible on the pavement surface.</p>
+<p><small>[1] — Ch. 8 (pp. 232–234); [2] — Ch. 4 (pp. 167–169), Ch. 5 (pp. 247–249); [5] — Construction (pp. 24–26); [6] — Ch. 4 (p. 74), App. C (p. 126); [8] — App. D (pp. 126–127); [9] — Advantages of Using Laser-Guid… (pp. 41–42); [10] — Consistent Delivery of Concret… (pp. 28–29), Stringless Controls (pp. 36–38)</small></p>
+<h2 id="quality-control-and-acceptance">Quality control and acceptance</h2>
+<p>The inspection checklist for concrete mixing and 3D‑controlled paving requires verification of a series of quantitative and qualitative characteristics. For the mix itself the guides require that the &ldquo;Maximum allowable water/cement ratio is not exceeded&rdquo;, that the &ldquo;Maximum allowable slump is not exceeded&rdquo;, and that &ldquo;Maximum allowable mixing and agitating time (or drum revolutions) are not exceeded&rdquo;. If remixing is needed, the concrete must be remixed for a minimum of 30 revolutions at mixing speed or until uniformity meets the limits described in ASTM C94/AASHTO M 157. Plant calibration and daily inspection of all weighing and batching equipment must be confirmed, along with &ldquo;Verification of mixture proportions used by the batching control system&rdquo;, proper mixing time, and moisture compensation for aggregate water content. Batch plant certification and mixer efficiency testing, as well as the moisture condition of aggregate stockpiles, are also inspected.</p>
+<p>Before placement the surface is checked for smoothness, stability and appropriate moisture, and elevation conformity is confirmed by comparing the actual surface to the three‑dimensional model with laser‑guided screed verification. The integrity and accuracy of the 3D profile software and of the robotic total‑station system must be verified; this includes correct distance from the paver, an unobstructed line‑of‑sight to the prism, low wind conditions, and full functionality of radio, software, hardware, wiring and batteries. Model geometric accuracy and a formal quality‑assurance check are required prior to release.</p>
+<p>The slip‑form paver’s mechanical and electrical systems must operate correctly and hydraulic lines be leak‑free; the extrusion pan width, cross‑slope and crown shape are set to design values, and the machine is aligned parallel to the stringline at the proper height for the specified pavement thickness. Tie‑bar inserters, curb molds and all inserted steel components (contraction joint tie bars, construction joint tie bars, load transfer dowels) must match design locations, alignment, spacing and offset.</p>
+<p>Vibration and consolidation are inspected for size, rating, spacing, orientation, frequency, amplitude and real‑time performance; low‑frequency vibration paired with a forward paver speed of 3–7 ft/min is required to avoid honeycombing, air voids, vibrator trails or over‑vibration that could strip entrained air. Concrete head level in the grout box and any tamper bar are controlled, and mix duration is monitored for segregation, bleeding or poor finishability.</p>
+<p>Finally, temperature, maximum allowable haul time, thickness achieved during placement, straight‑edge and edge slump tolerances, and early‑age conditions such as plastic shrinkage cracking, joint spalling or full‑depth cracking are observed to ensure compliance with hot/cold weather specifications. Curing is checked promptly after placement to prevent water loss and early‑age cracking, and the IRI of the 3D model is calculated before paving to detect modeling errors that could affect smoothness. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p><small>[1] — Ch. 8 (pp. 233–234); [2] — Ch. 4 (pp. 167–169), Ch. 5 (pp. 247–249); [4] — Ch. 3 (p. 43); [6] — Ch. 4 (p. 61), App. C (p. 126); [8] — App. D (pp. 126–127); [9] — Advantages of Using Laser-Guid… (pp. 41–42); [10] — Stringless Controls (pp. 36–38)</small></p>
+<p>The acceptance criteria for concrete mixing and placement require that the mix maintain the maximum allowable water‑to‑cement ratio, the maximum allowable slump, and the maximum allowable mixing and agitating time (or drum revolutions) as defined by the specifications. Concrete must be remixed for a minimum of 30 revolutions at mixing speed or until the uniformity of the concrete is within the limits described in ASTM C94/AASHTO M 157. Paving operations must keep the paver moving forward at least the minimum forward motion of 2.5 feet per minute and generally within the typical paving speed of 3 to 7 feet per minute. Any visible defect such as honeycombing, air voids, vibrator trails, segregation, plastic shrinkage cracking, edge slump, joint spalling or full‑depth cracking is considered non‑conforming. When these thresholds are exceeded, corrective actions include stopping the addition of water, adjusting temperature with heated water or an accelerating admixture, re‑mixing the batch as specified, immediately halting paving and shutting down vibrators, and then adjusting equipment (paver speed, vibrator frequency) or the concrete mix to eliminate the defect. Further treatment of defects follows the project‑specified procedures for plastic shrinkage cracking, edge slump, joint spalling, and full‑depth cracking. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p>The following figure illustrates early-age cracking, a common defect that may result from exceeding these specified thresholds.</p>
+<p><img alt="Diagram of early-age cracking types in concrete pavement." src="assets/concrete-mixing-and-3d-modeling/6bc5adb3847961da87691f37cbd3867342716133358844fe5bf8de3022cb0311.jpg" />
+<em>Diagram of early-age cracking types in concrete pavement.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure illustrates various forms of distress on a concrete slab, including map cracking (crazing), plastic shrinkage cracks, random longitudinal and transverse cracks, corner breaks, and contraction joints.</p>
+<p><small>[1] — Ch. 8 (pp. 233–234); [2] — Ch. 5 (pp. 247–249); [8] — App. D (pp. 126–127)</small></p>
+<h2 id="safety-and-environmental-controls">Safety and environmental controls</h2>
+<p>The guides outline worker hazards that arise from concrete head control, auger condition, and 3D machine‑control systems during slip‑form paving. An excessively high concrete head generates a pressure increase beneath the paving machine, producing a surge that can cause loss of traction and steering, exposing operators to sudden instability or collision risk. Conversely, insufficient material ahead of the machine allows the grout box to run empty, creating low spots, voids, or surface bumps that also threaten worker safety. Worn or broken auger/spreader components prevent even concrete spread and make head‑height control difficult; if unchecked this can overload the front of the machine and result in a loss of traction or “spinning out,” endangering the operator and nearby personnel. Failure to grease bearing seals permits grout to penetrate the auger bearings, degrading performance and potentially causing severe damage and injury. The use of 3‑D machine‑control adds further hazards: line‑of‑sight obstructions between the robotic total station and the paver’s prism—such as other equipment, direct sunlight, heavy fog, mist or excessive dust—degrade positioning signals and can lead to pavement misplacement. High winds may shift the total‑station antenna or the prism, creating sudden movements that endanger workers near the equipment. Additionally, any failure in the 3‑D system’s radio, software, hardware, wiring, or batteries can produce erroneous positioning data, increasing accident risk. Across the sources, no specific public hazards are identified. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p><small>[1] — Ch. 8 (pp. 232–233); [3] — 2 Overview of Concrete Pavemen… (pp. 30–31); [10] — Stringless Controls (pp. 36–38)</small></p>
+<h2 id="curing-protection-and-handoff">Curing, protection, and handoff</h2>
+<p>After concrete placement, finishing and texturing, the guides require that “a dedicated curing machine applies a protective cure in accordance with the timing and application‑rate requirements set out in the quality‑control plan.” Forms must remain on the slab for at least twelve hours “to protect the edges from spalling and dowel‑bar damage,” but “cannot remain longer than twenty‑four hours because delayed removal harms curing of the vertical faces.” Once forms are stripped, “the exposed sides must be sprayed with a curing compound within thirty minutes” to retain moisture. Curing “must begin as early as possible to stop rapid moisture loss and allow full cement hydration,” and “the crew applies a curing method—such as water spray or fog, wet burlap sheets, plastic sheeting, insulating blankets, or most commonly a liquid membrane‑forming compound—and maintains it until enough hydration has occurred for the pavement to reach its required hardened properties.” The treatment is applied “at the specified application rate and within the timing window defined in section 5.6, ensuring the surface remains protected from premature moisture loss and early‑age cracking.” In adverse weather the contractor must “select and apply specific methods and materials that shield the fresh pavement from adverse weather such as rain, snow or extreme temperature swings,” using “designated curing and texturing equipment operated at the prescribed rates.” Additionally, “mobile texturing and curing equipment is brought in to apply a curing material directly to the fresh surface,” and “the curing operation occurs immediately after placement, sealing the pavement, limiting water loss and thereby reducing early‑age cracking.” The guides note that “timely curing is especially critical on thinner pavements,” and the protective period continues until the concrete achieves the strength and durability required for service. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>]</p>
+<p><small>[2] — Ch. 4 (pp. 167–169), Ch. 5 (pp. 274–275); [5] — Construction (pp. 24–26); [6] — App. C (p. 126); [8] — App. D (pp. 126–127); [9] — Advantages of Using Laser-Guid… (pp. 41–42)</small></p>
+<h2 id="expected-performance-and-maintenance">Expected performance and maintenance</h2>
+<p>The guides identify several recurring distresses that arise when concrete mixing, placement, and 3‑D machine control are not tightly managed. An over‑filled grout box raises the concrete head; <strong>If the head gets too high, it creates a pressure increase under the paving machine</strong> and the resulting surge can deform the finish pan – <strong>The surge can cause the concrete behind the machine’s finish pan to swell, creating an uncorrectable surface bump</strong>. Conversely, when the head is depleted the paver may run out of material, producing low spots, voids or a complete stop in work.</p>
+<p>Vibration and speed coordination are another critical source of failure. <strong>excess vibration can result in over or under consolidation by vibration which can also result in problems such as loss of entrained air, vibrator trails, or segregation of the concrete mixture</strong>. Both insufficient and excessive consolidation manifest as honeycombing, air voids, surface cracking, or plastic‑shrinkage cracks, especially when temperature or curing conditions drift from specifications.</p>
+<p>Mixing irregularities generate segregation, bleeding, and poor finishability; these are typically corrected by adjusting mixing time. Inadequate equipment preparation—dried concrete on the deck, unchecked hydraulic/electrical systems, or fluid leaks—adds thickness variations, misalignment, and weak tie‑bar placement.</p>
+<p>Temperature‑related distresses such as plastic shrinkage cracking, excessive edge slump, joint spalling and full‑depth cracking are linked to improper vibration, mix deviations, or curing outside tolerance limits.</p>
+<p>When 3‑D control is employed, signal integrity must be maintained. <strong>Line of sight issues between the robotic total station and the prism mounted on the paver</strong> and high winds that shift either instrument can cause profile deviation and increased roughness. Additional system faults—radio, software, hardware, wiring or battery failures—produce similar alignment errors.</p>
+<p>Collectively, these failure modes underscore the need for continuous monitoring of concrete head, vibration parameters, mix quality, equipment condition, environmental controls, and 3‑D system integrity to prevent surface defects, structural weaknesses, and operational stoppages. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p><small>[1] — Ch. 8 (pp. 232–234); [2] — Ch. 5 (pp. 247–249); [6] — Ch. 4 (p. 61); [8] — App. D (pp. 126–127); [10] — Stringless Controls (pp. 36–38)</small></p>
+<p>The preventive maintenance program for concrete mixing and 3D‑controlled slip‑form paving is built on daily equipment checks, routine cleaning, calibration of batching systems, and continuous performance monitoring. Operators must keep the grout box material continuously refreshed and ensure the head level fully covers the vibrators, which are set at a slight downward angle, while never exceeding the prescribed water‑to‑cement ratio; if slump falls short the mix is remixed for at least thirty drum revolutions. All plant equipment—including weigh scales, mixers and hydraulic components—requires daily calibration and inspection, and batch‑plant certification with mixer efficiency testing must be documented. Haul routes are maintained and hauling units are regularly cleaned; trucks receive a wash‑out after each shift to remove hardened concrete and preserve cycle times. Front‑mounted augers or spreaders are inspected for wear at the start of the season and periodically thereafter, bearing seals are greased according to manufacturer guidance, and any grout intrusion is purged immediately; components are cleaned every day. The slip‑form paver is cleared of dried concrete before each run, mechanical, electrical and hydraulic systems are verified functional, and leaks are repaired promptly. Vibrator spacing, operation and frequency are set correctly and observed in real time; vibrators are also tested routinely to confirm consolidation performance. 3D machine‑control equipment is kept aligned by maintaining the robotic total station within manufacturer‑specified distance from the paver, preserving an unobstructed line of sight, protecting radios, software, hardware, wiring and batteries from high winds, dust or fog, and performing regular inspections of the system. Real‑time monitoring of mixture proportions via the batching control system, as well as continuous observation of smoothness measurements, triggers immediate corrective actions—adjusting mix parameters, haul truck count, paving speed or equipment configuration—when limits are exceeded. Weather and pavement temperature are continuously monitored to decide when protection or placement is appropriate. When any deviation, equipment breakdown, or loss of 3D signal is detected, the documented breakdown procedures call for rapid repair to return the unit to service and sustain a steady concrete supply. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p>The following figure illustrates key components involved in consolidating concrete during the paving process.</p>
+<p><img alt="Nighttime view of a slipform paver consolidating concrete wi" src="assets/concrete-mixing-and-3d-modeling/87c8b222252c8e298d8dc7c0d3843547e010b8eb1dd738afb553b53cb3cef16f.jpg" />
+<em>Nighttime view of a slipform paver consolidating concrete with workers nearby.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image shows a large yellow slipform paving machine operating at night under bright floodlights, with piles of wet concrete visible in the foreground and several workers wearing high-visibility safety gear standing near the equipment.</p>
+<p><small>[1] — Ch. 8 (pp. 233–234); [2] — Ch. 4 (pp. 167–169); [3] — 2 Overview of Concrete Pavemen… (pp. 30–31); [6] — Ch. 4 (pp. 61–74), App. C (p. 126); [8] — App. D (pp. 126–127); [10] — Consistent Delivery of Concret… (pp. 28–29), Stringless Controls (pp. 36–38)</small></p>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li><li id="ref-3"></li><li id="ref-4"></li><li id="ref-5"></li><li id="ref-6"></li><li id="ref-7"></li><li id="ref-8"></li><li id="ref-9"></li><li id="ref-10"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

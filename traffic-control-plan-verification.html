@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Traffic Control Plan Verification</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html" class="active" aria-current="page">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Traffic Control Plan Verification</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=traffic-control-plan">traffic-control-plan</a><a class="tag" href="index.html?q=compliance-with-mutcd">compliance-with-mutcd</a><a class="tag" href="index.html?q=verification-of-traffic-related-items">verification-of-traffic-related-items</a><a class="tag" href="index.html?q=pavement-reopening">pavement-reopening</a><a class="tag" href="index.html?q=safety-and-safety-checks">safety-and-safety-checks</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>Traffic Control Plan Verification is a systematic pre‑construction and post‑construction inspection that confirms the on‑site traffic control signs, devices, flagger qualifications, and required personal protective equipment exactly match the contract‑approved plan and comply with the Federal Manual on Uniform Traffic Control Devices (MUTCD) or applicable local agency standards[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. By checking that sign size, shape, color, reflectivity, mounting height, spacing, and placement follow MUTCD tolerances and by verifying that all traffic‑control personnel are trained and qualified, the process eliminates unsafe or non‑compliant work‑zone conditions that could endanger motorists and construction crews[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. It also requires that repaired pavement not be reopened until the patching, backfill, epoxy injection, or sealant has attained the strength or cure time specified in the contract documents, with any observed unsafe condition reported immediately to a supervisor[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. This disciplined check protects both workers and the public while preventing premature traffic re‑entry and ensuring contractual compliance.</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-applicability">Purpose and applicability</a></li><li><a href="#required-inputs">Required inputs</a></li><li><a href="#equipment-and-personnel">Equipment and personnel</a></li><li><a href="#work-sequence">Work sequence</a></li><li><a href="#staging-and-logistics">Staging and logistics</a></li><li><a href="#quality-control-and-acceptance">Quality control and acceptance</a></li><li><a href="#safety-and-environmental-controls">Safety and environmental controls</a></li><li><a href="#curing-protection-and-handoff">Curing, protection, and handoff</a></li><li><a href="#expected-performance-and-maintenance">Expected performance and maintenance</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (2)</summary><div class="sources-body"><a href="#ref-1">concrete_pvmt_preservation_guide_3rd_edition_web</a>, <a href="#ref-2">preservation_reference_manual</a></div></details>
+
+<h2 id="purpose-and-applicability">Purpose and applicability</h2>
+<p>Traffic Control Plan Verification addresses the core problem of unsafe or non‑compliant work‑zone traffic management that arises when on‑site traffic control devices do not match the approved plan, thereby violating MUTCD or local agency standards and creating hazards for motorists and construction personnel. By ensuring exact conformity to the contract‑specified signs, devices, flagger qualifications, and procedural details, the verification process eliminates these hazardous conditions and also prevents premature reopening of repaired pavement until the repair material has attained its required strength and all equipment and workers have been cleared from the zone. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[1] — Ch. 5 (p. 121), Ch. 6 (p. 159), Ch. 8 (pp. 199–207), Ch. 9 (pp. 222–227); [2] — Ch. 5 (pp. 106–107), Ch. 6 (p. 133), Ch. 8 (pp. 170–171), Ch. 10 (p. 208)</small></p>
+<p>Traffic Control Plan Verification is appropriate right before construction begins, when the crew must confirm that all on‑site signs and devices correspond to those specified in the traffic control plan and meet the requirements of the Federal or local MUTCD. Once sealing work is finished, verification of the plan is no longer the primary safety step; instead, traffic should be held back until the sealant has sufficiently cooled or cured so vehicles will not track it, at which point reopening can proceed. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[2] — Ch. 10 (p. 208)</small></p>
+<h2 id="required-inputs">Required inputs</h2>
+<p>The guides require that a temporary dowel‑slot patching material (e.g., asphalt concrete) is available should the backfilling operation break down, and that the repaired pavement is not opened to traffic until the epoxy injection material has attained the specified strength or curing time as required by the contract documents. All on‑site signs and devices must exactly match those detailed in the approved traffic control plan, and any unsafe conditions observed during verification must be reported to a supervisor before reopening the pavement. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[1] — Ch. 8 (pp. 199–207); [2] — Ch. 5 (pp. 106–107), Ch. 6 (p. 133), Ch. 8 (pp. 170–171), Ch. 10 (p. 208)</small></p>
+<p>The traffic‑control verification process is driven by the design details, dimensions, tolerances, and pre‑construction acceptance tests documented in the contract‑approved traffic control plan and the applicable Federal or local Manual on Uniform Traffic Control Devices (MUTCD). Prior to work, the contractor must confirm that every sign and device installed on site corresponds exactly to the items listed in the approved plan, including size, shape, color, reflectivity, mounting height, and spacing as prescribed by MUTCD tolerances. The overall arrangement of signs, barricades, and flagger stations must follow MUTCD placement requirements (e.g., sight distance, offset from travel lanes). Personnel operating the controls must hold the training and qualifications specified in the contract and agency rules. A pre‑construction test is required before traffic can be reopened: the repaired pavement material—whether patch, backfill, or sealant—must achieve the strength or cure condition called out in the contract documents, at which point temporary signs are removed or covered. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[2] — Ch. 5 (pp. 106–107), Ch. 6 (p. 133), Ch. 8 (pp. 170–171), Ch. 10 (p. 208)</small></p>
+<h2 id="equipment-and-personnel">Equipment and personnel</h2>
+<p>&ldquo;Traffic Control Plan Verification requires field personnel who have been specifically trained and deemed qualified under the project contract and applicable agency regulations.&rdquo; &ldquo;The developed traffic control plan should be reviewed by field personnel prior to construction.&rdquo; &ldquo;All traffic‑control crew members must be trained/qualified in accordance with contract documents and agency requirements, and flaggers must be trained/qualified according to the contract documents and agency requirements.&rdquo; &ldquo;These personnel must be capable of confirming that signs and devices match the approved plan&rdquo; &ldquo;that the setup complies with the MUTCD or local procedures&rdquo; &ldquo;and promptly report any unsafe condition to a supervising person while wearing the required personal protective equipment.&rdquo; [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[1] — Ch. 5 (p. 121), Ch. 6 (p. 159), Ch. 8 (pp. 199–207); [2] — Ch. 5 (pp. 106–107), Ch. 6 (p. 133), Ch. 8 (pp. 170–171)</small></p>
+<h2 id="work-sequence">Work sequence</h2>
+<p>Before Traffic Control Plan Verification can begin, the completed traffic control plan must be reviewed by field personnel prior to construction. This pre‑construction review confirms that the signs and devices used match the traffic control plan stipulated in the contract documents, verifies that the set‑up complies with the Federal MUTCD or local agency procedures, ensures qualified traffic‑control staff are in place, and that the plan is developed to provide maximum safety for the construction crew while accommodating sequencing, productivity, and work‑quality considerations. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[1] — Ch. 5 (p. 121), Ch. 6 (p. 159); [2] — Ch. 5 (pp. 106–107), Ch. 6 (p. 133)</small></p>
+<p>Step 1 – Plan review: &ldquo;The developed traffic control plan should be reviewed by field personnel prior to construction.&rdquo;\n\nStep 2 – Verify sign/device match:\n   a) &ldquo;Verify that signs and devices match the traffic control plan stipulated in the contract documents.&rdquo;\n   b) &ldquo;Verify that the signs and devices used match the traffic control plan presented in the contract documents.&rdquo;\n   c) &ldquo;Immediately prior to construction it should be verified that the on-site traffic control signs and devices match those defined in the trafc control plan.&rdquo;\n\nStep 3 – Verify MUTCD compliance:\n   a) &ldquo;Verify that the traffic control setup complies with the Federal Manual on Uniform Traffic Control Devices (MUTCD) or local agency traffic control procedures.&rdquo;\n   b) &ldquo;Verify that the set-up complies with the Federal or local agency Manual on Uniform Traffic Control Devices (MUTCD) or local agency procedures.&rdquo;\n   c) &ldquo;it should be verified that the set-up complies with the Federal or local agency Manual on Uniform Traffic Control Devices (MUTCD).&rdquo;\n\nStep 4 – Staff qualification and PPE:\n   a) &ldquo;Verify that all construction personnel are wearing the required PPE.&rdquo;\n   b) &ldquo;Verify that flaggers are trained/qualified according to contract documents and agency requirements.&rdquo;\n\nStep 5 – Pavement readiness before traffic reopening:\n   a) &ldquo;Verify that the grooved pavement is not opened to traffic until all equipment and personnel have been removed from the work zone and the pavement is clean and safe for traffic.&rdquo;\n   b) &ldquo;Ensure that traffic is not opened to the repaired pavement until the patch material meets strength requirements presented in the contract documents.&rdquo;\n   c) &ldquo;Ensure that traffic is not opened to the repaired pavement until the backfll material has attained the specified strength as required by the contract documents.&rdquo;\n   d) &ldquo;traffic should not be allowed back on the pavement until the sealant has adequately cooled or cured so that it is not tracked by vehicle tires.&rdquo;\n\nStep 6 – Unsafe condition reporting:\n   a) &ldquo;Any unsafe condition observed is reported immediately to a supervisor.&rdquo;\n   b) &ldquo;any unsafe condition observed at any point must be reported immediately to the contractor or agency supervisor.&rdquo;\n\nStep 7 – Sign removal after work:\n   a) &ldquo;After work is complete and the pavement is cleared for use, remove or cover temporary signs when they are no longer needed.&rdquo;\n   b) &ldquo;signs are removed or covered when they no longer serve a purpose.&rdquo; [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[1] — Ch. 9 (p. 227); [2] — Ch. 5 (pp. 106–107), Ch. 6 (p. 133), Ch. 8 (pp. 170–171), Ch. 10 (p. 208)</small></p>
+<p>The guides require that verification of on‑site traffic control signs and devices occur immediately before construction begins, with the instruction that “Immediately prior to construction it should be verified that the on-site traffic control signs and devices match those defined in the trafc control plan.” No prescribed interval separates individual verification tasks; each must simply be completed before work proceeds. After specific pavement‑preserving operations, the guides set clear timing limits for reopening traffic: “traffic is not allowed to drive on the sawcuts for a period greater than that specified in the contract (typically five days).” Likewise, the repaired surface cannot be opened until the materials have cured or reached strength, as stated – “the repaired pavement is not opened to traffic until the patching material has attained the specified strength or curing time required by the contract documents,” and “Ensure that the repaired pavement is not opened to traffic until the epoxy injection material has attained the specified strength or curing time as required by the contract documents.” Finally, after sealant work, “traffic should not be allowed back on the pavement until the sealant has adequately cooled or cured.” [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[1] — Ch. 8 (pp. 199–207); [2] — Ch. 10 (p. 208)</small></p>
+<h2 id="staging-and-logistics">Staging and logistics</h2>
+<p>Before construction starts, the on‑site traffic control signs and devices must be verified against the approved plan and confirmed to meet MUTCD standards; once sealant work is finished, an environmental constraint requires that traffic be kept off the pavement until the sealant has cooled or cured enough that vehicle tires will not track it, which determines when the roadway can be safely reopened. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[2] — Ch. 10 (p. 208)</small></p>
+<h2 id="quality-control-and-acceptance">Quality control and acceptance</h2>
+<p>Traffic‑control plan verification is a systematic inspection performed before work starts and again after completion. The inspector must confirm that the installed signs and devices exactly correspond to the approved plan, that the overall arrangement follows MUTCD or local agency standards, that all traffic‑control personnel meet training and qualification requirements, that workers are equipped with required personal protective equipment, that any unsafe condition observed on site is reported immediately to a supervisor, that temporary signs and equipment are removed or covered when no longer needed, and that the repaired pavement remains closed until the repair material reaches the contract‑specified strength or cure level. Specifically, the guides require the inspector to:</p>
+<ul>
+<li>&ldquo;Verify that the signs and devices used match the traffic control plan presented in the contract documents.&rdquo;</li>
+<li>&ldquo;Verify that the set-up complies with the Federal or local agency Manual on Uniform Traffic Control Devices (MUTCD) or local agency procedures.&rdquo;</li>
+<li>&ldquo;Verify that traffic control personnel are trained/qualified according to contract documents and agency requirements.&rdquo;</li>
+<li>&ldquo;Ensure that traffic is not opened to the repaired pavement until the patch material meets strength requirements presented in the contract documents.&rdquo;</li>
+</ul>
+<p>In addition, inspectors must verify that every worker wears the required PPE and that all temporary devices are removed before reopening the roadway. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[1] — Ch. 5 (p. 121), Ch. 6 (p. 159), Ch. 8 (pp. 199–207), Ch. 9 (pp. 222–227); [2] — Ch. 5 (pp. 106–107), Ch. 6 (p. 133), Ch. 8 (pp. 170–171), Ch. 10 (p. 208)</small></p>
+<p>Field personnel conduct the first set of traffic‑control measurements by reviewing the developed plan before any construction starts, checking that signs, devices, and qualified staff meet the contract and MUTCD requirements. After the work is finished a second verification is performed to confirm that post‑construction items—such as removal or covering of signs and compliance with strength criteria for reopening the pavement—are satisfied. Thus measurements are taken at two distinct times: once pre‑construction and again post‑construction. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[2] — Ch. 5 (pp. 106–107)</small></p>
+<p>The traffic control plan is accepted only when all signs and devices match the contract‑specified plan, the setup complies with the MUTCD or local agency procedures, flaggers are qualified, workers wear required PPE, and any unsafe conditions are reported to a supervisor. A primary tolerance is that traffic may not be allowed on slot‑saw cuts for longer than the contract‑defined period—typically about five days—and the repaired pavement must remain closed until the patching material reaches the strength or curing time required by the contract. When these criteria are not met, corrective actions include reporting the nonconformance to a supervisor, providing temporary dowel‑slot patching material if backfilling fails, removing or covering signs that are no longer needed, and keeping traffic off the area until compliance is achieved. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 8 (pp. 199–200)</small></p>
+<h2 id="safety-and-environmental-controls">Safety and environmental controls</h2>
+<p>Traffic‑control verification protects both workers and the public by preventing exposure to moving vehicles, unfinished or unstable pavement surfaces, and misdirected traffic. When verification is incomplete, workers may be struck by traffic or encounter exposed sawcuts, while the public can drive over unstable pavement or be guided by incorrect signs that increase collision risk. The guides require that “Verify that unsafe conditions, if any, are reported to a supervisor,” and that “Verify that all workers are wearing the required PPE.” They also mandate keeping traffic away from fresh cuts: “Ensure that, if slot sawing is allowed to proceed faster than concrete removal and dowel installation, traffic is not allowed to drive on the sawcuts for a period greater than that specified in the contract (typically five days).” and “traffic should not be allowed back on the pavement until the sealant has adequately cooled or cured so that it is not tracked by vehicle tires.” Sign compliance must be confirmed: “Immediately prior to construction it should be verified that the on-site traffic control signs and devices match those defined in the trafc control plan,” and “Also, it should be verified that the set-up complies with the Federal or local agency Manual on Uniform Traffic Control Devices (MUTCD).” Finally, reopening of repaired sections is delayed until material strength is achieved: “Ensure that the repaired pavement is not opened to traffic until the patching material has attained the specified strength or curing time required by the contract documents.” [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[1] — Ch. 8 (pp. 199–200); [2] — Ch. 10 (p. 208)</small></p>
+<h2 id="curing-protection-and-handoff">Curing, protection, and handoff</h2>
+<p>During Traffic Control Plan Verification the field crew first confirms that all signs, devices, flaggers and personal protective equipment match the approved plan and comply with the Federal MUTCD or local agency procedures. The verifier first confirms that all signage and devices match the approved traffic‑control plan, comply with MUTCD or local agency standards, and that qualified personnel are on site; any unsafe condition is reported immediately. Protection of the completed work is achieved by keeping traffic off the repaired area until the patch material reaches the contract‑specified strength, as required in the contract documents. The repaired pavement is then kept closed to traffic until the repair material—whether asphalt concrete patching or epoxy injection—has attained the strength or curing time stipulated in the contract documents; only after this threshold is met may traffic be restored. For seal‑coat operations, traffic is also prohibited until the sealant has adequately cooled or cured so that it is not tracked by vehicle tires. While the work cures, any unsafe condition must be reported and corrected, and temporary signs are removed or covered once they are no longer needed. Temporary signs remain in place during this period and are removed or covered once they are no longer needed. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[1] — Ch. 5 (p. 121), Ch. 6 (p. 159), Ch. 8 (pp. 199–207); [2] — Ch. 5 (pp. 106–107), Ch. 6 (p. 133), Ch. 8 (pp. 170–171), Ch. 10 (p. 208)</small></p>
+<p>Work may be placed into service for construction traffic or opened to regular users only after a final verification confirms that all required conditions have been satisfied. The verification must confirm that the repaired pavement has attained the strength specified in the contract documents, that every sign and device on site matches the approved traffic‑control plan, and that the overall arrangement complies with the Federal Manual on Uniform Traffic Control Devices (MUTCD) or applicable local procedures. Qualified traffic‑control personnel wearing required personal protective equipment must be present, all construction equipment and workers removed from the work zone, and the pavement surface swept clean and judged safe for vehicle movement. Temporary signs are to be removed or covered once they are no longer needed. When these criteria are met, construction traffic may be permitted and the pavement reopened to the public. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[1] — Ch. 5 (p. 121), Ch. 6 (p. 159), Ch. 8 (pp. 199–207), Ch. 9 (pp. 222–227); [2] — Ch. 5 (pp. 106–107), Ch. 6 (p. 133), Ch. 8 (pp. 170–171), Ch. 10 (p. 208)</small></p>
+<h2 id="expected-performance-and-maintenance">Expected performance and maintenance</h2>
+<p>Typical failures during Traffic Control Plan Verification include using signs or devices that do not correspond to the plan documented in the contract, installing a set‑up that does not meet MUTCD or local agency standards, and deploying personnel who lack the required training or qualifications. Additional distress arises when unsafe conditions are not reported, when traffic is allowed onto the repaired pavement before the patch material achieves the specified strength, and when temporary signs remain in place after they are no longer needed. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[2] — Ch. 5 (pp. 106–107), Ch. 6 (p. 133)</small></p>
+<p>The guides agree that Traffic Control Plan Verification hinges on a disciplined preventive‑maintenance and monitoring regime. Before any work begins, field staff must confirm that the installed signage and devices are identical to the approved plan and that their placement follows national or local MUTCD standards. Continuous inspection of the work zone is required; any unsafe condition must be reported immediately and corrective action taken before traffic is allowed to re‑enter. Preventive actions include keeping temporary patching material on hand for backfill failures and removing or covering signs as soon as they are no longer needed. The pavement may not be opened to traffic until the repair or backfill material has attained the contract‑specified strength. Qualified personnel, such as flaggers, must be verified as trained and approved under the contract and agency requirements.</p>
+<p>&ldquo;Verify that the signs and devices used match the traffic control plan stipulated in the contract documents.&rdquo;
+&ldquo;Verify that the traffic control setup complies with the Federal Manual on Uniform Traffic Control Devices (MUTCD) or local agency traffic control procedures.&rdquo;
+&ldquo;Ensure that the repaired pavement is not opened to traffic until the repair material meets the strength requirements stated in the contract documents.&rdquo;
+&ldquo;Verify that flaggers are trained/qualified according to contract documents and agency requirements.&rdquo; [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[1] — Ch. 5 (p. 121), Ch. 8 (pp. 199–200); [2] — Ch. 5 (pp. 106–107), Ch. 8 (pp. 170–171)</small></p>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

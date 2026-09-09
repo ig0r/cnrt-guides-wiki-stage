@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concrete Pavement Preservation Practices</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html" class="active" aria-current="page">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Concrete Pavement Preservation Practices</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=concrete-pavement-preservation">concrete-pavement-preservation</a><a class="tag" href="index.html?q=preventive-maintenance">preventive-maintenance</a><a class="tag" href="index.html?q=pavement-deterioration">pavement-deterioration</a><a class="tag" href="index.html?q=material-quality">material-quality</a><a class="tag" href="index.html?q=service-life-extension">service-life-extension</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>Concrete pavement preservation practices are planned, non‑structural interventions applied to existing concrete roadways that exhibit early‑stage deterioration such as loss of ride quality, spalling, cracking, faulting or water infiltration [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]. Their purpose is to maintain smoothness, safety and serviceability by correcting localized distress, reducing moisture intrusion, improving slab support and load‑transfer capability, thereby arresting further decay while the pavement remains in relatively good condition (PCR 60–100) [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]. By employing cost‑effective treatments—such as patching, joint sealing, diamond grinding or dowel bar retrofitting—that are designed for the existing slab type and installed with proven construction practices, preservation extends the pavement’s useful life without adding structural capacity [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-treatment-objectives">Purpose and treatment objectives</a></li><li><a href="#distress-characterization-and-causes">Distress characterization and causes</a></li><li><a href="#applicability-and-treatment-selection">Applicability and treatment selection</a></li><li><a href="#condition-assessment-and-timing">Condition assessment and timing</a></li><li><a href="#materials-and-repair-details">Materials and repair details</a></li><li><a href="#treatment-procedures">Treatment procedures</a></li><li><a href="#quality-and-workmanship">Quality and workmanship</a></li><li><a href="#performance-and-service-life">Performance and service life</a></li><li><a href="#monitoring-and-follow-up">Monitoring and follow-up</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (5)</summary><div class="sources-body"><a href="#ref-1">2019-12_IMCP_manual</a>, <a href="#ref-2">Sustainable_Concrete_Pavement_508</a>, <a href="#ref-3">concrete_pvmt_distress_assessments_and_solutions_guide_w_cvr</a>, <a href="#ref-4">concrete_pvmt_preservation_guide_3rd_edition_web</a>, <a href="#ref-5">preservation_reference_manual</a></div></details>
+
+<h2 id="purpose-and-treatment-objectives">Purpose and treatment objectives</h2>
+<p>The guides agree that concrete pavement preservation practices are directed at &ldquo;early‑stage deterioration of concrete roadways that manifests as a gradual loss of ride quality and serviceability&rdquo;. Across sources the treatments target &ldquo;surface‑defect problems that appear on existing concrete slabs&rdquo;, aiming to &ldquo;Correct localized distress (e.g., spalling, cracking, and faulting)&rdquo;. In addition, the guides identify &ldquo;material‑related cracking, specifically D‑cracking and the chemical deterioration known as alkali‑silica reaction (ASR) distress&rdquo; as a condition that preservation treatments seek to remediate. By addressing these early functional distresses, preservation seeks to maintain smoothness, safety, and overall serviceability before more severe structural failures develop. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates common concrete pavement distress types that preservation practices aim to address.</p>
+<p><img alt="D-cracking and spalling on a concrete pavement surface near" src="assets/concrete-pavement-preservation-practices/cc7b36a07acf90c24313b00d37c3233b1fc636bc6559ac0cd3a499369e446c12.jpg" />
+<em>D-cracking and spalling on a concrete pavement surface near the joint.</em> [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The image displays a section of concrete pavement exhibiting extensive map cracking that converges into a large area of material loss, or spalling, along the edge of the slab.</p>
+<p><small>[2] — Ch. 5 (p. 55), Ch. 6 (pp. 66–67), Ch. 11 (p. 110); [3] — Ch. 4 (pp. 94–318), Ch. 13 (p. 56), Ch. 18 (p. 401); [4] — Ch. 1 (pp. 21–22), Ch. 2 (pp. 27–34), Ch. 6 (p. 154), Ch. 12 (p. 267); [5] — Ch. 1 (pp. 16–17), Ch. 2 (pp. 20–21)</small></p>
+<p>The objective of concrete‑pavement preservation practices, as described across the guides, is to keep existing pavements performing acceptably for as long as possible. This is achieved through &ldquo;the process of maintaining a structure in its present condition and arresting further deterioration,&rdquo; which embodies both prevention of new damage—&ldquo;Prevention of premature pavement distresses&rdquo;—and mitigation of ongoing decay. When distress does appear, preservation calls for &ldquo;Correct localized distress&rdquo; to restore load transfer, smoothness and water control. The overarching aim is therefore to extend the pavement’s useful life: concrete pavement preservation is a strategy of extending concrete pavement service life for as long as possible by arresting, greatly diminishing, or avoiding pavement deterioration processes. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates this concept by depicting the concrete pavement life cycle.</p>
+<p><img alt="The concrete pavement life cycle (Van Dam and Taylor 2009)." src="assets/concrete-pavement-preservation-practices/93e36bdbcfd9fdd5633bb974f064fc70218d09e8d39656084736f89b28fbb0a2.jpg" />
+<em>The concrete pavement life cycle (Van Dam and Taylor 2009).</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays a cyclical diagram representing the concrete pavement life cycle, consisting of six sequential stages: Design, Materials Processing, Construction, Operations, Preservation and Rehabilitation, and Reconstruction and Recycling.</p>
+<p><small>[1] — Ch. 10 (p. 326); [2] — Ch. 5 (p. 55), Ch. 6 (pp. 66–67), Ch. 11 (p. 110); [4] — Ch. 1 (pp. 21–22), Ch. 2 (pp. 27–34), Ch. 12 (p. 267); [5] — Ch. 1 (pp. 16–17), Ch. 2 (pp. 20–21)</small></p>
+<h2 id="distress-characterization-and-causes">Distress characterization and causes</h2>
+<p>The distress targeted by concrete‑pavement preservation practices occurs on the surface of the concrete roadway, where condition begins to decline slightly as the slab ages under traffic. If no treatment is applied, this minor loss quickly accelerates, leading to a rapid drop in performance that eventually levels off at a poor condition requiring rehabilitation or reconstruction. The severity therefore ranges from early‑stage smoothness loss to severe roughness and structural deficiency, with safety and operational impacts that include lower fuel efficiency, higher crash risk and increased noise for road users. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[2] — Ch. 11 (p. 110)</small></p>
+<p>The guides agree that concrete‑pavement distress originates from a combination of age‑related material loss, traffic loading, and moisture intrusion. As the pavement ages, &ldquo;pavement condition slightly decreases with time as the pavement ages and is subjected to traffic,&rdquo; and after the early service period &ldquo;performance decreases at an increasing rate&rdquo; if no action is taken. Simultaneously, water can penetrate the structure; therefore preservation actions stress the need to &ldquo;Reduce water infiltration into the pavement structure&rdquo; and also &ldquo;Reduce water infiltration in the pavement structure.&rdquo; When moisture enters joints or cracks it can bring incompressible particles, so preventing this intrusion—&ldquo;Prevent the intrusion of incompressibles into joints or cracks&rdquo;—is essential. The resulting loss of support and load‑transfer capacity is highlighted by the repeated recommendation to &ldquo;Improve slab support conditions&rdquo; and &ldquo;Improve load transfer capabilities,&rdquo; which together address the weakening of slab support and the diminished ability to distribute traffic stresses. If these mechanisms are not mitigated, localized failures such as spalling, cracking, and faulting—summarized in &ldquo;Correct localized distress (e.g., spalling, cracking, and faulting)&rdquo;—accelerate the overall deterioration. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates these progressive degradation mechanisms.</p>
+<p><img alt="Typical stages in the deterioration of a concrete pavement (" src="assets/concrete-pavement-preservation-practices/2ad65ea452247ad71d7cde1984d8cada2075241c947f7205270c9e376959dd89.jpg" />
+<em>Typical stages in the deterioration of a concrete pavement (Darter, Barenberg, and Yrjanson 1985).</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The figure illustrates the progression of corner breakup on a concrete slab, showing how material loss at the edges leads to voids beneath the pavement.</p>
+<p><small>[2] — Ch. 6 (pp. 66–67), Ch. 11 (p. 110); [4] — Ch. 1 (pp. 21–22); [5] — Ch. 1 (pp. 16–17)</small></p>
+<h2 id="applicability-and-treatment-selection">Applicability and treatment selection</h2>
+<p>Concrete pavement preservation (preventive‑maintenance) is appropriate when the existing concrete slab is still in relatively good condition—typically a Pavement Condition Rating of about 60 to 100—and retains enough remaining service life to benefit from low‑cost treatments. It can be applied even on heavily trafficked lanes, provided that the maintenance detail avoids creating elevation differences between adjacent lanes. The source does not specify particular environmental or site constraints, so preservation is assumed suitable under normal climatic and subgrade conditions as long as the pavement’s structural integrity remains adequate. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The following figure illustrates the typical performance curve that indicates the ideal timing for applying these preservation treatments.</p>
+<p><img alt="Typical pavement performance curve showing ideal times for t" src="assets/concrete-pavement-preservation-practices/8e8661e5e7ae22fd96bbf7bbdca6e33ac770ad1a50cbbc2e716f10f31b900477.jpg" />
+<em>Typical pavement performance curve showing ideal times for the application of pavement preservation, rehabilitation, and reconstruction.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays a graph with &lsquo;Pavement Condition&rsquo; on the vertical axis ranging from Good to Poor and &lsquo;Time&rsquo; on the horizontal axis. A curve illustrates that pavement condition slightly decreases initially before decreasing at an increasing rate until it levels off in a poor state. The graph identifies specific windows for &lsquo;Preventive Maintenance&rsquo; while the pavement remains in good condition, as well as later interventions labeled &lsquo;Rehabilitation&rsquo; and &lsquo;Reconstruction&rsquo;.</p>
+<p><small>[2] — Ch. 6 (pp. 66–67)</small></p>
+<p>&lsquo;Preventive‑maintenance preservation treatments become unsuitable once the concrete slab is no longer in relatively good condition with ample remaining life&rsquo;; generally this occurs when the pavement condition rating falls below about a PCR of 60 and especially under 50. At that point, &lsquo;when distress, roughness, or loss of structural capacity reaches this threshold, rehabilitation—adding thickness or an overlay—is the appropriate next step&rsquo;, and if the condition deteriorates further (PCR under roughly 40) &lsquo;reconstruction is the only viable option&rsquo;.</p>
+<p>&lsquo;Preservation treatments become unsuitable when the concrete pavement’s distress exceeds what localized corrective actions can address—such as extensive spalling, cracking, faulting or loss of structural support&rsquo;; likewise, &lsquo;or when existing design conditions and constraints prevent an effective preservation design; in those cases agencies must resort to more invasive rehabilitation, full‑depth repairs, overlays, or reconstruction&rsquo;.</p>
+<p>&lsquo;Preservation is only appropriate if it is applied to the right pavement at the right time, designed for the current conditions, and installed using proven construction practices&rsquo;. When these criteria are not met, agencies should shift to alternative strategies.</p>
+<p>&lsquo;When a concrete pavement has deteriorated beyond the point where it can be considered in relatively good condition or still possesses significant remaining service life, preservation treatments are no longer appropriate.&rsquo; In such cases—e.g., severe spalling of joints, loss of structural capacity, or functional obsolescence—the agency should move to corrective maintenance (such as partial‑depth repairs or isolated slab replacement), minor rehabilitation that adds thickness, or full reconstruction if the pavement has failed. The choice among these alternatives is driven by the severity of distress and whether the existing structure can still be restored without increasing its structural capacity. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates the distinctions between these approaches by defining pavement preservation, rehabilitation, and reconstruction.</p>
+<p><img alt="Schematic representation of pavement condition over time sho" src="assets/concrete-pavement-preservation-practices/216e9e9c8b068da74e83e0e5678066b8bbb5a2e0027be7699738460c53664e67.jpg" />
+<em>Schematic representation of pavement condition over time showing the timing and scope of preventive maintenance, rehabilitation, reconstruction, and corrective maintenance.</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The figure displays a graph plotting Pavement Condition on the vertical axis against Time on the horizontal axis, illustrating how pavement deteriorates from Good to Poor condition over time. A shaded region labeled &ldquo;Pavement Preservation window&rdquo; highlights a specific timeframe where preventive maintenance is applied while the pavement remains in relatively good condition, before significant deterioration occurs. The diagram distinguishes between different intervention strategies based on timing: &ldquo;Reconstruction&rdquo; and &ldquo;Rehabilitation&rdquo; are shown occurring later when the pavement has deteriorated significantly, while &ldquo;Corrective Maintenance&rdquo; is indicated as a reactive measure.</p>
+<p><small>[2] — Ch. 6 (pp. 66–67), Ch. 11 (p. 110); [4] — Ch. 1 (pp. 21–22); [5] — Ch. 2 (pp. 20–21)</small></p>
+<h2 id="condition-assessment-and-timing">Condition assessment and timing</h2>
+<p>Preservation treatments are applied while the concrete pavement is still in generally good condition—typically reflected by a Pavement Condition Rating of about 60 to 100 and with substantial remaining service life—and as soon as early‑stage, localized distress (such as spalling, cracking or faulting) or water infiltration that threatens slab support, load transfer, or ride quality becomes evident. Acting at this stage keeps the surface smooth, extends useful performance, and avoids more costly rehabilitation later. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates the general applicability of these preservation strategies relative to broader rehabilitation and reconstruction activities.</p>
+<p><img alt="General applicability of pavement preservation, rehabilitati" src="assets/concrete-pavement-preservation-practices/6842eaed1c9f2463aafbd0fb03eda266be90b4a1d2ea08819676919d72ecceae.jpg" />
+<em>General applicability of pavement preservation, rehabilitation, and reconstruction activities over time.</em> [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The figure displays a curve plotting pavement condition against time, illustrating the lifecycle from excellent to failed states. A bracket labeled &ldquo;Pavement Preservation&rdquo; spans the initial phase of the curve where the pavement remains in good to very good condition. This visualizes the concept that preservation is a planned intervention applied early to arrest decay while the pavement remains relatively sound, distinct from later rehabilitation or reconstruction phases shown at the bottom right of the timeline.</p>
+<p><small>[2] — Ch. 6 (pp. 66–67), Ch. 11 (p. 110); [4] — Ch. 1 (pp. 21–22), Ch. 2 (pp. 28–30); [5] — Ch. 2 (pp. 20–21)</small></p>
+<h2 id="materials-and-repair-details">Materials and repair details</h2>
+<p>The preservation toolkit for concrete pavements consists of a defined set of materials, products, configurations, and repair details. Across the guides, preventive‑maintenance treatments are described as “a planned strategy employing cost‑effective treatments (e.g., patching, joint sealing, diamond grinding, and so on)”. Required materials include curing compounds applied with “proper application of curing compound”, patching material for localized cracks, sealants for expansion joints, and specialized grinding equipment for surface renewal. The guides also call for slab stabilization, partial‑depth repairs or full‑depth repairs, retrofitted edge drains, and load‑transfer restoration through dowel bar retrofitting. Surface finishing options include “diamond grinding and grooving” as well as resealing of joints and cracks (“joint resealing and crack sealing”). When structural capacity has declined, rehabilitation adds thickness by placing an additional concrete overlay; the guidance notes that “pavement rehabilitation adds some structural capacity, usually through the application of additional pavement thickness in the form of an overlay”, which follows the existing slab geometry without altering joint spacing. Together these materials, dimensions, and configurations constitute the core preservation toolkit. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[2] — Ch. 5 (p. 55), Ch. 6 (pp. 66–67), Ch. 11 (p. 110); [5] — Ch. 2 (pp. 20–21)</small></p>
+<p>The guides concur that preservation treatments must be “must be (1) applied to the right pavement at the right time, (2) effectively designed for the existing design conditions and prevailing design constraints, and (3) properly constructed or installed using proven construction practices and procedures.” Success also depends on matching the treatment to the slab’s current state—“including localized distress such as spalling, cracking, faulting, slab support deficiencies, load‑transfer problems, water infiltration, and rideability concerns”—and selecting a material that provides durability. Compatibility with the pavement type is required; the treatments must suit the “existing pavement type—jointed plain (JPCP), jointed reinforced (JRCP) or continuously reinforced (CRCP)—.” Preventive‑maintenance actions are only viable when “preventive maintenance is only applicable when the pavement is in relatively good condition and has significant remaining life,” because poorer‑condition slabs lose restored performance more quickly. Moreover, “Key factors influencing the impact of preservation treatments are applying them to the appropriate pavement at the appropriate time, using durable materials, and adhering to proven construction practices,” and “Included among these factors are the existing pavement conditions and the traffic and climatic characteristics of the project, which influence treatment and pavement performance.” [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates how treatment costs vary across different pavement condition ratings.</p>
+<p><img alt="Comparison of treatment costs at different pavement conditio" src="assets/concrete-pavement-preservation-practices/21fe4b54dd712a5d1837738ba68b1cea130ad286d7a3341955218629a3a90a57.jpg" />
+<em>Comparison of treatment costs at different pavement condition ratings (PCRs)</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure illustrates the relationship between pavement age and cost-effectiveness by plotting a downward-sloping curve across four distinct PCR bands. It shows that spending $1.00 to maintain a good pavement (PCR 60 to 100) is equivalent to spending significantly more on deteriorated pavements, with costs jumping to $48.00 at a PCR less than 40. This cost escalation demonstrates the economic rationale for applying preventive maintenance treatments while the pavement remains in relatively good condition.</p>
+<p><small>[2] — Ch. 6 (pp. 66–67), Ch. 11 (p. 110); [4] — Ch. 1 (pp. 21–22), Ch. 2 (p. 34), Ch. 12 (p. 267); [5] — Ch. 1 (pp. 16–17), Ch. 2 (pp. 20–21)</small></p>
+<h2 id="treatment-procedures">Treatment procedures</h2>
+<p>The guides agree that successful implementation of concrete‑pavement preservation depends on appropriate equipment and a disciplined sequence, while also recognizing that timing influences traffic impacts.  First, accurate condition assessment requires “new pavement evaluation equipment, technologies, and protocols.”  Second, treatments must be applied to the correct pavement at the right time, being “effectively designed for the existing design conditions and prevailing design constraints” and “properly constructed or installed using proven construction practices and procedures.”  Although specific environmental windows are not detailed, the timing and quality of application affect work‑zone management; a “proper application of curing compound” can “reduce work‑zone‑related traffic delays,” indicating that traffic restrictions are tied to when and how preservation treatments are performed. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p><small>[2] — Ch. 5 (p. 55); [4] — Ch. 1 (pp. 21–22)</small></p>
+<h2 id="quality-and-workmanship">Quality and workmanship</h2>
+<p>A satisfactory concrete‑pavement preservation practice meets three core acceptance criteria that are consistently identified across the guides. First, the treatment must be &ldquo;applied to the right pavement at the right time&rdquo; – i.e., to a pavement that is a good candidate and still within a favorable condition range (&ldquo;PCR 60 to 100&rdquo;) indicating ample remaining life; once the Pavement Condition Rating falls into lower ranges such as &ldquo;PCR of 50 to 60&rdquo; the cost‑effectiveness declines, and below about &ldquo;PCR less than 40&rdquo; rehabilitation or reconstruction becomes necessary. Second, the preservation design must be (2) effectively designed for the existing design conditions and prevailing design constraints, aligning with slab support, load‑transfer capability, joint configuration, and material quality. Third, the treatment must be (3) properly constructed or installed using proven construction practices and procedures and subsequently maintained throughout its service life – &ldquo;properly designed, properly constructed, and properly maintained throughout their service lives&rdquo; and &ldquo;treatments must be placed on pavements that are good candidates for preservation&rdquo;.</p>
+<p>When these criteria are satisfied, the treatment should demonstrate measurable indicators of success: a demonstrable reduction in water infiltration (&ldquo;Reduce water infiltration in the pavement structure.&rdquo;), prevention of incompressible intrusion into joints or cracks, correction of localized distress, improvement of slab support and load‑transfer capability, lower surface roughness, enhanced friction, and at least a small increase in the pavement condition rating after treatment while retaining smoothness. These outcomes extend service life without premature reconstruction and provide improved safety, reduced traffic disruption, cost savings, and sustainability. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[2] — Ch. 6 (pp. 66–67); [4] — Ch. 1 (pp. 21–22), Ch. 2 (pp. 28–30); [5] — Ch. 1 (pp. 16–17)</small></p>
+<h2 id="performance-and-service-life">Performance and service life</h2>
+<p>The guides describe concrete pavement preservation as a set of planned, non‑structural interventions that are applied while the surface is still in good shape. “preventive maintenance is a planned strategy employing cost‑effective treatments (e.g., patching, joint sealing, diamond grinding, and so on) that extend pavement life without increasing structural capacity.” When these treatments are timed correctly and installed with proven methods they correct localized distress, reduce water infiltration, prevent intrusion of incompressibles into joints or cracks, and improve slab support and load‑transfer capability. By doing so the pavement retains smoothness, adequate friction, and low noise levels, which translates to safer travel and lower vehicle operating costs. “Concrete pavement preservation is a strategy of extending concrete pavement service life for as long as possible by arresting, greatly diminishing, or avoiding pavement deterioration processes.” Because the rate of decay is slowed, durability is enhanced and the expected service life is prolonged. The overall effect is to “preserves the system, retards future deterioration, and maintains or improves the functional condition of the system (without significantly increasing the structural capacity).” If condition falls below the point where preservation is effective, rehabilitation provides a larger boost: “Pavement rehabilitation adds some structural capacity, usually through the application of additional pavement thickness in the form of an overlay.” [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates the typical effects of these preventive maintenance and rehabilitation strategies on overall pavement performance.</p>
+<p><img alt="Illustration of typical effects of preventive maintenance an" src="assets/concrete-pavement-preservation-practices/eb6ab5c1dfb3edaae1c8dcc31a77c19ea1707aedce20e29ec6daf76abb655ad4.jpg" />
+<em>Illustration of typical effects of preventive maintenance and rehabilitation on pavement performance.</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The figure plots Pavement Condition against Time, showing a solid blue curve that represents the natural deterioration of a pavement from Good to Poor condition. Preventive maintenance is depicted as dotted lines that provide small, temporary boosts in condition while the pavement remains relatively good, whereas rehabilitation is shown as a dashed line providing a larger recovery when the pavement has deteriorated significantly.</p>
+<p><small>[2] — Ch. 6 (pp. 66–67), Ch. 11 (p. 110); [4] — Ch. 1 (pp. 21–22), Ch. 2 (pp. 27–34), Ch. 12 (p. 267); [5] — Ch. 1 (pp. 16–17), Ch. 2 (pp. 20–21)</small></p>
+<p>Concrete pavements commonly develop localized distresses such as spalling, cracking, faulting, water infiltration, and intrusion of incompressible material into joints or cracks; these problems reduce smoothness, load transfer, friction, and overall ride quality. Their occurrence is strongly tied to whether preservation treatments are applied at the appropriate time, designed for the existing pavement conditions, and installed with proven construction practices. When any of those three prerequisites—right pavement‑at‑right time, proper design, correct installation—are missed, the intended treatment may fail or the distress can reappear, shortening service life. [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The following figure illustrates common distresses such as joint spalling and blowup that result when preservation practices are not properly implemented.</p>
+<p><img alt="Examples of joint sealant failures in concrete pavement." src="assets/concrete-pavement-preservation-practices/e1e876b25ea721c04256914c75e49e9afc854c4cab30cff5fa672d158b22e4a8.jpg" />
+<em>Examples of joint sealant failures in concrete pavement.</em> [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The figure displays two examples of distress at a longitudinal joint on a grooved concrete surface: the left image shows a wide gap with missing and debonded sealant, while the right image shows a joint filled with debris and incompressible materials.</p>
+<p><small>[4] — Ch. 1 (pp. 21–22)</small></p>
+<h2 id="monitoring-and-follow-up">Monitoring and follow-up</h2>
+<p>The guides agree that once a concrete pavement ceases to be in relatively good condition—typically reflected by a Pavement Condition Rating dropping from the PCR 60‑100 “good” band toward the PCR 50‑60 moderate band—the rate of performance loss accelerates, indicating increasing distress, roughness, or loss of structural capacity. At this stage preventive maintenance is no longer effective and the shift into the lower condition window signals that additional treatment—such as repair or a rehabilitation overlay to restore structural capacity—is required. The guides also note that when observable deficiencies emerge that compromise safety or efficient operation—such as severe joint spalling, loss of load‑transfer capacity, or other distress—the preservation effort is insufficient and corrective maintenance, repair, or full rehabilitation must be considered. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates how preventive maintenance and rehabilitation interventions affect concrete pavement condition over time.</p>
+<p><img alt="Illustration of typical impacts of preventive maintenance an" src="assets/concrete-pavement-preservation-practices/bacefbec9dfe1f8a8bdac0bae54b575d3c2009fce8bdc6be9d411a899d824505.jpg" />
+<em>Illustration of typical impacts of preventive maintenance and rehabilitation on concrete pavement condition (Smith, Hoerner, and Peshkin 2008)</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays a graph plotting Pavement Condition against Time, showing a continuous decline in the solid blue line representing natural deterioration. Dotted lines illustrate how Preventive Maintenance interventions provide temporary recovery of condition while the pavement remains relatively good, whereas Rehabilitation is applied later to restore structural capacity after significant decay has occurred.</p>
+<p><small>[2] — Ch. 6 (pp. 66–67), Ch. 11 (p. 110); [5] — Ch. 2 (pp. 20–21)</small></p>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li><li id="ref-3"></li><li id="ref-4"></li><li id="ref-5"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

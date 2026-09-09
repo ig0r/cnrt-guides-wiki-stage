@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edge Drain Design and Installation</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html" class="active" aria-current="page">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Edge Drain Design and Installation</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=pavement-drainage">pavement-drainage</a><a class="tag" href="index.html?q=edge-drains">edge-drains</a><a class="tag" href="index.html?q=drainage-system-design">drainage-system-design</a><a class="tag" href="index.html?q=geotextile-filtration">geotextile-filtration</a><a class="tag" href="index.html?q=water-infiltration-management">water-infiltration-management</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>Edge drain design and installation is an engineering solution that provides a subsurface drainage system to remove excess water infiltrating concrete pavement joints, cracks and base layers, thereby preventing moisture‑related distresses such as pumping, faulting, settlement and heave [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>][<sup><a href="#ref-12" aria-label="Reference 12">12</a></sup>][<sup><a href="#ref-13" aria-label="Reference 13">13</a></sup>][<sup><a href="#ref-14" aria-label="Reference 14">14</a></sup>]. The system consists of a drainable layer—typically four to six inches thick of open‑graded aggregate wrapped in a geotextile filter—a perforated longitudinal collector pipe positioned about two inches below the subbase/subgrade interface, and regularly spaced outlet conduits that discharge above ditch water levels; it is sized, sloped and protected so that it remains permeable, resists crushing, and conveys water away from the pavement structure [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>][<sup><a href="#ref-12" aria-label="Reference 12">12</a></sup>][<sup><a href="#ref-13" aria-label="Reference 13">13</a></sup>][<sup><a href="#ref-14" aria-label="Reference 14">14</a></sup>]. Designed for new or retrofitted jointed concrete pavements that are essentially sound, edge drains also improve safety by eliminating standing water and support serviceability through marked outlets, routine inspection and maintenance provisions [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-13" aria-label="Reference 13">13</a></sup>][<sup><a href="#ref-14" aria-label="Reference 14">14</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-design-objectives">Purpose and design objectives</a></li><li><a href="#scope-and-applicability">Scope and applicability</a></li><li><a href="#design-inputs-and-requirements">Design inputs and requirements</a></li><li><a href="#structural-section-and-dimensions">Structural section and dimensions</a></li><li><a href="#materials-and-mixture-design">Materials and mixture design</a></li><li><a href="#structural-details-and-interfaces">Structural details and interfaces</a></li><li><a href="#drainage-environment-and-accessibility">Drainage, environment, and accessibility</a></li><li><a href="#verification-and-expected-performance">Verification and expected performance</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (14)</summary><div class="sources-body"><a href="#ref-1">2016_joint_deterioration_in_pvmts_guide</a>, <a href="#ref-2">2019-12_IMCP_manual</a>, <a href="#ref-3">ACPTP-2022-4_QC_QA_of_concrete_airfield_pvmt_manual_w_cvr_508</a>, <a href="#ref-4">IHRB_TR-640_foundation_layers_guide</a>, <a href="#ref-5">US_geotextile_performance_w_cvr</a>, <a href="#ref-6">concrete_overlay_repair_strategies_guide_web</a>, <a href="#ref-7">concrete_pvmt_distress_assessments_and_solutions_guide_w_cvr</a>, <a href="#ref-8">concrete_pvmt_preservation_guide_3rd_edition_web</a>, <a href="#ref-9">concrete_trails_guide</a>, <a href="#ref-10">guide_to_concrete_overlays_4th_Ed_web</a>, <a href="#ref-11">optimum_joint_performance_guide_web</a>, <a href="#ref-12">overlay_construction_doc_dev_guide_w_cvr</a>, <a href="#ref-13">preservation_reference_manual</a>, <a href="#ref-14">thin_concrete_508_compliant_final</a></div></details>
+
+<h2 id="purpose-and-design-objectives">Purpose and design objectives</h2>
+<p>The engineering problem addressed by edge‑drain design and installation is the presence of excess water that infiltrates concrete pavement joints, cracks and base layers and remains trapped beneath the structure. The main objective of any subsurface drainage system is to remove excess water from the pavement structure. When water accumulates beneath a pavement structure it can reduce the load‑carrying capacity of the pavement and contribute to the development of critical moisture‑related distresses such as pumping, faulting, and corner breaks. Infiltrated moisture that enters through cracks, joints or surface voids can accumulate in the base course, generating excess pore‑water pressures that cause settlement, heave, pumping, faulting, loss of support and slab cracking. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>][<sup><a href="#ref-12" aria-label="Reference 12">12</a></sup>][<sup><a href="#ref-13" aria-label="Reference 13">13</a></sup>][<sup><a href="#ref-14" aria-label="Reference 14">14</a></sup>]</p>
+<p>The following figure illustrates the consequences of such trapped moisture by showing evidence of pumping caused by a saturated subgrade or base.</p>
+<p><img alt="Evidence of pumping at a transverse joint caused by saturate" src="assets/edge-drain-design-and-installation/b1ee874f325a5dfca7e57c86862e9a29924b7dbaed3b2b6656586d6a7952a9fe.jpg" />
+<em>Evidence of pumping at a transverse joint caused by saturated subgrade moisture.</em> [<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The image displays a concrete pavement surface with visible dark staining and residue concentrated around the intersection of longitudinal and transverse joints, indicating material loss from beneath the slab.</p>
+<p><small>[1] — Ch. 3 (p. 19), Ch. 4 (p. 25); [5] — 2016 Survey on Concrete Overla… (pp. 21–22); [7] — Ch. 4 (pp. 175–339); [8] — Ch. 7 (pp. 167–183); [11] — 2 Types and Mechanisms of Join… (pp. 24–25); [12] — 5. Condition assessment profile (p. 39); [13] — Ch. 7 (pp. 140–155); [14] — 2. Overview of Thin Concrete O… (pp. 19–20)</small></p>
+<p>Edge drain design and installation must satisfy five interrelated objectives. Functionally, the system is required to remove excess moisture from the pavement structure and convey it away, thereby preventing water from lingering in joints or sub‑layers. Structurally, the collector and its outlets must be sized, sloped, and positioned so that they remain permeable, resist crushing, and discharge above expected ditch water levels, ensuring a stable support condition for the pavement. Durability is attained by incorporating a geotextile filter and construction practices that avoid damage or clogging, allowing the drainage capacity to be retained over the service life. Safety is achieved by eliminating standing water, which reduces hydroplaning risk and improves driver visibility, and by protecting outlets with headwalls and screens to prevent blockage or intrusion. Serviceability is demonstrated through regular inspections, post‑rain observations of active flow, and maintenance provisions (spacing, markers, cleaning) that keep the system functioning throughout the pavement’s design period. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>][<sup><a href="#ref-12" aria-label="Reference 12">12</a></sup>][<sup><a href="#ref-13" aria-label="Reference 13">13</a></sup>][<sup><a href="#ref-14" aria-label="Reference 14">14</a></sup>]</p>
+<p>The following figure illustrates the typical components that comprise such an edge drain system.</p>
+<p><img alt="Cross-section of a rigid pavement edge drain system showing" src="assets/edge-drain-design-and-installation/ee873f9b8f15412dc63539bfb854ba628e160c560bc7eb43c3bfa96bad4eb10a.jpg" />
+<em>Cross-section of a rigid pavement edge drain system showing the permeable base, aggregate separator layer, and perforated pipe.</em> [<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>]</p>
+<p>The figure displays a cross-sectional view of a rigid pavement structure incorporating an edge drainage system at its shoulder. Visible components include the rigid pavement, a permeable base layer, and a perforated pipe encased in geotextile within the drain zone.</p>
+<p><small>[1] — Ch. 3 (p. 19), Ch. 4 (p. 25); [5] — 2016 Survey on Concrete Overla… (pp. 21–22); [7] — Ch. 4 (pp. 175–318); [8] — Ch. 7 (pp. 167–182); [11] — 2 Types and Mechanisms of Join… (pp. 24–25); [12] — 5. Condition assessment profile (p. 39); [13] — Ch. 7 (pp. 140–155); [14] — 2. Overview of Thin Concrete O… (pp. 19–20)</small></p>
+<h2 id="scope-and-applicability">Scope and applicability</h2>
+<p>Edge‑drain design and installation is appropriate for a broad spectrum of pavement situations, ranging from brand‑new highway sections to rehabilitated existing roads where drainage performance must be enhanced. It is suitable for new jointed concrete pavements—especially those on highways—where water entering the joints can lead to settlement or heave, as well as for existing concrete surfaces that have begun to exhibit early moisture‑related distress such as pumping, joint faulting, or limited cracking but have not yet suffered major structural failure. The method also applies to thin unbonded concrete overlays placed over existing slabs, including widening units or paved shoulders where a difference in overlay thickness creates a potential water‑trapping zone; a non‑woven geotextile separation layer can wick water from the pavement layers and convey it to an outlet beyond the shoulder. For retrofit projects, edge drains are installed beneath a drainable base or subbase that is typically composed of open‑graded aggregate meeting an AASHTO No. 57 gradation with no more than about 15–20 % fines, and a geotextile filter is used to keep fine particles from clogging the system. The longitudinal collector—usually a 3‑ to 4‑inch perforated pipe—runs in a trench spaced at intervals that allow rapid removal of infiltrated water, with outlet drains positioned to discharge into existing ditches. This approach is employed under conditions of moderate traffic volumes, acceptable longitudinal and transverse slopes, adequate ditch depth, and where utilities or severe joint deterioration do not preclude installation. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>][<sup><a href="#ref-12" aria-label="Reference 12">12</a></sup>][<sup><a href="#ref-13" aria-label="Reference 13">13</a></sup>][<sup><a href="#ref-14" aria-label="Reference 14">14</a></sup>]</p>
+<p>The following figure illustrates typical drainage outlet details for geotextile or HMA separation layers in these applications.</p>
+<p><img alt="Cross-section details of Unbonded Concrete Overlay on Concre" src="assets/edge-drain-design-and-installation/ff2c8917d35d6887b4fbd664c34ac279a358d81b1955bbc59e31f55e9285bb16.jpg" />
+<em>Cross-section details of Unbonded Concrete Overlay on Concrete (UBCOC) widening units showing drainage outlet configurations.</em> [<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The figure displays two cross-sectional diagrams for UBCOC widening, illustrating how a separation layer is constructed at the pavement edge to facilitate water removal. One configuration utilizes a nonwoven geotextile separation layer while the other employs an HMA separation layer, both designed to daylight into the ditch foreslope or connect to a working subdrain.</p>
+<p><small>[1] — Ch. 3 (p. 19); [5] — 2016 Survey on Concrete Overla… (pp. 21–22); [7] — Ch. 4 (pp. 318–339); [8] — Ch. 7 (pp. 167–183); [11] — 2 Types and Mechanisms of Join… (pp. 24–25); [12] — 5. Condition assessment profile (p. 39); [13] — Ch. 7 (pp. 140–152); [14] — 2. Overview of Thin Concrete O… (pp. 19–20)</small></p>
+<p>The guides agree that edge‑drain retrofits are limited to pavements that are essentially sound and where moisture ingress is the primary cause of distress. They advise abandoning the edge‑drain approach when any of several conditions exist: (1) advanced structural deterioration—“Advanced structural deterioration – when more than 10% of the slabs exhibit cracking, a high number of transverse joints are spalled, or significant pumping is present, the edge‑drain solution falls outside its effective range.”; (2) base material that will quickly clog the filter—“Base material with excessive fines – if the existing base contains more than 15% fines (material passing the No. 200 sieve), its low permeability restricts water migration and raises the risk of clogging…”; (3) when moisture is not the dominant distress mechanism—“Edge drain retrofits are only advisable when the pavement distress is driven primarily by moisture moving from sand lenses or similar sources into frost‑susceptible subgrade; if the settlement or heave originates from other causes, … a different design solution should be pursued.”; and (4) when the required slope or collector cannot be provided or construction/maintenance cannot be assured—“Edge‑drain retrofits are inappropriate when the existing pavement already incorporates moisture‑resistant features, when the structural condition is poor, when the base material will clog the filter, when proper slope or a compatible collector cannot be provided, or when construction and maintenance cannot be assured.” Under these limitations designers typically select longitudinal pipe drains, French drains, graded filter trenches, dry wells, or full reconstruction. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>][<sup><a href="#ref-12" aria-label="Reference 12">12</a></sup>][<sup><a href="#ref-13" aria-label="Reference 13">13</a></sup>]</p>
+<p><small>[1] — Ch. 3 (p. 19), Ch. 4 (p. 25); [7] — Ch. 4 (pp. 318–339); [8] — Ch. 7 (pp. 167–183); [11] — 2 Types and Mechanisms of Join… (pp. 24–25); [12] — 5. Condition assessment profile (p. 39); [13] — Ch. 7 (pp. 140–154)</small></p>
+<h2 id="design-inputs-and-requirements">Design inputs and requirements</h2>
+<p>Edge‑drain design begins with a comprehensive site survey that documents current pavement condition, sources of infiltrating water and the erodibility of the base material; it also records geometric factors such as longitudinal and transverse slopes and the depth and condition of roadside ditches. Existing‑condition criteria include limiting surface cracking to less than about five percent of slabs, avoiding extensive spalling of transverse joints, ensuring no active pumping or severe localized distress (edge punchouts, transverse, longitudinal or diagonal cracks), confirming that any cement‑treated base remains intact, and verifying that the existing base contains fewer than roughly fifteen percent fines. Material information focuses on the permeability of the base and its fine‑particle content, while geotechnical considerations are reflected in the assessment of base erodibility and ditch adequacy. The excerpt does not specify traffic or environmental data requirements. [<sup><a href="#ref-13" aria-label="Reference 13">13</a></sup>]</p>
+<p><small>[13] — Ch. 7 (pp. 141–142)</small></p>
+<h2 id="structural-section-and-dimensions">Structural section and dimensions</h2>
+<p>The guides do not prescribe dimensions for the pavement surface, base, subbase, treated‑soil layer, slab, shoulder, edge‑support element, or any reinforcement. The only dimensional requirements that appear across the sources relate to the drainable components of an edge‑drain system:</p>
+<ul>
+<li>&ldquo;Drainable layers are typically between 4 in. and 6 in. thick&rdquo; – a drainable layer incorporated for edge drainage is called for at a thickness of roughly four to six inches.</li>
+<li>When a prefabricated geocomposite edge‑drain (PGED) is used, its own thickness is &ldquo;typically 0.5 to 1 in. thick&rdquo; and it can be placed in narrower trenches than conventional pipe systems.</li>
+<li>Collector pipes are &ldquo;common[ly] to use pipe sizes of 3 in. to 4 in. with an outlet spacing of roughly 250 ft.&rdquo; – longitudinal edge‑drain pipes are typically three to four inches in diameter, with outlets spaced about 250 feet apart.</li>
+<li>All sources require the top of the drain to be positioned &ldquo;about 2 in below the subbase/subgrade interface&rdquo; (or &ldquo;top of the pipe to be located 50 mm (2 in) below the subbase/subgrade interface&rdquo;). If frost penetration is a concern, &ldquo;the trench should be constructed only slightly deeper than the expected depth of frost.&rdquo;</li>
+<li>Outlets must be set at least six inches above the ditch flow line: &ldquo;Outlets from the system should be located 6 in. above the ditch flow line&rdquo; to avoid backflow.</li>
+</ul>
+<p>No other size specifications for pavement, base, subbase, treated‑soil, slab, shoulder, edge‑support, or reinforcement are provided. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-13" aria-label="Reference 13">13</a></sup>]</p>
+<p><small>[1] — Ch. 3 (p. 19); [8] — Ch. 7 (pp. 170–177); [13] — Ch. 7 (p. 149)</small></p>
+<p>Edge drain design for thin concrete overlays relies on shaping the overlay to shed water, using a cross‑slope or profile change that directs moisture toward the edge drains, and configuring joints to limit water entry by employing narrow single saw cuts or by filling/sealing them. The layer configuration includes an impervious separation layer—either a nonwoven geotextile meeting transmissivity criteria or an open‑graded hot‑mix asphalt—to promote drainage while preventing cement paste intrusion, and when curbs remain in place the geotextile must be tied into the intake walls to connect with the edge‑drain system. These measures together satisfy the design goal of effective water egress and protection of the pavement structure. [<sup><a href="#ref-14" aria-label="Reference 14">14</a></sup>]</p>
+<p>The following figure illustrates a potential failure mode in this system, showing stripping of the asphalt separation layer.</p>
+<p><img alt="Stripping of asphalt separation layer at a joint in an old c" src="assets/edge-drain-design-and-installation/c13e1164c60586739b9bdf6cf195b61327f85f775c19500f486e2745b7f76af4.jpg" />
+<em>Stripping of asphalt separation layer at a joint in an old concrete pavement.</em> [<sup><a href="#ref-14" aria-label="Reference 14">14</a></sup>]</p>
+<p>The image displays a cross-section of a pavement structure featuring a &lsquo;concrete overlay&rsquo; atop &lsquo;old concrete&rsquo;, separated by a dark, granular layer identified as an asphalt separation layer. A vertical displacement labeled &lsquo;faulting&rsquo; is visible at the joint between two slabs of the overlay.</p>
+<p><small>[14] — 2. Overview of Thin Concrete O… (pp. 19–20)</small></p>
+<h2 id="materials-and-mixture-design">Materials and mixture design</h2>
+<p>Edge‑drain designs must define a complete material package that includes a drainable subbase or layer, a filtration medium, a geotextile filter, a longitudinal collector pipe, and an outlet conduit. The drainable layer shall be 4 in to 6 in thick and formed from open‑graded aggregate such as #57 or #67 (or AASHTO No. 57) without sand; optional cement stabilization of at least 250 lb/yd³ may be used. Existing base material should contain no more than about 15 % fines (No. 200 sieve) to retain permeability, and trench backfill must meet an AASHTO No. 57 gradation or consist of clean coarse sand placed in approximately six‑inch lifts and compacted by flushing with water (maximum aggregate size 0.75 in). Backfill density shall reach at least 95 % of the maximum dry density (AASHTO T‑99) and its permeability must equal or exceed that of the underlying base.</p>
+<p>The filtration medium is wrapped in a geotextile fabric; acceptable fabrics are woven or non‑woven polypropylene or nylon mats that satisfy FHWA filter criteria, Holtz et al. requirements, or transmissivity criteria (Harrington and Fick). The geotextile openings must be smaller than the surrounding fine particles to prevent clogging while allowing water flow.</p>
+<p>The longitudinal collector may be a perforated pipe of 3‑4 in diameter, fabricated as flexible corrugated polyethylene (CPE) or smooth rigid PVC, conforming to AASHTO M 252 or M 278 (Class 50). Maximum longitudinal elongation during placement is limited to 5 %. Prefabricated geocomposite edge drains (panel or fin drains) are also permitted; panels are 0.5–1 in (13‑25 mm) thick, must meet ASTM D 6244‑98 vertical compression criteria, and are installed with the top about two inches above the pavement surface and at least six inches of backfill cover before compaction.</p>
+<p>Outlet conduits shall be 4‑in (100‑mm) stiff, non‑perforated smooth‑walled PVC or HDPE pipe, laid on a minimum slope of 3 % (0.03 m/m), with a headwall and positioned at least six inches above the ten‑year ditch flow line; minimum cover over the pipe is 150 mm (6 in) before compaction.</p>
+<p>When an unbonded concrete overlay is used, a non‑woven geotextile separator or an open‑graded hot‑mix asphalt layer may serve as the drainage separator; the HMA mix must be designed and placed to prevent water infiltration and binder stripping. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>][<sup><a href="#ref-12" aria-label="Reference 12">12</a></sup>][<sup><a href="#ref-13" aria-label="Reference 13">13</a></sup>][<sup><a href="#ref-14" aria-label="Reference 14">14</a></sup>]</p>
+<p><small>[1] — Ch. 3 (p. 19); [8] — Ch. 7 (pp. 168–180); [11] — 2 Types and Mechanisms of Join… (pp. 24–25); [12] — 5. Condition assessment profile (p. 39); [13] — Ch. 7 (pp. 145–154); [14] — 2. Overview of Thin Concrete O… (pp. 19–20)</small></p>
+<p>Drainable layers are typically between 4 in. and 6 in. thick and often use an open‑graded aggregate such as a #57 or #67 with no sand. AASHTO No. 57 gradation aggregate generally provides sufficient permeability and stability for use as a nonstabilized backfill material. AASHTO No. 57 gradation should provide sufficient permeability and stability for use as nonstabilized backfill material. Coarse sand, placed in 6 in. lifts, has been successfully used as backfill material and compacted by flushing or puddling with water. Proper compaction of the backfill material is important to avoid settlement over the edgedrain, yet overcompaction should also be avoided to prevent damage to the drain itself. damage from backfilling can be avoided by compacting the sand backfill using water puddling. A minimum density of 95 percent Standard Proctor (AASHTO T‑99) is recommended. filled with stabilized or nonstabilized open‑graded material. the opening size in the selected geotextile must be smaller than the size of the fine materials. Geotextiles should therefore be designed considering both the subbase and subgrade soils using the filter criteria in the FHWA geosynthetics design manual (Holtz et al. 1998), partially lined with geotextile fabric (in areas where it comes in contact with either the subbase or subgrade materials) to prevent the infiltration of fines. a nonwoven geotextile that meets certain transmissivity requirements (Harrington and Fick 2014). increasingly rigid, smooth‑walled plastic pipe is being used instead because it lies flat in the trench and is less susceptible to crushing. It is common to use pipe sizes of 3 in. to 4 in. with an outlet spacing of roughly 250 ft. The backfill material should be placed using chutes or other means to avoid dropping material onto the pipe from the top of the trench. The ACPA suggests at least 250 lb/yd3 . or an open‑graded hot‑mix asphalt (HMA) can be used as an impervious separation layer that promotes drainage. If an HMA separation layer is not designed and constructed properly, however, water may infiltrate and then become trapped in the HMA layer, resulting in stripping, or separation of the asphalt from the aggregate. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-13" aria-label="Reference 13">13</a></sup>][<sup><a href="#ref-14" aria-label="Reference 14">14</a></sup>]</p>
+<p>The following figure illustrates a geotextile-lined trench with CPE pipe.</p>
+<p><img alt="Cross-section of a corrugated polyethylene pipe installed in" src="assets/edge-drain-design-and-installation/21f8b9fe763ffef31753ab916a8378020c7366774f5e6dbd27c040197219b5e7.jpg" />
+<em>Cross-section of a corrugated polyethylene pipe installed in bedding material within a trench.</em> [<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p>The figure displays a vertical cross-section showing a white circular pipe resting on a tan layer labeled &ldquo;Bedding material&rdquo; and surrounded by gray &ldquo;Trench backfill&rdquo; above the subgrade. This installation method corresponds to the practice of placing drainage pipes in a groove within bedding material, which is a specific step in edge drain design and installation.</p>
+<p><small>[1] — Ch. 3 (p. 19); [8] — Ch. 7 (pp. 170–179); [13] — Ch. 7 (pp. 145–154); [14] — 2. Overview of Thin Concrete O… (pp. 19–20)</small></p>
+<h2 id="structural-details-and-interfaces">Structural details and interfaces</h2>
+<p>Edge‑drain installations begin by addressing pavement joints: “any slab showing pumping or faulting must be subsealed and the existing joints resealed, restoring their load‑transfer capability before drainage components are placed.” The drain system is built in a trench that serves as the structural transition between pavement and pipe; the guides specify “a trench filled with filter‑graded aggregate wrapped with a geotextile, longitudinal (perforated) pipe, and outlet (non‑perforated) pipe.” Water collected by the perforated conduit is conveyed to the surface through “Water is discharged from the pipe edgedrain into the nearest ditch through regularly spaced transverse outlet pipes connected to the longitudinal drainage pipe.” To ensure the infiltrating water reaches the edge drain, a dedicated moisture outlet is provided: “1×2 ft deep drainage trench at back of curb designed to allow water to reach outer edge drain.” These elements together define the required joint treatment, transition media, pipe connections, and dimensional details for a functional edge‑drain system. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>][<sup><a href="#ref-12" aria-label="Reference 12">12</a></sup>][<sup><a href="#ref-13" aria-label="Reference 13">13</a></sup>][<sup><a href="#ref-14" aria-label="Reference 14">14</a></sup>]</p>
+<p>The following figure illustrates a recommended design for retrofitted pipe edge drains.</p>
+<p><img alt="Cross-section of a retrofitted pipe edge drain system instal" src="assets/edge-drain-design-and-installation/3d1cad0b3d74be8aab442300de2cf77877c87a07c14958b24a2e8f05a25c18e6.jpg" />
+<em>Cross-section of a retrofitted pipe edge drain system installed at the pavement shoulder.</em> [<sup><a href="#ref-13" aria-label="Reference 13">13</a></sup>]</p>
+<p>The figure displays a cross-sectional view of a pavement structure featuring a longitudinal drainage trench located along the shoulder. A perforated collector pipe is positioned within an aggregate-filled trench that is wrapped in geotextile fabric to separate it from the surrounding soil and subbase layers. This configuration illustrates a pipe edge drain system designed to remove excess water from the pavement structure.</p>
+<p><small>[1] — Ch. 4 (p. 25); [5] — 2016 Survey on Concrete Overla… (pp. 21–22); [8] — Ch. 7 (pp. 170–182); [11] — 2 Types and Mechanisms of Join… (pp. 24–25); [12] — 5. Condition assessment profile (p. 39); [13] — Ch. 7 (pp. 145–155); [14] — 2. Overview of Thin Concrete O… (pp. 19–20)</small></p>
+<p>The interfaces are treated as deliberately separated zones. Between the concrete slab and the drainable base the guides stress that “the open‑graded nature of a drainable layer, care should be taken not to allow cement paste from the concrete pavement slab to penetrate this layer and cause a bond” and that “the use of a geotextile between the drainable layer and surrounding layers is recommended.” The geotextile must meet filter criteria: “To be effective, the opening size in the selected geotextile must be smaller than the size of the fine materials.” The drainable layer itself is described as “typically between 4 in. and 6 in. thick and often use an open‑graded aggregate such as a #57 or #67 with no sand.”</p>
+<p>At the junction with subbase or subgrade, the trench is “partially lined with geotextile fabric in areas where it comes into contact with either the subbase or subgrade materials,” and more generally “The trench should be lined with a geotextile to prevent migration of fines from the surrounding soil into the drainage trench.” Backfill behind the collector must be “at least as permeable as the base material” and may be “filled with stabilized or nonstabilized open‑graded material” such as “AASHTO No. 57 gradation should provide sufficient permeability and stability for use as nonstabilized backfill material.” The collector is positioned with its crown “2 in. below the subbase/subgrade interface” and protected by “a minimum six‑inch cover … before compaction to protect the core while maintaining structural support.”</p>
+<p>Collector selection follows the compatibility rule: “It is important that the selected collector type be compatible with the existing pavement structure as well as with the surrounding materials.” Failure to seat the drain against the base is highlighted: “failure to place the geocomposite edge drain against the base layer was cited as the primary cause of failure.”</p>
+<p>Where the pavement meets a curb, a dedicated moisture outlet is provided: “1×2 ft deep drainage trench at back of curb designed to allow water to reach outer edge drain.” For widened overlays or shoulders, the design calls for “provide a drainable subbase and a drainage outlet under the widening unit/ paved shoulder at the time of the overlay” together with “a non‑woven geotextile fabric separation layer provides the opportunity to wick water from the pavement layers and send it to an outlet beyond the shoulder.” When curbs are removed, the geotextile can be tied into the underdrain: “If the curb is removed for construction of an unbonded overlay, the geotextile layer … can be drained into an existing or retrofitted underdrain system.” If curbs remain, the layer must be linked to intake walls: “If the curb is not removed, the geotextile separation layer will need to be tied into the wall of the intakes on the project.”</p>
+<p>Alternative separation media are permitted: “nonwoven geotextile that meets certain transmissivity requirements (Harrington and Fick 2014)” or “open‑graded hot‑mix asphalt (HMA) can be used as an impervious separation layer.” Finally, proper backfill placement and compaction practices such as “drain clogging can be minimized by using the installation detail … and that damage from backfilling can be avoided by compacting the sand backfill using water puddling” are required to preserve the integrity of all interfaces. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-12" aria-label="Reference 12">12</a></sup>][<sup><a href="#ref-13" aria-label="Reference 13">13</a></sup>][<sup><a href="#ref-14" aria-label="Reference 14">14</a></sup>]</p>
+<p><small>[1] — Ch. 3 (p. 19); [5] — 2016 Survey on Concrete Overla… (pp. 21–22); [8] — Ch. 7 (pp. 170–180); [12] — 5. Condition assessment profile (p. 39); [13] — Ch. 7 (pp. 142–154); [14] — 2. Overview of Thin Concrete O… (pp. 19–20)</small></p>
+<h2 id="drainage-environment-and-accessibility">Drainage, environment, and accessibility</h2>
+<p>The design of edge drains begins with a site‑specific assessment of climate, precipitation patterns and base‑course permeability (fines ≤ ≈15%). The primary source of moisture is surface infiltration through cracks, joints and shoulder seams; secondary sources such as irrigation, shallow ditches or high groundwater tables are identified and incorporated into the layout. A subsurface drainable layer about four to six inches thick made of open‑graded #57 or #67 aggregate without sand is placed behind the curb or shoulder, wrapped in a geotextile whose openings are smaller than the surrounding fines; cement paste from the slab is kept out and, if needed for stability, at least 250 lb/yd³ of Portland cement may be added. The trench—typically about 12 in wide and at least 8 in deep—is sloped toward a ditch at a grade of at least 8% so that water moves quickly out of the pavement structure. A longitudinal perforated pipe, three to four inches in diameter, is positioned with its top about two inches below the subbase/subgrade interface; outlet drains are placed at the lowest points of the longitudinal profile, protected from crushing or submersion, with outlet inverts set at least six inches above the projected ten‑year ditch‑flow elevation and spaced roughly 250–300 ft. The system’s performance is verified by functional testing (e.g., water trucks) and requires regular inspection, cleaning of filters and outlets, and protection such as headwalls or flap valves to guard against back‑flow during high‑flow events. By collecting infiltrated water and removing it promptly, the retrofit minimizes the time that underlying layers remain saturated, thereby reducing moisture‑related distress such as settlement, heave and punchouts in freeze‑thaw climates. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>][<sup><a href="#ref-12" aria-label="Reference 12">12</a></sup>][<sup><a href="#ref-13" aria-label="Reference 13">13</a></sup>][<sup><a href="#ref-14" aria-label="Reference 14">14</a></sup>]</p>
+<p>The following figure illustrates the effectiveness of this approach by showing a before-and-after comparison of the pavement structure with and without the installed longitudinal edge drain.</p>
+<p><img alt="Schematic of a longitudinal edge drain installation reducing" src="assets/edge-drain-design-and-installation/c08f960d4e12748dcddc1188338309d674ac806a606196ba9f8b1fd61ff3d159.jpg" />
+<em>Schematic of a longitudinal edge drain installation reducing the flow path within a granular base layer.</em> [<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p>The figure displays a cross-section of pavement layers, including a surface slab and a granular base containing water droplets. Arrows indicate that the addition of an edge drain system creates a &ldquo;New shortened flow path&rdquo; for moisture to exit through an outlet, rather than traveling horizontally through the base.</p>
+<p><small>[1] — Ch. 3 (p. 19); [5] — 2016 Survey on Concrete Overla… (pp. 21–22); [7] — Ch. 4 (pp. 175–339); [8] — Ch. 7 (pp. 167–183); [11] — 2 Types and Mechanisms of Join… (pp. 24–25); [12] — 5. Condition assessment profile (p. 39); [13] — Ch. 7 (pp. 140–155); [14] — 2. Overview of Thin Concrete O… (pp. 19–20)</small></p>
+<p>The guides agree that edge‑drain design must first establish proper pavement geometry so water is directed away from the structure; “The surface of the pavement, shoulders, and surrounding right of way should be sloped to allow water to be carried away.” Longitudinal and transverse slopes also have to meet acceptable limits, as noted: “Edge drain design must verify that the pavement’s longitudinal and transverse slopes are within acceptable limits,”. The drainage trench behind the curb is required to provide sufficient capacity, with a typical cross‑section of one foot wide by two feet deep (“1×2 ft deep drainage trench”). Accessibility and safety are addressed through outlet treatment: “dual independent pipe outlets marked 24 to 36 in. above ground, with clearly identified outlet markers to locate transverse outlets for rapid inspection and flushing,” and the manual reinforces that each outlet be connected before back‑filling, protected with headwalls, and clearly identified, using markers placed 610–914 mm above ground (“Each outlet must be connected before back‑filling, protected with headwalls, and clearly identified. Markers 610–914 mm above ground provide visual cues for inspection and maintenance”). Together these geometric grading, trench sizing, and marked, protected outlets satisfy the integrated set of geometric, safety, accessibility, and user requirements for edge‑drain systems. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-13" aria-label="Reference 13">13</a></sup>][<sup><a href="#ref-14" aria-label="Reference 14">14</a></sup>]</p>
+<p>The following figure illustrates a typical outlet pipe configuration.</p>
+<p><img alt="Concrete edge drain outlet structure holding standing water" src="assets/edge-drain-design-and-installation/309cc57fd9c47f02bb5943d2a6e9b4216a052cf64ab4796b3b84effae1e4f9df.jpg" />
+<em>Concrete edge drain outlet structure holding standing water due to inadequate ditch grade.</em> [<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p>The image displays a concrete headwall structure at the end of an underground drainage pipe, which is situated in a grassy roadside ditch. Water is visibly pooled inside and immediately around the outlet, indicating that the system is unable to discharge flow effectively. This visualizes a failure in edge drain design where inadequate ditch grade prevents water from flowing away, resulting in an &ldquo;outlet pipe configuration&rdquo; that holds water rather than draining it.</p>
+<p><small>[1] — Ch. 3 (p. 19); [5] — 2016 Survey on Concrete Overla… (pp. 21–22); [7] — Ch. 4 (p. 175); [8] — Ch. 7 (pp. 168–182); [13] — Ch. 7 (pp. 141–155); [14] — 2. Overview of Thin Concrete O… (pp. 19–20)</small></p>
+<h2 id="verification-and-expected-performance">Verification and expected performance</h2>
+<p>The completed edge‑drain design is checked through a series of field verifications that together address compliance, constructability, performance, and consistency with project requirements. First, “The capacity of the drain must be checked and an adequate slope must be used to move the water to the outlets.” Pipe sizing and spacing are confirmed by “It is common to use pipe sizes of 3 in. to 4 in. with an outlet spacing of roughly 250 ft.” and “In general, the outlet spacing should not exceed 76 to 91 m (250 to 300 ft) in order to permit cleaning.” The use of filtration fabric is verified by “Geotextile fabric is also commonly used with edge drains to keep them from clogging.” Alignment and grading are inspected with “maintain correct line and grade when installing longitudinal edgedrains” and “maintain correct line and grade.” Trench depth control is checked by “trench depth be deep enough to allow the top of the drain to be located 2 in. below the subbase/subgrade interface” and “top of the drain be located 50 mm (2 in) below the subbase/subgrade interface.” Cover requirements are confirmed with “minimum of 6 in. of cover over the drainage pipe,” “a minimum of 150 mm (6 in) of cover over the drainage pipe is recommended before compacting,” and back‑fill density is verified by “goal of a minimum density of 95% as measured by a standard Proctor test (AASHTO T 99)” and “A minimum density of 95 percent Standard Proctor (AASHTO T-99) is recommended.” Compaction quality is demonstrated using “degree of compaction can be verified easily using a DCP” and “the degree of compaction can be verified easily using a dynamic cone penetrometer (DCP).” Pipe elongation limits are checked by both “The typical limit for tolerable longitudinal elongation of CPE pipes is 5%” and “the typical limit for tolerable longitudinal elongation of CPE pipes is 5 percent (NHI 1999).” Outlet geometry and protection are confirmed with “Outlets from the system should be located 6 in. above the ditch flow line,” “The outlet end should be placed at least 150 mm (6 in) above the 10-year ditch flow line and protected with a headwall and splash block,” “Headwalls are recommended at outlet locations because they protect the outlet pipe from damage, prevent slope erosion, and facilitate the location of outlet pipes,” and “concrete headwalls with permanent anti‑intrusion protection (screens).” Material specifications are verified by “The outlet pipe should be a 100-mm (4-in) diameter stiff, non-perforated smooth-walled PVC or high‑density polyethylene (HDPE) pipe with minimum slope of 0.03 m/m.” Functional performance is tested by “locating and inspecting drainage outlets to ensure that they are properly located at low spots in the longitudinal pavement profile,” confirming they are “not crushed, submerged, or otherwise impede the outflow of pavement moisture,” and conducting a “functional test of the drainage system could include the discharge of water trucks on the pavement surface and monitoring outlets to check their function and drain time.” Ongoing condition is assessed by “Drainage layers and edge drains must be inspected to determine if they continue to allow water to leave the pavement,” and maintenance provisions are verified through “If longitudinal drains have been used, the pipes can be cleaned,” “placement of outlet markers, 610 to 914 mm (24 to 36 in) above the ground and suitably marked,” and “specifying proper connectors to allow periodic flushing or jet rodding of the edge drain system.” [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-13" aria-label="Reference 13">13</a></sup>]</p>
+<p>The following figure illustrates a precast headwall equipped with a rodent screen.</p>
+<p><img alt="Precast headwall with rodent screen (FHWA 1992)." src="assets/edge-drain-design-and-installation/5934ffb28da767ba9726bbc2135985afac5aae8bd9c758c661b69d4e6b203674.jpg" />
+<em>Precast headwall with rodent screen (FHWA 1992).</em> [<sup><a href="#ref-13" aria-label="Reference 13">13</a></sup>]</p>
+<p>The figure displays the front and side elevations of a precast concrete structure designed to protect an outlet pipe. It features a rectangular enclosure with internal dimensions that accommodate a circular rodent screen, which is installed within the vertical riser section.</p>
+<p><small>[1] — Ch. 3 (p. 19), Ch. 4 (p. 25); [7] — Ch. 4 (p. 175); [8] — Ch. 7 (pp. 177–178); [13] — Ch. 7 (pp. 150–155)</small></p>
+<p>Across the guides, edge‑drain retrofit designs are expected to deliver three primary performance outcomes: (1) a measurable extension of functional service life—&ldquo;proper pavement drainage can extend pavement life from several years to more than twice that of a conventional "undrained" pavement&rdquo; and &ldquo;An additional 5 to 10 years of additional service life was attributed to the installation of retrofitted edge drains.&rdquo;; (2) a substantial reduction in moisture‑related distresses such as pumping, joint faulting and cracking—&ldquo;edge drains are highly effective in reducing pumping and faulting&rdquo;, &ldquo;edge drains were indeed effective at reducing the faulting in JPCP by 88 percent&rdquo;, and lower fault depths and slower fault‑rate development observed in longitudinal studies; and (3) reliable drainage operation demonstrated by low outlet‑failure rates—&ldquo;the number of edge drain outlet failures decreased from 20 percent to approximately 2 percent by the year 2000&rdquo;. Performance is measured through (a) longitudinal field studies that compare drained sections with control sections—&ldquo;time-series performance data for pavements with and without retrofitted edge drains were examined&rdquo;, (b) periodic visual or video inspections of the conduit—&ldquo;video inspections of in-service edge drains to assess their performance&rdquo;, (c) quantitative surveys of fault depth, joint condition and crack incidence conducted before installation and at regular intervals thereafter, and (d) verification of construction tolerances: pipe elongation ≤5 %—&ldquo;The typical limit for tolerable longitudinal elongation of CPE pipes is 5 percent&rdquo;, minimum cover ≥150 mm (6 in.)—&ldquo;a minimum of 150 mm (6 in) of cover over the drainage pipe is recommended before compacting&rdquo;, and backfill density ≥95 % Standard Proctor—&ldquo;A minimum density of 95 percent Standard Proctor (AASHTO T‑99) is recommended.&rdquo;. The degree of compaction is confirmed with a dynamic cone penetrometer—&ldquo;the degree of compaction can be verified easily using a dynamic cone penetrometer (DCP).&rdquo; When these metrics show extended service life, reduced distress rates, and sustained drain functionality, the edge‑drain design is considered successful. [<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-13" aria-label="Reference 13">13</a></sup>]</p>
+<p><small>[8] — Ch. 7 (pp. 177–178); [13] — Ch. 7 (pp. 140–153)</small></p>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li><li id="ref-3"></li><li id="ref-4"></li><li id="ref-5"></li><li id="ref-6"></li><li id="ref-7"></li><li id="ref-8"></li><li id="ref-9"></li><li id="ref-10"></li><li id="ref-11"></li><li id="ref-12"></li><li id="ref-13"></li><li id="ref-14"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

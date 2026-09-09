@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BCOA Thickness Calculation</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html" class="active" aria-current="page">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>BCOA Thickness Calculation</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=bcoa-thickness-designer">bcoa-thickness-designer</a><a class="tag" href="index.html?q=asphalt-concrete-overlays">asphalt-concrete-overlays</a><a class="tag" href="index.html?q=joint-spacing">joint-spacing</a><a class="tag" href="index.html?q=material-properties">material-properties</a><a class="tag" href="index.html?q=design-methodology">design-methodology</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>The BCOA Thickness Calculation is a mechanistic, iterative design procedure used to determine the minimum concrete overlay thickness for thin bonded‑concrete overlays on existing flexible‑base or asphalt pavements so that the overlay and underlying layer act as a single composite system capable of carrying anticipated traffic loads while avoiding premature failure such as reflective cracking, fatigue damage, and temperature‑induced curling [2][3][4][5]. The method requires site‑specific inputs—including design lane ESALs, reliability target, effective temperature gradient, existing asphalt thickness and modulus, subgrade reaction k‑value, and concrete material properties (flexural strength, modulus, coefficient of thermal expansion, fiber residual strength)—and iteratively evaluates stress equations, fatigue‑damage limits, and curling stresses against prescribed performance criteria (20‑year design life, 80 % reliability, ≤30 % cracked slabs) to produce an overlay thickness that must lie between three and six inches with joint spacings typically 4–6 ft (12–18 times the thickness in inches) [2][3][5]. The calculation also enforces geometric limits (panel size ≤6 ft, maximum BCOA‑ME thickness 6.5 in., SJPCP module up to 8 in.) and bonding requirements—dense, clean FDR surface—to ensure long‑term bond integrity; exceeding these bounds triggers alternative design approaches [4][5].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-design-objectives">Purpose and design objectives</a></li><li><a href="#scope-and-applicability">Scope and applicability</a></li><li><a href="#design-inputs-and-requirements">Design inputs and requirements</a></li><li><a href="#design-methods-and-criteria">Design methods and criteria</a></li><li><a href="#structural-section-and-dimensions">Structural section and dimensions</a></li><li><a href="#materials-and-mixture-design">Materials and mixture design</a></li><li><a href="#structural-details-and-interfaces">Structural details and interfaces</a></li><li><a href="#drainage-environment-and-accessibility">Drainage, environment, and accessibility</a></li><li><a href="#verification-and-expected-performance">Verification and expected performance</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (5)</summary><div class="sources-body"><a href="#ref-1">2019-12_IMCP_manual</a>, <a href="#ref-2">Guide_to_FDR_with_Cement_Jan_2019_reprint</a>, <a href="#ref-3">Overlays_Design_Guide_508</a>, <a href="#ref-4">guide_to_concrete_overlays_4th_Ed_web</a>, <a href="#ref-5">overlays_parking_lots_guide_2nd_ed_web</a></div></details>
+
+<h2 id="purpose-and-design-objectives">Purpose and design objectives</h2>
+<p>The BCOA Thickness Calculation is used to solve the engineering challenge of designing thin bonded‑concrete overlays on existing flexible‑base or asphalt pavements so that the overlay and underlying layer function as a single composite system capable of carrying traffic loads while preventing premature pavement failure, reflective cracking, fatigue damage, and temperature‑induced curling. The method also limits overlay thickness to avoid excessive stiffness that would diminish the asphalt’s contribution to flexural resistance, integrating joint spacing, material properties, surface preparation, and reliability targets to achieve a durable, service‑life‑controlled solution. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[2] — Ch. 4 (pp. 55–56); [3] — 1. Introduction (pp. 20–46); [4] — App. A (p. 104); [5] — Special Design Considerations … (p. 25), Thickness Design for Bonded Co… (pp. 20–22), Zone Design for Parking Lot Ov… (pp. 24–25)</small></p>
+<p>The BCOA Thickness Calculation must confirm that the overlay can functionally support the anticipated traffic loads while providing a structurally adequate slab thickness and must verify that the overlay can accommodate the specified traffic volume (ESALs) to achieve a 20-year design life. Structurally, it must limit tensile stresses that cause corner cracking and transverse cracking, enforce joint spacings no larger than six‑foot panels, keep the overlay thickness within the prescribed limits—The maximum COA–B overlay design thickness using BCOA-ME is 6.5 in. and The maximum design thickness using the SJPCP module of AASHTOWare Pavement ME Design is 8 in.—and joint spacing &hellip; typically in the range of 4 to 6 ft (12–18 times the thickness in inches). Durability requires that the FDR surface be relatively dense and free from loose aggregate particles, dust, or other contamination; reflective cracking may be minimized by using synthetic fibers in the concrete overlay and following proper jointing practices; calculating the fatigue damage in the slab for a corner loading condition, as well as limiting the fatigue damage at the bottom of the existing asphalt pavement at the transverse joint location; Temperature curling stresses are also considered in the critical pavement response.; The variability of the asphalt layer stiffness with temperature is considered.; and A review of the performance of existing projects indicates that reflective cracking may occur if the existing asphalt layer has transverse cracks. Safety is addressed by recognizing that failure to achieve an adequate bond between the concrete and FDR layers will result in premature pavement failure, and by applying failure criteria are entered in terms of maximum percentage of cracked slabs and reliability; the area is strictly limited to cars and other light vehicles. Serviceability is ensured by maintaining load transfer and fracture toughness over the pavement’s life, limiting cracking to 30 percent cracked slabs at end of design life, and meeting an 80 percent reliability target. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates the critical requirement that overlay joint width must be equal to or greater than any cracks present in the existing slab.</p>
+<p><img alt="Detail of a concrete overlay joint aligned with an underlyin" src="assets/bcoa-thickness-calculation/4706cf6e744cd0829991ea564a5552cfc835ba6e8a12eeee1a35ddef81ff0f6b.jpg" />
+<em>Detail of a concrete overlay joint aligned with an underlying crack in the existing slab.</em> [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The figure shows a cross-section of a bonded concrete overlay where the transverse sawcut is positioned directly over an underlying crack in the existing pavement. This alignment ensures that the jointing pattern matches the existing pavement to avoid reflective cracking and allow the layers to act monolithically. The sawcut depth extends through the full depth of the pavement system plus ½ inch, which prevents debonding if the width of the transverse joint is equal to or greater than the underlying crack.</p>
+<p><small>[2] — Ch. 4 (pp. 55–56); [3] — 1. Introduction (pp. 20–29); [4] — App. A (p. 104); [5] — Special Design Considerations … (p. 25), Thickness Design for Bonded Co… (pp. 20–22), Zone Design for Parking Lot Ov… (pp. 24–25)</small></p>
+<h2 id="scope-and-applicability">Scope and applicability</h2>
+<p>Assess the condition of existing pavement (e.g., slabs distressed/replaced before restoration and asphalt milled thickness). A number of design methods are available specifically for the design of BCOA. The design essentially becomes a bonded concrete overlay, and the required slab thickness is reduced. The approach used in calculating the required slab thickness, assuming that bonding is achieved during and after construction, is basically the same approach used for thin bonded overlays of an asphalt pavement. Although the BCOA-ME method provides a good approximation. The ACPA BCOA is valid for a slab thickness of 3 to 6 in. and a maximum panel size of 6 ft. Shorter joint spacings (both transverse and longitudinal) are typically used for bonded overlays over asphalt pavements, such as 4 ft by 4 ft or 6 ft by 6 ft slabs for a 12 ft wide lane. SJPCP/AC analysis can evaluate the following joint spacing in feet: 2×2, 3×3, 4×4, 6×6, 7×7, 10×12, 12×12, and 15×12. The input requirements for the ACPA BCOA thickness design tool are as follows: • ESALs. • Percentage of allowable cracked slabs. • Reliability. Design location (to determine the site specific effective temperature gradient). Existing asphalt pavement: ◦ Remaining asphalt thickness and modulus. Bonded overlays of asphalt pavements were previously referred to as ultrathin whitetopping (UTW) for thicknesses between 2 and 4 in. or thin whitetopping (TWT) for thicknesses between 4 and 6 in. The procedure also considers the effect of fiber reinforcement based on work by Roesler et al. (2008). A review of the performance of existing projects indicates that reflective cracking may occur if the existing asphalt layer has transverse cracks. Note that this method was not originally developed for overlays of composite pavements but can be used if the equivalent stiffness of the supporting structural layers is input properly; The maximum COA–B overlay design thickness using BCOA-ME is 6.5 in. The maximum design thickness using the SJPCP module of AASHTOWare Pavement ME Design is 8 in. At greater overlay thicknesses, the concrete overlay is so stiff (in terms of both elastic modulus and layer thickness) relative to the underlying asphalt that the asphalt contributes very little to the pavement’s flexural resistance to loads. In such cases, the system can be designed as an unbonded concrete overlay. For this guide, the ACPA’s BCOA Thickness Designer software &hellip; has been used to determine overlay design thicknesses for light‑vehicle asphalt parking lots. The recommended joint pattern for bonded concrete overlays of asphalt is small squares, typically in the range of 4 to 6 ft (or 12 to 18 times the thickness in inches). Existing pavement structure: ‑ Remaining asphalt thickness and modulus – k-value of subgrade/subbase. The inputs for the ACPA’s BCOA Thickness Designer tool include the following: • Equivalent design lane single axle loads (ESALs) … When different sections of an asphalt parking lot have significantly different traffic loadings, the concrete overlay of that parking lot can and should be designed in separate sections or zones. 20-year design life. 300,000 psi asphalt modulus of elasticity. The area is strictly limited to cars and other light vehicles. The existing asphalt pavement is at least 4 in. thick and has low- to medium-severity distress. modulus of subgrade reaction (k) is 100 psi/in. or greater, or the CBR value is 3 or greater. A minimum thickness of 2.5 in. of asphalt—and preferably more—remains after milling. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates a bonded overlay of existing concrete pavement.</p>
+<p><img alt="Illustration of Bonded Overlay of Existing Concrete Pavement" src="assets/bcoa-thickness-calculation/92e91828030d61d94d7ddc1546a88c9ea4f96e6f60ed043949fd807f8defb2cd.jpg" />
+<em>Illustration of Bonded Overlay of Existing Concrete Pavement.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays a schematic cross-section of a pavement structure consisting of four distinct layers: an overlay, an existing slab, a base, and the subgrade. Labels indicate that the total effective thickness ($D_f$) is composed of the required concrete overlay thickness ($D_{ol}$) and the effective thickness of the existing slab ($D_{eff}$).</p>
+<p><small>[1] — Ch. 3 (p. 67); [2] — Ch. 4 (pp. 55–56); [3] — 1. Introduction (pp. 20–46); [4] — App. A (p. 104); [5] — Special Design Considerations … (p. 25), Thickness Design for Bonded Co… (pp. 20–22), Zone Design for Parking Lot Ov… (pp. 24–25)</small></p>
+<p>The guides agree that the BCOA Thickness Calculation is only appropriate when the overlay can remain within its defined geometric and material limits; once a design pushes toward or exceeds those limits, another procedure becomes preferable. The method is confined to slab thicknesses between three and six inches (the software &ldquo;uses a minimum overlay design thickness of 3 in.&rdquo;) and panel widths generally not larger than six feet, with the upper bound of 6 in. × 6 ft flagged for alternative methods (&ldquo;when BCOA designs are approaching 6 in. thick and 6 ft wide, the CDOT and TPF‑5(165) procedures … should be considered&rdquo;). If a project requires a thinner overlay—&ldquo;a 2 in. thickness cannot readily be calculated using existing software&rdquo;—or fails to meet the strict criteria for a two‑inch bonded overlay (light‑vehicle traffic only, existing asphalt ≥ 4 in., low‑to‑medium distress, etc.), designers must turn to another design approach.</p>
+<p>Bonding reliability is another limiting condition. The guides note that &ldquo;There are only a few cases in the United States in which a bonded concrete overlay of an FDR layer has been successfully designed and constructed,&rdquo; and that &ldquo;The key to achieving a long‑term bond is to ensure that the FDR surface is relatively dense and free from loose aggregate particles, dust, or other contamination.&rdquo; When such a clean, dense surface cannot be guaranteed, the unbonded BCOA approach—or an entirely different design method—remains preferable.</p>
+<p>Structural compatibility also constrains use. The procedure &ldquo;was not originally developed for overlays of composite pavements&rdquo; and relies on a constant effective asphalt modulus; its underlying PCA beam fatigue model &ldquo;yields very conservative estimates,&rdquo; and it does not account for seasonal stiffness variations, making it unsuitable when temperature‑dependent modulus adjustments are required or when the projected service life exceeds the recommended 20 years (&ldquo;designers should limit their pavement design lives to a maximum of 20 years&rdquo;). Moreover, once the concrete becomes &ldquo;so stiff … relative to the underlying asphalt that the asphalt contributes very little to the pavement’s flexural resistance to loads,&rdquo; which occurs beyond the BCOA‑ME limit of 6.5 in., designers should switch to alternatives such as the SJPCP module or treat the overlay as unbonded (&ldquo;the system can be designed as an unbonded concrete overlay&rdquo;).</p>
+<p>Finally, climatic inputs can invalidate the assumptions built into the software. The default temperature‑gradient values are based on Illinois data (&ldquo;were developed … for the state of Illinois&rdquo;), and &ldquo;project‑specific temperature gradient inputs … may not be readily available.&rdquo; When local climate conditions differ markedly from those defaults, a design method that accommodates site‑specific thermal data is advisable. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[2] — Ch. 4 (pp. 55–56); [3] — 1. Introduction (pp. 20–29); [4] — App. A (p. 104); [5] — Special Design Considerations … (p. 25), Thickness Design for Bonded Co… (pp. 20–22)</small></p>
+<h2 id="design-inputs-and-requirements">Design inputs and requirements</h2>
+<p>The BCOA Thickness Designer requires a full set of site‑specific inputs. Site information includes the project location—&ldquo;the major city closest to the project site&rdquo; or &ldquo;the nearest city … selected so that the program can calculate internally the appropriate effective temperature gradient&rdquo;—and may be entered as latitude, longitude and elevation (&ldquo;Design location:\n◦ Longitude, latitude, and elevation.\n◦ Climatic zone&rdquo;). This location is used to derive an effective temperature gradient for the climate zone (&ldquo;Effective temperature gradient and corresponding percentage time&rdquo;).</p>
+<p>Traffic data must include the design lane ESALs (&ldquo;Equivalent design lane single axle loads (ESALs)&rdquo;, &ldquo;the General Design Details, specifically traffic, which includes the design lane ESALs that may be directly input or estimated using an embedded ESAL calculator&rdquo;), a reliability level, growth rate, design life, and the allowable proportion of cracked slabs (&ldquo;Percentage of allowable cracked slabs&rdquo;, &ldquo;Percentage of allowable cracked slabs at end of design life&rdquo;). Directional distribution factors may also be supplied (&ldquo;Directional distribution factor (%): 50.&rdquo;).</p>
+<p>Material properties for the new concrete overlay are required: compressive or flexural strength, modulus of elasticity (&ldquo;Concrete modulus of elasticity, E (psi): 3,900,000.&rdquo;), coefficient of thermal expansion based on aggregate type, and any macro‑fiber residual‑strength ratio per ASTM C1609‑10. Existing asphalt properties must be entered: remaining thickness (&ldquo;Remaining asphalt thickness and modulus&rdquo;, &ldquo;the thickness of the FDR layer was assumed to be equivalent to the residual asphalt thickness after milling required in the design procedure.&rdquo;), effective elastic modulus (&ldquo;300,000 psi asphalt modulus of elasticity&rdquo;, &ldquo;Since no provision exists in the program to input the Mr of the existing asphalt layer, the FDR layer is assumed &hellip; approximately the same characteristics in terms of Mr (730,000 psi in this case).&rdquo;), and condition indicators such as percent fatigue cracking and presence of temperature cracking (&ldquo;Approximate percent fatigue cracking.&rdquo;, &ldquo;Temperature cracking (yes/no).&rdquo;).</p>
+<p>Environmental inputs are captured through the effective temperature gradient derived from the site’s climatic zone (&ldquo;Design location (to determine the site specific effective temperature gradient)&rdquo;, &ldquo;Effective temperature gradient and corresponding percentage time&rdquo;).</p>
+<p>Geotechnical input is limited to a composite subgrade/subbase stiffness value (&ldquo;Composite subgrade/subbase k-value.&rdquo;, &ldquo;100 pci k-value of the subgrade (under the asphalt)&rdquo;, &ldquo;The modulus of subgrade reaction (k) is 100 psi/in. or greater, or the CBR value is 3 or greater.&rdquo;).</p>
+<p>Existing‑condition data must detail the existing pavement structure: remaining hot‑mix asphalt thickness (&ldquo;A minimum thickness of 2.5 in. of asphalt—and preferably more—remains after milling.&rdquo;, &ldquo;The existing asphalt pavement is at least 4 in. thick and has low‑to medium‑severity distress.&rdquo;), its effective elastic modulus, percent fatigue cracking, temperature cracking status, and planned surface preparation (&ldquo;Pre‑overlay surface preparation: existing asphalt is cleaned only (not milled)&rdquo;). Joint spacing is also required (&ldquo;The joint spacing was assumed at 6 ft by 6 ft, and the location as Champaign, Illinois.&rdquo;). [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates the predicted faulting results for a specific unbonded overlay configuration based on these design parameters.</p>
+<p><img alt="Predicted faulting performance of a 9.0-inch unbonded overla" src="assets/bcoa-thickness-calculation/ecf8fac45274e8397be1b129773dd646c07978763283e27d1d30aa4818174452.jpg" />
+<em>Predicted faulting performance of a 9.0-inch unbonded overlay over time.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays the predicted faulting in inches as a function of pavement age, comparing a threshold value against reliability-based predictions for an unbonded concrete overlay. This plot illustrates the performance evaluation phase where design parameters such as thickness and joint spacing are verified to ensure satisfactory results in terms of smoothness, faulting, and cracking. The graph demonstrates how mechanistic design procedures assess long-term distress accumulation to determine if a specific overlay configuration meets the required performance criteria.</p>
+<p><small>[2] — Ch. 4 (pp. 55–56); [3] — 1. Introduction (pp. 20–46); [5] — Special Design Considerations … (p. 25), Thickness Design for Bonded Co… (pp. 20–22), Zone Design for Parking Lot Ov… (pp. 24–25)</small></p>
+<p>The BCOA Thickness Calculation is governed by a suite of national and state specifications. &ldquo;The 1993 AASHTO Design Guide and StreetPave design procedures&rdquo; are cited as primary references, and the mechanistic method from the American Concrete Pavement Association (ACPA) – “ACPA design procedure (ACPA 1998) and its latest improvements (Riley 2006, Roesler et al. 2008, and Vandenbossche et al. 2012)” – together with its probabilistic modification is incorporated in FHWA pooled‑fund guidance and CDOT procedures. The tool also follows &ldquo;This web application is based primarily on the results of FHWA-ICT-08-016, Design and Concrete Material Requirements for Ultra-Thin Whitetopping (Roesler et al. 2008)&rdquo; and &ldquo;Guide to Concrete Overlays (2008)&rdquo;. For fiber‑reinforced concrete mixes, compliance with &ldquo;ASTM C1609-10&rdquo; is required. Subgrade reaction values are taken from &ldquo;Table 3.4 from ACI PRC-330-21 (ACI Committee 330 2021) presents k-values for typical subgrade soils.&rdquo;.</p>
+<p>Performance requirements include a &ldquo;20-year design life&rdquo;, an &ldquo;80 percent reliability&rdquo; target, and a &ldquo;Percentage of allowable cracked slabs at end of design life&rdquo; not to exceed the specified limit. The design must satisfy fatigue‑damage limits for corner loading, bottom‑of‑asphalt damage at transverse joints, temperature‑curling stresses, and a residual fiber strength ratio around &ldquo;25 percent residual strength ratio (with fibers)&rdquo;. Input parameters required by the tool include &ldquo;Composite subgrade/subbase k-value.&rdquo; and an internally calculated effective temperature gradient – &ldquo;The effective temperature gradient is determined internally within the design spreadsheet as a function of the climatic zone where the project is located, the pavement structure, and the failure mode.&rdquo;.</p>
+<p>Thickness limits are explicitly defined. The software enforces that designs be &ldquo;valid for a slab thickness of 3 to 6 in. and a maximum panel size of 6 ft.&rdquo; and also &ldquo;does not allow thicknesses thinner than 3 in. and thicker than 6 in.&rdquo;. Using the BCOA‑ME method, the overlay cannot exceed &ldquo;maximum COA–B overlay design thickness using BCOA-ME is 6.5 in.&rdquo;, while the SJPCP module of AASHTOWare Pavement ME Design caps the overlay at &ldquo;The maximum design thickness using the SJPCP module of AASHTOWare Pavement ME Design is 8 in.&rdquo;.</p>
+<p>Project constraints restrict application to light‑vehicle parking areas – &ldquo;The area is strictly limited to cars and other light vehicles.&rdquo; – and require existing asphalt pavement of at least &ldquo;4 in. thick&rdquo; with low‑to‑medium distress, a minimum remaining milled thickness of 2½ in., and a subgrade reaction of at least &ldquo;100 pci k-value of the subgrade (under the asphalt)&rdquo; (or CBR ≥ 3). Joint spacing is limited to typical values – &ldquo;A maximum 3 ft by 3 ft joint spacing is used.&rdquo; and, in other guidance, &ldquo;joint spacing is typically limited to 6 ft by 6 ft&rdquo; – generally 4–6 ft or 12–18 times the overlay thickness. Because bonded concrete overlay installations are rare in the United States, careful adherence to bond‑quality controls – a dense FDR surface free of loose aggregate, dust, or other contamination – is emphasized. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates a bonded concrete overlay of asphalt pavement.</p>
+<p><img alt="Construction of a bonded concrete overlay on an existing hig" src="assets/bcoa-thickness-calculation/2553d85200d67f6ae4db203f43b4bd483c6a2b126403cd2d4d644d63e1b4114c.jpg" />
+<em>Construction of a bonded concrete overlay on an existing highway.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The image displays a wide, newly paved concrete surface extending along the roadway, representing the installation phase of a bonded concrete overlay. This construction activity illustrates the application of thin whitetopping or ultrathin whitetopping, which are specific types of bonded overlays designed to act as a composite system with the underlying pavement.</p>
+<p><small>[2] — Ch. 4 (pp. 55–56); [3] — 1. Introduction (pp. 20–29); [4] — App. A (p. 104); [5] — Special Design Considerations … (p. 25), Thickness Design for Bonded Co… (pp. 20–22), Zone Design for Parking Lot Ov… (pp. 24–25)</small></p>
+<h2 id="design-methods-and-criteria">Design methods and criteria</h2>
+<p>The BCOA Thickness Calculation employs a mechanistic, iterative design procedure that evaluates overlay thickness together with joint spacing, traffic loading, material properties and subgrade reaction. The process begins by &ldquo;Assess the condition of existing pavement (e.g., slabs distressed/replaced before restoration and asphalt milled thickness)&rdquo; and uses an &ldquo;SJPCP/AC analysis can evaluate the following joint spacing in feet: 2×2, 3×3, 4×4, 6×6, 7×7, 10×12, 12×12, and 15×12&rdquo;. The most widely used analytical model is the BCOA‑ME method, described as &ldquo;the BCOA-ME method provides a good approximation&rdquo; and &ldquo;BCOA-ME (Vandenbossche 2016) was used to calculate the required thickness of a concrete slab&rdquo;, with the approach noted to be &ldquo;basically the same approach used for thin bonded overlays of an asphalt pavement&rdquo;. For designs exceeding the thin‑overlay limit, the tool references the SJPCP module of AASHTOWare Pavement ME Design, which permits up to &ldquo;maximum design thickness using the SJPCP module of AASHTOWare Pavement ME Design is 8 in.&rdquo; while BCOA‑ME caps at &ldquo;maximum COA–B overlay design thickness using BCOA-ME is 6.5 in.&rdquo;, acknowledging that &ldquo;the concrete overlay is so stiff (in terms of both elastic modulus and layer thickness) relative to the underlying asphalt that the asphalt contributes very little to the pavement’s flexural resistance to loads&rdquo;.</p>
+<p>The calculation incorporates &ldquo;traffic, which includes the design lane ESALs that may be directly input or estimated using an embedded ESAL calculator&rdquo; and material inputs such as concrete flexural strength, elastic modulus, coefficient of thermal expansion, fiber content (ASTM C1609‑10) and existing asphalt thickness and modulus. The original asphalt modulus is obtained &ldquo;using the Witzcak equation&rdquo; with binder selection based on geographic location. Temperature effects are handled through an &ldquo;effective temperature gradient … as a function of the climatic zone where the project is located, the pavement structure, and the failure mode&rdquo;, employing the solar‑radiation based gradient defined by Feng and Vandenbossche (2012).</p>
+<p>Structural capacity is assessed with stress equations: &ldquo;The procedure incorporates the equations from the ACPA procedure to calculate the stress … when the panels are less than 4.5 ft in size, and the stress prediction equations from the CDOT procedure are used when the slabs are greater than this size.&rdquo; Fatigue damage is limited using a probabilistic concrete fatigue algorithm – &ldquo;based on the PCA beam fatigue model&rdquo; – applied to corner‑loading conditions and to the bottom of the existing asphalt at transverse joints (&ldquo;calculating the fatigue damage in the slab for a corner loading condition, as well as limiting the fatigue damage at the bottom of the existing asphalt pavement at the transverse joint location&rdquo;). Fiber reinforcement effects are considered per Roesler et al. (2008) and quantified with the &ldquo;Residual Strength Estimator program&rdquo;; the compressive‑to‑flexural strength conversion follows &ldquo;the relationship … based on Yoder and Witczak (1975).&rdquo;</p>
+<p>Joint pattern recommendations are &ldquo;small squares, typically in the range of 4 to 6 ft (or 12 to 18 times the thickness in inches)&rdquo;. The tool also checks for bond‑plane failure and ensures that design limits on maximum cracked‑slab percentage and reliability are satisfied. All calculations are performed within the ACPA BCOA web‑based or spreadsheet &ldquo;designer&rdquo;, which is &ldquo;based primarily on the results of FHWA-ICT-08-016, Design and Concrete Material Requirements for Ultra-Thin Whitetopping (Roesler et al. 2008)&rdquo; and &ldquo;overlay design thicknesses were developed using the ACPA’s modified BCOA Thickness Designer program&rdquo;. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates the ACPA BCOA Thickness Design Web-based Application used for these calculations.</p>
+<p><img alt="ACPA BCOA Thickness Design Web-based Application." src="assets/bcoa-thickness-calculation/ee494c18e0dd5df0976452697ad5f1d22c1fe9b885856872351519c12ead234b.jpg" />
+<em>ACPA BCOA Thickness Design Web-based Application.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays a composite image of three photographs showing paved surfaces and a building, overlaid with the text &ldquo;Bonded Concrete Overlay on Asphalt (BCOA) Thickness Designer&rdquo;.</p>
+<p><small>[1] — Ch. 3 (p. 67); [2] — Ch. 4 (pp. 55–56); [3] — 1. Introduction (pp. 20–46); [4] — App. A (p. 104); [5] — Thickness Design for Bonded Co… (pp. 20–22), Zone Design for Parking Lot Ov… (pp. 24–25)</small></p>
+<p>The BCOA Thickness Calculation is required to satisfy a set of design criteria, assumptions and thresholds that ensure structural reliability for bonded concrete overlays on asphalt bases. The calculation assumes a durable long‑term bond between the new slab and the existing flexible pavement; therefore the existing surface must be dense and free of loose aggregate, dust or other contamination. Joint patterns are limited to small square configurations, typically 4 – 6 ft (or 12 – 18 times the thickness in inches), with a maximum spacing of either 3 ft × 3 ft or 6 ft × 6 ft depending on panel size limits. The underlying pavement stiffness is treated as equivalent to an asphalt residual having a modulus near 730,000 psi, and the subgrade reaction must be at least k = 100 psi/in (or CBR ≥ 3). </p>
+<p>The design life is capped at twenty years, with an annual traffic growth rate of two percent. Input variables required by the tool include projected lane ESALs, a target allowable percentage of cracked slabs, and a reliability level of approximately eighty percent; the allowable cracked‑slab limit is set to no more than thirty percent at the end of design life. Temperature‑curling stresses are incorporated, and stress prediction follows ACPA equations for panels smaller than 4.5 ft and CDOT equations for larger panels. Asphalt modulus adjustments account for monthly and hourly temperature fluctuations as well as fatigue‑aging effects; a typical asphalt modulus value used is about 300 ksi.</p>
+<p>Overlay thicknesses must fall within the permissible range of three to six inches (the web application does not permit thinner or thicker values). Additional module‑specific caps are imposed: when using the BCOA‑ME module the maximum thickness may not exceed 6.5 in, and when employing the SJPCP module the limit is eight inches; exceeding these thresholds requires treating the system as an unbonded concrete overlay. The calculated effective thickness must be met or exceeded by the construction thickness, which is rounded up to the next standard increment (nearest half‑inch) and cannot be less than three inches for general applications.</p>
+<p>Reflective cracking checks are required when transverse cracks exist in the underlying asphalt; a debonding material may be specified if such potential is identified. Synthetic macrofibers may be incorporated to improve load transfer, with a residual strength ratio of twenty‑five percent and a typical 28‑day flexural strength around 700 psi at approximately four pounds per cubic yard of fiber.</p>
+<p>Surface preparation is limited to cleaning the existing asphalt (no milling). All these criteria together constitute the reliability requirements that a BCOA Thickness Calculation must satisfy. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[2] — Ch. 4 (pp. 55–56); [3] — 1. Introduction (pp. 20–46); [4] — App. A (p. 104); [5] — Special Design Considerations … (p. 25), Thickness Design for Bonded Co… (pp. 20–22), Zone Design for Parking Lot Ov… (pp. 24–25)</small></p>
+<h2 id="structural-section-and-dimensions">Structural section and dimensions</h2>
+<p>The guides indicate that the BCOA Thickness Designer requires only two categories of geometric input: the existing asphalt pavement and the concrete overlay slab. The pavement dimension is entered as a remaining thickness together with its effective modulus – &ldquo;Remaining asphalt thickness and modulus.&rdquo; The minimum thickness must satisfy both statements that &ldquo;The existing asphalt pavement is at least 4 in. thick&rdquo; and that &ldquo;A minimum thickness of 2.5 in. of asphalt—and preferably more—remains after milling.&rdquo; These values are supplied under &ldquo;Existing Pavement Structure Details, which includes the thickness of the existing asphalt layer after surface preparation.&rdquo; </p>
+<p>For the slab, the tool limits concrete thickness to between three and six inches – &ldquo;the web application does not allow thicknesses thinner than 3 in. and thicker than 6 in.&rdquo; An example design cites a &ldquo;required slab thickness is 4.5 in&rdquo; and shows that an overlay of this thickness with appropriate joint spacing is acceptable. Slab size is defined by joint spacing; examples include &ldquo;joint spacing was assumed at 6 ft by 6 ft,&rdquo; &ldquo;Smaller slab sizes are used for this type of overlay—typically between 4 and 6 ft, cut both longitudinally and transversely,&rdquo; and &ldquo;Shorter joint spacings (both transverse and longitudinal) are typically used for bonded overlays over asphalt pavements, such as 4 ft by 4 ft or 6 ft by 6 ft slabs for a 12 ft wide lane.&rdquo; For parking‑lot applications the maximum spacing is limited to &ldquo;A maximum 3 ft by 3 ft joint spacing is used.&rdquo;</p>
+<p>The calculators do not request separate dimensions for base, subbase, treated‑soil, shoulder, edge‑support, or reinforcement. Subbase thickness appears only descriptively – &ldquo;Figure 16 shows a 2 in. thick concrete overlay of an existing 2.5 i n. thick asphalt parking lot on 6 to 8 i n. of stone subbase.&rdquo; Instead the tool uses a composite stiffness value – &ldquo;Composite subgrade/subbase k‑value.&rdquo; [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The figure below illustrates the resulting calculated slab thickness based on these composite stiffness parameters.</p>
+<p><img alt="Calculated slab thickness for low-volume roads, concrete fle" src="assets/bcoa-thickness-calculation/2e97581dcd1cdda705ffe07439c25b0df3c2ab75c9cf5625fd00048bedc8d34b.jpg" />
+<em>Calculated slab thickness for low-volume roads, concrete flexural strength = 650 psi</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure plots calculated rigid slab thickness against traffic loading (ESALs) for three different composite subgrade reaction values.</p>
+<p><small>[2] — Ch. 4 (pp. 55–56); [3] — 1. Introduction (pp. 20–46); [5] — Special Design Considerations … (p. 25)</small></p>
+<p>The BCOA Thickness Designer selects overlay thicknesses by entering traffic ESALs, allowable cracked‑slab percentage, reliability, temperature gradient, the remaining asphalt (or FDR) thickness and modulus, subgrade reaction k‑value, and concrete material properties such as flexural strength, elastic modulus, coefficient of thermal expansion, fiber type and residual strength ratio. The program iterates until an effective bonded overlay thickness that satisfies those criteria is obtained; the resulting value must lie between three and six inches, otherwise a warning is issued, and the computed thickness is rounded up to the next standard nominal size (e.g., 3.75 in becomes 4.0 in). For layer configuration the design assumes a bonded condition between the existing pavement surface and the new concrete slab, which requires the underlying surface to be dense and free of loose aggregate, dust, or other contamination to achieve a long‑term bond. Joint layout follows the guidance to use small square panels about four to six feet on a side—approximately 12 to 18 times the overlay thickness in inches—with typical transverse and longitudinal spacings of 4 ft × 4 ft or 6 ft × 6 ft for a 12‑ft lane. The BCOA tool does not generate cross‑slope, transition, or tie‑in details; those items must be coordinated separately within the overall pavement design. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[2] — Ch. 4 (pp. 55–56); [3] — 1. Introduction (pp. 28–44); [5] — Thickness Design for Bonded Co… (pp. 20–22)</small></p>
+<h2 id="materials-and-mixture-design">Materials and mixture design</h2>
+<p>The BCOA Thickness Designer requires the user to define both the concrete overlay and the supporting pavement layers. For the concrete overlay, the software must be supplied with its flexural strength, elastic modulus, and coefficient of thermal expansion appropriate to the selected coarse‑aggregate type; any synthetic or structural fibers added to the mix must be identified together with their residual strength ratio. The underlying asphalt (or FDR) layer must be described by its remaining post‑preparation thickness and effective elastic modulus, while the supporting subgrade or subbase is represented by a composite stiffness expressed as a k‑value. These material specifications drive the iterative calculation of required overlay thickness, joint spacing, and reinforcement. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates the interface for entering these concrete material specifications within the BCOA Thickness Designer.</p>
+<p><img alt="Screen capture of the ACPA BCOA Thickness Designer web appli" src="assets/bcoa-thickness-calculation/081bb4204ccbe75b92bb9e38d235b230f1520f93af02fa46428da6734df13f8c.jpg" />
+<em>Screen capture of the ACPA BCOA Thickness Designer web application showing input fields for concrete material properties and overlay details.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays a software interface titled &ldquo;General Design Details&rdquo; that collects site-specific inputs such as design lane ESALs, reliability targets, and location data to determine the effective temperature gradient internally. The interface also captures overlay geometry parameters such as joint spacing and pre-overlay surface preparation methods.</p>
+<p><small>[2] — Ch. 4 (pp. 55–56); [3] — 1. Introduction (pp. 20–46); [5] — Special Design Considerations … (p. 25), Thickness Design for Bonded Co… (pp. 20–22), Zone Design for Parking Lot Ov… (pp. 24–25)</small></p>
+<p>The BCOA Thickness Designer drives material selection through performance‑based inputs that link traffic, existing pavement condition and climate to the required properties of both the asphalt base and the concrete overlay. The designer first selects an asphalt binder appropriate to the project’s geographic location; the binder choice together with the Witzcak equation provides an estimate of the initial pavement modulus, which is then adjusted for fatigue‑related stiffness loss and aging (“When establishing the original modulus of the asphalt immediately after paving, a binder is selected based on the geographical location, which is used along with the Witzcak equation.”; “The asphalt modulus is established internally within the design procedure by first estimating the original modulus and then applying correction factors for the irreversible effects of fatigue and aging of the binder.”). For the concrete layer the required “Strength, modulus, fiber residual strength ratio, and CTE” are entered, reflecting mix choices that depend on coarse‑aggregate type (“Flexural strength, modulus, and coefficient of thermal expansion (CTE) based on coarse aggregate type”). Fiber contribution is defined by the selected fiber type and its measured residual strength ratio (“Fiber type and residual strength ratio”), with many agencies specifying macrofibers for thin slabs to boost serviceability and structural capacity (“Note that some agencies specify macrofibers for slab thicknesses less than 4 in. for increasing serviceability and the structural capacity of the overlay”). In parking‑lot applications high‑volume synthetic macrofibers are typically placed at about 4 lb/yd³ to achieve a target flexural strength of roughly 700 psi at 28 days (“High‑volume synthetic macrofibers are typically used in concrete overlays at a rate of 4 lb/yd³.”; “flexural strength of the concrete overlay is 700 psi at 28 days”). Joint patterns are limited to small squares, usually 4 to 6 ft on a side, to control cracking and deflection (“shorter joint spacings (both transverse and longitudinal) are typically used for bonded overlays over asphalt pavements, such as 4 ft by 4 ft or 6 ft by 6 ft slabs for a 12 ft wide lane.”; “small squares, typically in the range of 4 to 6 ft”). Constructability is supported by maintaining a minimum remaining asphalt thickness after milling (at least 2.5 in.) and, when needed, inserting a debonding material such as reinforcement fabric strips or geotextile directly on top of existing cracks to mitigate reflective cracking (“minimum thickness of 2.5 in. of asphalt—and preferably more—remains after milling.”; “A common method used to prevent reflective cracking is to place a debonding material, such pavement reinforcement fabric strips or a geotextile, directly on top of the cracks”). The iterative design process then selects an overlay thickness within the allowable 3–6 in. range that satisfies the specified cracked‑slab failure criteria while meeting durability, structural capacity, constructability and long‑term performance goals. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates the summary of the existing pavement cross-section relevant to this design process.</p>
+<p><img alt="Summary of Existing Pavement Cross-Section." src="assets/bcoa-thickness-calculation/6c1672f0156b5998dc7cb3d7e64646f8bf9eb73678d005104388d7f7933948a8.jpg" />
+<em>Summary of Existing Pavement Cross-Section.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays a schematic cross-section of an existing pavement structure consisting of four distinct layers: asphalt, crushed aggregate base, crushed aggregate subbase, and subgrade.</p>
+<p><small>[3] — 1. Introduction (pp. 20–29); [5] — Special Design Considerations … (p. 25), Thickness Design for Bonded Co… (pp. 20–22)</small></p>
+<h2 id="structural-details-and-interfaces">Structural details and interfaces</h2>
+<p>The BCOA Thickness Designer requires the designer to specify a joint layout that follows the square‑panel pattern recommended for bonded concrete overlays on asphalt. Across the guides, allowable spacings range from very small squares (as little as 2 × 2 ft) up to the larger panels used in low‑traffic situations; typical practice for standard thicknesses is 4‑ft × 4‑ft or 6‑ft × 6‑ft squares. For thin overlays (≈2 in.) the software limits joints to a maximum of 3 × 3 ft. Reinforcement must be identified; macrofibers (synthetic fibers) are entered together with their residual strength ratio measured per ASTM C1609‑10, and low‑modulus synthetic fibers may be added to improve load transfer across reflective cracks. No dedicated mechanical load‑transfer devices are mandated, but when existing asphalt cracks are present a debonding layer such as reinforcement fabric strips or geotextile is recommended to mitigate reflective cracking. The method also assumes a durable long‑term bond between the FDR base and the new concrete slab, requiring the existing surface to be dense and free of loose material; surface preparation is limited to cleaning (or milling that leaves at least 2.5 in. of asphalt). No special transition connections or other structural linkages are prescribed by the calculation itself; slab thickness is confined to 3–6 in., with a maximum panel size of 6 ft, and all material moduli, reliability factors and design life inputs are handled internally by the program. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[1] — Ch. 3 (p. 67); [2] — Ch. 4 (pp. 55–56); [3] — 1. Introduction (pp. 20–46); [5] — Special Design Considerations … (p. 25), Thickness Design for Bonded Co… (pp. 20–22), Zone Design for Parking Lot Ov… (pp. 24–25)</small></p>
+<p>The interface between the existing pavement and a BCOA‑designed concrete overlay is governed by strict surface preparation, joint geometry, material stiffness limits, and protective measures. The key to achieving a long‑term bond is to ensure that the FDR surface is relatively dense and free from loose aggregate particles, dust, or other contamination. Joint spacing is kept short; shorter joint spacings (both transverse and longitudinal) are typically used for bonded overlays over asphalt pavements, such as 4 ft by 4 ft or 6 ft by 6 ft slabs for a 12 ft wide lane, and the recommended joint pattern for bonded concrete overlays of asphalt is small squares, typically in the range of 4 to 6 ft (or 12 to 18 times the thickness in inches). For very thin overlays a maximum 3 ft by 3 ft joint spacing is used. To limit reflective cracking, a common method used to prevent reflective cracking is to place a debonding material, such pavement reinforcement fabric strips or a geotextile, directly on top of the cracks. The overlay thickness must remain within bonded limits; the maximum COA–B overlay design thickness using BCOA‑ME is 6.5 in., and at greater overlay thicknesses, the concrete overlay is so stiff (in terms of both elastic modulus and layer thickness) relative to the underlying asphalt that the asphalt contributes very little to the pavement’s flexural resistance to loads. In such cases, the system can be designed as an unbonded concrete overlay. The existing asphalt layer after surface preparation and the existing layer’s corresponding effective elastic modulus is entered together with a composite modulus of subgrade reaction (k‑value) for the existing subgrade combined with the existing base. Concrete material properties are required, including macrofibers, a flexural strength of 700 psi at 28 days based on third‑point loading, and appropriate elastic modulus and coefficient of thermal expansion. The design process includes checks for a potential bond plane failure and follows the ACPA procedure which is based on calculating the fatigue damage in the slab for a corner loading condition, as well as limiting the fatigue damage at the bottom of the existing asphalt pavement at the transverse joint location. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates a bonded concrete overlay applied to an FDR layer.</p>
+<p><img alt="Properly constructed and prepared FDR surface suitable for p" src="assets/bcoa-thickness-calculation/cfbd5a75fad20c85885df318ecd005d1b9681ddd7e7ddf5afb8e2ff7dd3121af.jpg" />
+<em>Properly constructed and prepared FDR surface suitable for placement of a bonded concrete overlay.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a wide, paved residential street featuring a concrete pavement with a distinct grid pattern of transverse and longitudinal joints. This visual evidence corresponds to the requirement that the FDR surface be relatively dense and free from loose aggregate particles, dust, or other contamination before a bonded concrete overlay is placed.</p>
+<p><small>[2] — Ch. 4 (pp. 55–56); [3] — 1. Introduction (pp. 20–29); [4] — App. A (p. 104); [5] — Special Design Considerations … (p. 25), Thickness Design for Bonded Co… (pp. 20–22)</small></p>
+<h2 id="drainage-environment-and-accessibility">Drainage, environment, and accessibility</h2>
+<p>The BCOA Thickness Designer addresses environmental conditions primarily through climate considerations. It requires the user to specify a design location so that a site‑specific effective temperature gradient can be calculated; this gradient represents the cumulative fatigue damage from the full range of temperature differentials for that city and is applied to slab thickness, concrete strength, and other inputs. The effective temperature gradient is generated internally based on the project&rsquo;s climatic zone, and asphalt‑modulus adjustment factors are employed to reflect both monthly and hourly temperature fluctuations, with binder selection also tied to geographic location. However, the methodology does not contain explicit parameters or checks for drainage or moisture conditions, meaning those aspects must be managed separately in the overall pavement design. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p><small>[3] — 1. Introduction (pp. 20–22)</small></p>
+<p>The BCOA Thickness Designer begins with an assessment of the existing pavement condition – “Assess the condition of existing pavement (e.g., slabs distressed/replaced before restoration and asphalt miled thickness)”. Geometric limits are enforced: joint spacing options are defined by “SJPCP/AC analysis can evaluate the following joint spacing in feet: 2×2, 3×3, 4×4, 6×6, 7×7, 10×12, 12×12, and 15×12” and, alternatively, “joint spacing was assumed at 6 ft by 6 ft”. The guides also note that “Shorter joint spacings (both transverse and longitudinal) are typically used for bonded overlays over asphalt pavements, such as 4 ft by 4 ft or 6 ft by 6 ft slabs for a 12 ft wide lane.” and “The recommended joint pattern for bonded concrete overlays of asphalt is small squares, typically in the range of 4 to 6 ft (or 12 to 18 times the thickness in inches).” In high‑deflection zones a tighter limit applies: “A maximum 3 ft by 3 ft joint spacing is used.” Overlay thickness is constrained by the software to “the web application does not allow thicknesses thinner than 3 in. and thicker than 6 in.”</p>
+<p>Safety and performance inputs required from the user include traffic loading and reliability criteria: “The input requirements for the ACPA BCOA thickness design tool are as follows:
+• ESALs.
+• Percentage of allowable cracked slabs.
+• Reliability.
+Design location (to determine the site specific effective temperature gradient).
+• Existing asphalt pavement:
+◦ Remaining asphalt thickness and modulus.
+• Composite subgrade/subbase k-value.
+• Concrete overlay:
+◦ Strength, modulus, fiber residual strength ratio, and CTE.
+Proposed slab size and pre‑overlay surface preparation.” A similar list appears as “The inputs for the ACPA’s BCOA Thickness Designer tool include the following: • Equivalent design lane single axle loads (ESALs) • Percentage of allowable cracked slabs at end of design life • Reliability • Effective temperature gradient …”. Detailed material data are captured in “Existing pavement structure: ‐ Remaining asphalt thickness and modulus ‐ k-value of subgrade/subbase” and “Concrete overlay: ‐ Flexural strength, modulus, and coefficient of thermal expansion (CTE) based on coarse aggregate type ‐ Fiber type and residual strength ratio ‐ Proposed joint spacing and pre‑overlay surface preparation.” The design assumes a “20-year design life” with performance limits expressed as “failure criteria are entered in terms of maximum percentage of cracked slabs and reliability”.</p>
+<p>Accessibility constraints limit the overlay to light‑vehicle traffic: “The area is strictly limited to cars and other light vehicles.” The underlying asphalt must meet minimum condition standards – “The existing asphalt pavement is at least 4 in. thick and has low- to medium-severity distress.”</p>
+<p>Surface preparation and crack mitigation are also mandated: “The key to achieving a long‑term bond is to ensure that the FDR surface is relatively dense and free from loose aggregate particles, dust, or other contamination.” To control reflective cracking, the guides require “A common method used to prevent reflective cracking is to place a debonding material, such pavement reinforcement fabric strips or a geotextile, directly on top of the cracks.” Finally, location‑specific climate data are obtained by having “the designer should enter the major city closest to the project site when prompted for the location; the program will automatically account for the correct MADT in the thickness design.” [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates the properly prepared FDR surface required to ensure adequate bond and crack mitigation.</p>
+<p><img alt="Properly prepared FDR surface for a bonded concrete overlay" src="assets/bcoa-thickness-calculation/4a73611a7b2489bc3baf5696a329f503714d038e65673a12f0b486346440de1f.jpg" />
+<em>Properly prepared FDR surface for a bonded concrete overlay</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a close-up view of a gray, textured pavement surface that appears relatively dense and uniform.</p>
+<p><small>[1] — Ch. 3 (p. 67); [2] — Ch. 4 (pp. 55–56); [3] — 1. Introduction (pp. 20–29); [5] — Special Design Considerations … (p. 25), Thickness Design for Bonded Co… (pp. 20–22), Zone Design for Parking Lot Ov… (pp. 24–25)</small></p>
+<h2 id="verification-and-expected-performance">Verification and expected performance</h2>
+<p>The guides specify that the BCOA Thickness Designer is intended to provide a service life of about twenty years, with designers instructed to “designers should limit their pavement design lives to a maximum of 20 years” (or equivalently noted as a “20-year design life”). Distress resistance is quantified by a crack‑percentage criterion; the tools require users to enter “failure criteria are entered in terms of maximum percentage of cracked slabs and reliability,” and one guide further states an acceptable target of “30 percent cracked slabs at end of design life” while maintaining “80 percent reliability.” Performance is measured through two complementary approaches: field monitoring of slab cracking over the service period (“evaluated through monitoring of slab cracking over the design period”) and the program’s internal predictive calculations based on prescribed assumptions such as directional and lane distribution factors, growth rate, material moduli, and surface preparation. Ride quality is not addressed in either source, so no ride‑quality metrics are defined. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates the predicted crack width results generated by this design methodology.</p>
+<p><img alt="Predicted Crack Width Plot for an Unbonded CRCP Overlay." src="assets/bcoa-thickness-calculation/81349f18423b204991d73424cd66442687780d0e97e7e6cc972f2d81cbcb7f23.jpg" />
+<em>Predicted Crack Width Plot for an Unbonded CRCP Overlay.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays a time-series plot of predicted crack width in millimeters against pavement age, showing a periodic oscillation that increases over the design life.</p>
+<p><small>[3] — 1. Introduction (pp. 28–29); [5] — Zone Design for Parking Lot Ov… (pp. 24–25)</small></p>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li><li id="ref-3"></li><li id="ref-4"></li><li id="ref-5"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

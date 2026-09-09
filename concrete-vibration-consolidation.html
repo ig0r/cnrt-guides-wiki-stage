@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concrete Vibration Consolidation</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html" class="active" aria-current="page">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Concrete Vibration Consolidation</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=concrete-vibration">concrete-vibration</a><a class="tag" href="index.html?q=screed-techniques">screed-techniques</a><a class="tag" href="index.html?q=vibrator-frequency">vibrator-frequency</a><a class="tag" href="index.html?q=concrete-consolidation">concrete-consolidation</a><a class="tag" href="index.html?q=paver-vibrators">paver-vibrators</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>Concrete vibration consolidation is a placement‑time technique that counteracts under‑compaction by delivering controlled internal vibration at prescribed frequencies, fluidizing the fresh mix so it fills the intended geometry, eliminates trapped air and voids, and preserves the designed entrained‑air content [1][2][3][8][10][11]. It is the preferred method whenever uniform density and removal of entrapped air are required—being used for reinforced slabs of any thickness, low‑slump airport paving mixes, slip‑form paving, and hand‑screeded pavements up to about 60 ft wide [1][2][3][8]. By operating vibrators within the accepted band (typically 5,000–8,000 VPM, with job‑specific ranges up to 11,000 VPM), maintaining maximum spacing of 30 in., keeping vibrator heads no larger than 1 in. in diameter and extending at least three inches beyond the concrete depth, and ensuring real‑time frequency monitoring and alarm response, the process produces a homogeneous, dense slab that meets strength, durability and smoothness specifications [1][2][4][6][8][9][10]</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-applicability">Purpose and applicability</a></li><li><a href="#required-inputs">Required inputs</a></li><li><a href="#equipment-and-personnel">Equipment and personnel</a></li><li><a href="#work-sequence">Work sequence</a></li><li><a href="#staging-and-logistics">Staging and logistics</a></li><li><a href="#quality-control-and-acceptance">Quality control and acceptance</a></li><li><a href="#expected-performance-and-maintenance">Expected performance and maintenance</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (11)</summary><div class="sources-body"><a href="#ref-1">2019-12_IMCP_manual</a>, <a href="#ref-2">ACPTP-2022-4_QC_QA_of_concrete_airfield_pvmt_manual_w_cvr_508</a>, <a href="#ref-3">How_to_Reduce_Tire-Pavement_Noise_final</a>, <a href="#ref-4">PDR_guide_Apr2012</a>, <a href="#ref-5">QC_for_concrete_paving_web</a>, <a href="#ref-6">concrete_pvmt_preservation_guide_3rd_edition_web</a>, <a href="#ref-7">hif13059</a>, <a href="#ref-8">overlays_parking_lots_guide_2nd_ed_web</a>, <a href="#ref-9">preservation_reference_manual</a>, <a href="#ref-10">smooth_concrete_pvmt_guidelines_w_cvr</a>, <a href="#ref-11">testing_guide</a></div></details>
+
+<h2 id="purpose-and-applicability">Purpose and applicability</h2>
+<p>Concrete vibration consolidation is applied to counteract the chronic problem of under‑compaction in freshly placed concrete. When concrete is not properly consolidated, trapped air, voids, honeycombing and segregation develop, especially near form edges or in thin overlays where surface vibration alone cannot reach. These deficiencies produce non‑uniform density, uneven surface paste, loss of intended entrained‑air content, reduced abrasion resistance, differential shrinkage cracking, increased permeability, and overall reductions in strength, durability and smoothness of the pavement. By delivering controlled internal vibration at appropriate frequencies, the process fluidizes the mix, forces it into the intended geometry, eliminates voids and air pockets, and preserves the designed air‑entrainment, thereby ensuring a homogeneous, dense slab that meets performance specifications. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>]</p>
+<p>The following figure illustrates the visual consequences of inadequate consolidation by contrasting fresh concrete placement with the resulting honeycombing defects.</p>
+<p><img alt="Photograph of honeycombing visible after grinding pavement s" src="assets/concrete-vibration-consolidation/8c51c6d5cb365f57e6a968af1b42e9d00fb5002c00ff45910461df66a3d50e3d.jpg" />
+<em>Photograph of honeycombing visible after grinding pavement surface.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a close-up view of a concrete surface exhibiting significant honeycombing, characterized by exposed coarse aggregate and voids where the cement paste is missing.</p>
+<p><small>[1] — Ch. 8 (pp. 236–238), Ch. 9 (p. 271); [2] — Ch. 5 (pp. 204–249), App. G (pp. 481–484); [3] — 2 Overview of Concrete Pavemen… (pp. 28–32); [8] — Equipment for Hand/Wet Screedi… (p. 39), Vibratory Truss Screeds (p. 40); [10] — Vibrator Frequency and Height (p. 39); [11] — Ch. 7 (p. 72)</small></p>
+<p>The guides agree that concrete vibration consolidation is the preferred method whenever the placement conditions demand removal of entrapped air and uniform density. It should be used for reinforced slabs of any thickness, for low‑slump airport paving mixes, and during slip‑form paving where built‑in vibrators are integral to the process. Hand or lightweight truss screeds on flat, crowned or inverted pavements up to about 60 ft wide also rely on vibration to achieve adequate consolidation. The guides advise alternative techniques when vibration cannot be applied effectively: if the concrete slump is one inch or greater, rodding (tamping) may replace vibration; when surface vibration cannot reach near fixed forms, supplemental handheld spud vibrators are recommended before screeding; and whenever a vibrator’s frequency drifts outside the job‑specific range, the equipment is broken, misaligned, or excessively dirty, it must be adjusted, replaced, or another consolidation method employed. Over‑vibration of thin overlays should be avoided by withdrawing the vibrator slowly and limiting insertion time. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p><small>[1] — Ch. 8 (pp. 236–238); [2] — App. G (pp. 481–484); [3] — 2 Overview of Concrete Pavemen… (pp. 31–32); [8] — Equipment for Hand/Wet Screedi… (p. 39), Vibratory Truss Screeds (p. 40)</small></p>
+<h2 id="required-inputs">Required inputs</h2>
+<p>The guides concur that the concrete intended for vibration consolidation must be placed with a uniform slump, whether the mix is air‑entrained or non‑air‑entrained. Air‑entrained mixes are noted to consolidate more quickly under vibration, and appropriate entrained‑air content is required so that vibration in the 5,000–8,000 vpm range can eliminate voids without causing segregation. For low‑slump paving concrete (slump less than 1 in.) internal vibration is mandated; when slump reaches one inch or greater vibration or rodding may still be used provided the mixture retains adequate plasticity. Ambient temperature and humidity are monitored to keep concrete viscosity consistent, and placement must occur on a level, rigid surface that does not transmit external vibrations. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[1] — Ch. 8 (p. 236); [2] — Ch. 5 (pp. 242–247), App. G (pp. 481–484)</small></p>
+<p>The vibration‑consolidation system shall be designed to deliver a frequency that fully compacts the concrete while preserving entrained air. Across the guidance documents the accepted operating band for most mixes is &ldquo;For most mixtures, a frequency from 5,000 to 8,000 vibrations per minute can adequately fluidize and consolidate the concrete without loss of entrained air or segregation of particles&rdquo;; some projects specify a broader job‑specific range – &ldquo;Rates of 6,000 to 11,000 vibrations per minute (VPM) are common&rdquo; – while low‑frequency screed applications use &ldquo;3,000 to 6,000 vibrations per minute (50 to 100 Hz)&rdquo;. The frequency must be kept within the prescribed limits throughout placement; real‑time monitoring is required – &ldquo;Vibrator sensing systems are available to provide a real‑time readout of vibration frequency for all of the vibrators on a slipform paving machine&rdquo; – and alarm thresholds must trigger when the reading falls outside the band – &ldquo;These units permit alarm settings that alert the operator of high or low frequencies for all or individual vibrators or total loss of vibration&rdquo;.</p>
+<p>Spacing and positioning are governed by clear tolerances: internal vibrators may not be spaced more than 30 inches apart and the outermost units must remain within 12 inches of the profile‑pan edge – &ldquo;Any adjustments must meet the spacing requirements (30 in. maximum spacing between individual vibrators and 12 in. maximum from the outermost vibrator to the edge of the profile pan)&rdquo;. Horizontal alignment must be verified daily – &ldquo;Check the spacing and alignment of the vibrators (FHWA 1996). This should also be done daily, optimally before paving begins&rdquo; – and each unit’s sensor checked for frequency, amplitude and control response – &ldquo;pre‑shift daily checks of paver‑mounted vibrators and their sensors for frequency, amplitude, and the response to controls are vital&rdquo;.</p>
+<p>Dimensional limits require that vibrator heads not exceed one‑quarter of the mold width and that all vibrators be no larger than 1 in (25 mm) in diameter – &ldquo;A sufficient number of concrete vibrators (1 in. [25 mm] diameter or less) are available on site and in proper working condition&rdquo; – with a combined shaft‑head length extending at least three inches beyond the concrete depth – &ldquo;The combined length of the vibrator shaft and vibrating element must be at least 3 inches more than the depth of the mold or the layer being consolidated&rdquo; – and the tip positioned no closer than two inches above any underlying material – &ldquo;DOD also limits the vibrator depth to no closer than 2 in. from any underlying material&rdquo;.</p>
+<p>Pre‑construction verification includes a trial‑batch run – &ldquo;During trial batching, the QC Manager should be involved in decisions on the alignment, spacing, amplitude, and frequency of vibrators&rdquo; – to calibrate vibration settings for the expected paver speed (minimum 2.5 ft/min, typical 3–7 ft/min or up to 15 ft/min) – &ldquo;Typical paving speeds range from 3 to 15 fpm&rdquo; – and to establish coordination between speed and frequency – &ldquo;Vibrator setting and paver speed should be coordinated during the trial batch process to establish an expected range of variables during production paving&rdquo;. Daily pre‑shift checks must confirm that each vibrator’s frequency remains within limits – &ldquo;As a minimum, the frequency of each vibrator should be checked twice per day, prior to the morning shift and about mid‑shift&rdquo; – using handheld tachometers or vibrating‑reed devices.</p>
+<p>Equipment readiness also demands inspection of finishing tools: floats and screeds must be straight, free of defects and capable of producing the specified finish – &ldquo;All floats and screeds are straight, free of defects, and capable of producing the desired finish&rdquo; – with straightedges up to 20 ft long and cross‑sectional dimensions of 1–2 in wide by 4–6 in deep – &ldquo;The lengths of these straightedges vary up to 20 ft, and the cross‑sectional dimensions are generally 1 to 2 in. wide by 4 to 6 in. deep&rdquo; – and dimensional tolerance on the finished surface shall not exceed 1/8 in for molds 6 in or larger – &ldquo;The maximum variation from the mold’s nominal cross section should be 1⁄8 in. or less for molds with a depth or breadth of 6 in. or more&rdquo;.</p>
+<p>Operational guidelines require that any change in paver speed be manually synchronized with a proportional adjustment of vibration frequency – &ldquo;The operator must make these adjustments manually&rdquo; – and that units drifting outside the band be stopped and replaced – &ldquo;Alarm response corrections are currently accomplished manually (optimal results are typically between 5,000 and 8,000 vpm, but this depends on the mixture workability and other factors)&rdquo;. Continuous monitoring devices are encouraged – &ldquo;The use of a vibrator monitor is highly recommended to accurately monitor and control vibrator frequencies&rdquo; – and adjustments must be made one at a time with daily profile data analysis – &ldquo;Each adjustment should be made independently, and profile data should then be analyzed daily to evaluate the impact of the adjustments&rdquo;. The vibration must provide full consolidation without segregation or loss of entrained air – &ldquo;They should be operated at a frequency (vpm) that provides full consolidation without inducing segregation or reducing the entrained air content of the mixture&rdquo; – while maintaining constant energy across the slab – &ldquo;Keeping the vibrational energy constant across the slab by monitoring individual vibrator operation and limiting variations in the load/concrete head heights is important&rdquo; – and proper mounting with dampening to limit transmission of engine vibration – &ldquo;Proper mounting (and dampening) of this vibrational energy should limit this potential&rdquo;. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p><small>[1] — Ch. 8 (pp. 237–238); [2] — Ch. 5 (pp. 204–249), App. G (pp. 481–484); [3] — 2 Overview of Concrete Pavemen… (pp. 28–32); [4] — Placing and Finishing Equipment (p. 33); [6] — Ch. 5 (p. 120); [8] — Equipment for Hand/Wet Screedi… (p. 39), Vibratory Truss Screeds (p. 40); [9] — Ch. 5 (p. 106); [10] — Vibrator Frequency and Height (p. 39)</small></p>
+<h2 id="equipment-and-personnel">Equipment and personnel</h2>
+<p>The concrete vibration consolidation process requires a fleet of approved transport and placement gear, beginning with non‑agitating material transfer vehicles equipped with swing conveyors to move the mix from the plant to the jobsite&hellip; Placement on large slabs is typically performed by a heavy‑duty self‑propelled slipform paver that also provides primary finishing. Consolidation is achieved with gang‑mounted vibrators whose depth is adjustable and whose spacing must not exceed thirty inches between units or twelve inches from the outermost vibrator to the pan edge, and these vibrators are integrated with electronic monitoring that stops them when the paver halts. For smaller beam specimens or repair work an internal vibrator that must operate at ≥150 Hz (≈9 000 vpm), have a head diameter ≤¼ of the mold width, and a shaft length at least 3 in longer than the mold depth is used, positioned no farther apart than six inches and applied for five to ten seconds per point. After consolidation the surface is finished with a trowel or small screed before curing; curing machines are then employed to maintain moisture and temperature. Final quality‑control testing employs dedicated test equipment for strength, air content and other parameters. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The following figure illustrates key components in consolidating concrete.</p>
+<p><img alt="Nighttime view of a slipform paver and workers during concre" src="assets/concrete-vibration-consolidation/87c8b222252c8e298d8dc7c0d3843547e010b8eb1dd738afb553b53cb3cef16f.jpg" />
+<em>Nighttime view of a slipform paver and workers during concrete placement operations.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a large, yellow self-propelled slipform paving machine operating at night under bright floodlights. Several workers wearing high-visibility safety vests are positioned around the front of the paver near the auguring mechanism and grout box area.</p>
+<p><small>[2] — Ch. 5 (pp. 204–211), App. G (pp. 481–484)</small></p>
+<p>The guides agree that concrete vibration consolidation relies on a slipform paver operator who is trained to pre‑program, operate, and continuously monitor the vibrators, adjusting frequency in response to workability, segregation resistance, pavement thickness, paver speed and subbase stiffness. The operator must keep vibration within the typical 5,000–8,000 vibrations per minute range, reduce frequency when slowing the paver to maintain consistent extrusion pressure, and act immediately on real‑time alerts of high, low, or lost vibration. &ldquo;Equipment operators should be trained in the proper use of equipment, routine inspection protocols, and reporting procedures for any issues encountered.&rdquo; The operator also &ldquo;continuously monitor[s] the vibrator system for alarm conditions that indicate pre‑programmed specification limits have been exceeded&rdquo; and is responsible for downloading and reviewing the monitoring data each day.</p>
+<p>Inspection personnel are required to be qualified to view real‑time vibrator frequencies during paving and to download the data for later analysis, as noted by &ldquo;inspection personnel must be qualified to view the same real‑time vibrator frequencies during paving and to download the data for later analysis.&rdquo;</p>
+<p>Crew roles include a slipform machine operator who monitors each vibrator’s performance, performs twice‑daily tachometer checks, responds to alarm limits, and is prepared to replace any faulty unit without delay. Oversight is provided by a QC Manager who participates in trial‑batch decisions on vibrator alignment, spacing, amplitude and frequency, and periodically checks the crew members responsible for the equipment. For laboratory beam specimens, a Responsible Person (RPR) directs casting in accordance with ASTM C31/C31M, verifies that the vibrator meets the required minimum frequency, and instructs test technicians on proper insertion spacing, vibration duration, and avoidance of over‑vibration. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>]</p>
+<p>The following figure illustrates the proper vibrator insertion points for laboratory beam specimens.</p>
+<p><img alt="Vibrator insertion points complying with ASTM C31 while avoi" src="assets/concrete-vibration-consolidation/cd517316685326d9b8053a23d3c9aa1ea2500d4d26f0bae85de059dccc0b91b6.jpg" />
+<em>Vibrator insertion points complying with ASTM C31 while avoiding insertion directly in the middle of the beam (source: Martin Holt).</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays a top-down schematic of a rectangular concrete mold containing four cylindrical vibrator heads positioned at specific intervals. Red arrows indicate the direction of insertion, and dashed lines mark the centerline to show that insertions are offset from the middle rather than placed directly in it. This arrangement illustrates a specific procedure for consolidating concrete in a beam mold by using four insertions instead of three to prevent grout pockets near the center, which is a technique used to ensure uniform density and eliminate trapped air.</p>
+<p><small>[1] — Ch. 8 (pp. 237–238), Ch. 9 (p. 271); [2] — Ch. 5 (pp. 204–249), App. G (pp. 481–484); [11] — Ch. 7 (p. 72)</small></p>
+<h2 id="work-sequence">Work sequence</h2>
+<p>The guides agree that before concrete vibration consolidation can commence, a series of preparatory actions must be completed:
+- &ldquo;Supplemental vibration with handheld spud vibrators should precede the placement screed.&rdquo; Operators must also avoid dragging or lateral movement: &ldquo;Operators should neither drag spud vibrators through the concrete nor attempt to move the concrete laterally because either will tend to cause segregation.&rdquo;
+- Equipment readiness is essential. The service condition and capability of all vehicles and tools must be described in the CQCP: &ldquo;The service condition and capability of vehicles and equipment intended to be used to transport, place, consolidate, finish, texture, and cure concrete, is critical to the success of a project, and must be described in the CQCP to establish the intended means and methods for the project.&rdquo; All equipment must be maintained and inspected: &ldquo;Equipment Readiness – All equipment should be appropriately maintained, and regular inspection and maintenance must be performed.&rdquo; Vibrator frequency checks are required twice daily: &ldquo;As a minimum, the frequency of each vibrator should be checked twice per day, prior to the morning shift and about mid‑shift.&rdquo; If any unit malfunctions, work must stop: &ldquo;Should any of these QC checks detect that a vibrator is slowing, failing or otherwise malfunctioning, paving should be stopped so the unit can be replaced.&rdquo; Coordination of settings with paver speed must be established in a trial batch: &ldquo;Vibrator setting and paver speed should be coordinated during the trial batch process to establish an expected range of variables during production paving.&rdquo;
+- When lighter machines are used, concrete must be pre‑spread ahead of the paver: &ldquo;Lighter machines can be used paving a quality product; however, in these situations, careful pre‑spreading of the concrete in front of the paver by a placer‑spreader or some other effective means is important.&rdquo; Vibrator spacing and alignment must be verified daily before work starts: &ldquo;Check the spacing and alignment of the vibrators&rdquo; and &ldquo;This should also be done daily, optimally before paving begins.&rdquo;
+- Sufficient numbers of appropriately sized vibrators and defect‑free finishing tools are required: &ldquo;A sufficient number of concrete vibrators (1 in. [25 mm] diameter or less) are available on site and in proper working condition.&rdquo; and &ldquo;All floats and screeds are straight, free of defects, and capable of producing the desired finish.&rdquo;
+- Individual vibrator setup must be confirmed: &ldquo;Verify that all vibrators are operating.&rdquo; Initial settings must be established: &ldquo;Set initial frequencies.&rdquo; Height and angle adjustments are required: &ldquo;Set to the desired height and angle.&rdquo; Physical stops must be installed to protect reinforcement: &ldquo;Install physical stops on the hydraulic cylinders to prevent the vibrators from contacting the dowel baskets, tie bar baskets, and/or continuous steel reinforcement.&rdquo;
+- Finally, the monitoring system must be active and data reviewed: &ldquo;download and review the data daily&rdquo; and &ldquo;hardware provides alarms to warn the operator when pre‑programmed specification limits are exceeded.&rdquo; [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>]</p>
+<p>The following figure illustrates how a placer/spreader facilitates this essential pre-spreading process.</p>
+<p><img alt="A placer/spreader distributing concrete in front of a slipfo" src="assets/concrete-vibration-consolidation/5e82581dd9386e2fffbb4661f8ec12a2bde376bd93c4dc850cf0e5c4fa5d3e9b.jpg" />
+<em>A placer/spreader distributing concrete in front of a slipform paver.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image shows a large yellow machine, identified as a placer/spreader, receiving a load of aggregate from a red dump truck and depositing it onto the prepared roadbed ahead of a paving train. By maintaining a uniform height and hydraulic head, this placement technique ensures that the subsequent vibration consolidation produces a homogeneous slab with consistent density.</p>
+<p><small>[1] — Ch. 8 (p. 236); [2] — Ch. 5 (pp. 204–249), App. G (pp. 481–484); [3] — 2 Overview of Concrete Pavemen… (pp. 28–32); [4] — Placing and Finishing Equipment (p. 33); [6] — Ch. 5 (p. 120); [9] — Ch. 5 (p. 106); [10] — Vibrators (p. 29); [11] — Ch. 7 (p. 72)</small></p>
+<ol>
+<li>Verify that all vibrators are operating before work starts. 2. Check the spacing and alignment of the vibrators, adjusting them according to manufacturer recommendations, and set each unit to the required height and angle while installing physical stops on the hydraulic cylinders to protect dowel baskets, tie‑bar baskets, and continuous reinforcement. 3. Set the initial vibration frequency; monitor the frequency daily and make final adjustments at the start of paving while the vibrators are under load, correcting any drift immediately. 4. While placing concrete, apply the recommended combination of internal and surface vibration. Use an internal vibrator that meets ASTM C31 (frequency ≥150 Hz, head diameter ≤¼ mold width, shaft length ≥3 in longer than mold depth) and insert it at intervals not exceeding 6 in along the form, vibrating each insertion for roughly 5‑10 seconds until the surface smooths and large air bubbles cease. Avoid excessive vibration that could cause segregation. 5. For thicker slabs, supplement with handheld spud vibrators before the placement screed: insert the head vertically for about 5‑15 seconds without dragging or moving laterally; this vertical plunge provides adequate consolidation. 6. Once consolidation is achieved, proceed with the placement screed operation. 7. After each day’s work, clean all vibrators to maintain efficiency and prevent surface defects. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</li>
+</ol>
+<p>The following figure illustrates a concrete vibrator suitable for beam mold consolidation.</p>
+<p><img alt="Concrete vibrator suitable for beam mold consolidation." src="assets/concrete-vibration-consolidation/00fc9f82ae86c57987a07ce5d55faa5197f5661c169baefc58c9b9c070bcca61.jpg" />
+<em>Concrete vibrator suitable for beam mold consolidation.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a handheld concrete vibrator consisting of an orange motor housing, a flexible black hose, and a cylindrical metal vibrating head. This apparatus is used for internal vibration to consolidate fresh concrete within beam molds by delivering controlled vibrations that fluidize the mix and eliminate trapped air voids.</p>
+<p><small>[1] — Ch. 8 (p. 236); [2] — App. G (pp. 481–484); [3] — 2 Overview of Concrete Pavemen… (pp. 31–32); [10] — Vibrators (p. 29)</small></p>
+<p>The guides agree that vibration must be performed before any placement screed is applied, and that the vibrator head should remain embedded in the fresh concrete for only a short interval—generally five to fifteen seconds—to achieve adequate consolidation without causing segregation. For each insertion of an internal vibrator, the exposure time is limited to no more than five to ten seconds. After sampling, the concrete must be moved to the mold site promptly; the transport interval is capped at roughly fifteen minutes and the mix must be protected from evaporation during that period. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[1] — Ch. 8 (p. 236); [2] — App. G (pp. 481–484)</small></p>
+<h2 id="staging-and-logistics">Staging and logistics</h2>
+<p>&ldquo;The concrete vibration consolidation process is tightly bounded by spatial clearances, site‑access logistics, and environmental conditions.&rdquo; Spatially, &ldquo;the maximum clear distance between internal vibrators be 30 inches, with outside vibrators a maximum of 12 inches from the paver edge&rdquo; and &ldquo;DOD also limits the vibrator depth to no closer than 2 in. from any underlying material&rdquo;. Site access must consider that &ldquo;Planning must consider not only the number of available haul trucks, but also speed limits, haul road conditions, active runway or taxiway crossings, backing movements required, truck discharge times, weather, and possible equipment breakdowns.&rdquo; Ambient conditions are addressed by &ldquo;Monitoring systems may have optional monitoring of ambient temperature and relative humidity during paving, as well as paver ground speed and distance traveled.&rdquo; The guides also warn that &ldquo;Any changes in these due to varying mix, weather, or other factors can inherently introduce changes to the pavement surface.&rdquo; Therefore, &ldquo;Keeping the vibrational energy constant across the slab by monitoring individual vibrator operation and limiting variations in the load/concrete head heights is important.&rdquo; [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p><small>[2] — Ch. 5 (pp. 242–249), App. G (pp. 481–484); [3] — 2 Overview of Concrete Pavemen… (p. 28)</small></p>
+<h2 id="quality-control-and-acceptance">Quality control and acceptance</h2>
+<p>The inspection of concrete vibration consolidation must verify a set of measurable characteristics:</p>
+<ol>
+<li><strong>Quantity and size of vibrators</strong> – the guides require that a sufficient number of concrete vibrators (1 in. [25 mm] diameter or less) are available on site and in proper working condition.</li>
+<li><strong>Operational status</strong> – Verify that all vibrators are operating.</li>
+<li><strong>Frequency settings and limits</strong> – acceptable ranges are quoted as:
+   • “For most mixtures, a frequency from 5,000 to 8,000 vibrations per minute can adequately fluidize and consolidate the concrete without loss of entrained air or segregation of particles.”
+   • “Rates of 6,000 to 11,000 vibrations per minute (VPM) are common.”
+   • “should vibrate at a low frequency—3,000 to 6,000 vibrations per minute (50 to 100 Hz)—and high amplitude.”
+   Frequency must be set initially – Set initial frequencies – and continuously monitored: “Vibrator sensing systems are available to provide a real‑time readout of vibration frequency for all of the vibrators on a slipform paving machine.”; “use of a vibrator monitor is highly recommended to accurately monitor and control vibrator frequencies.” Alarms must function: “The hardware provides alarms to warn the operator when pre‑programmed specification limits are exceeded.” and “These units permit alarm settings that alert the operator of high or low frequencies for all or individual vibrators or total loss of vibration.”</li>
+<li><strong>Amplitude / energy uniformity</strong> – “Keeping the vibrational energy constant across the slab by monitoring individual vibrator operation and limiting variations in the load/concrete head heights is important.”</li>
+<li><strong>Spacing, alignment and mounting</strong> – required spacing: “spacing requirements (30 in. maximum spacing between individual vibrators and 12 in. maximum from the outermost vibrator to the edge of the profile pan).”; “Check the spacing and alignment of the vibrators.” Proper mounting and dampening are mandated: “Proper mounting (and dampening) of this vibrational energy should limit this potential.”</li>
+<li><strong>Cleanliness</strong> – Keep all the vibrators clean.</li>
+<li><strong>Depth control and automatic shut‑off</strong> – “gang‑mounted vibrators with adjustable depths. The vibrators must be controllable and capable of stopping when the paver stops.”</li>
+<li><strong>Physical safeguards</strong> – Install physical stops on the hydraulic cylinders to prevent the vibrators from contacting the dowel baskets, tie bar baskets, and/or continuous steel reinforcement.</li>
+<li><strong>Visual and core inspection for consolidation quality</strong> – stop paving if “signs of inadequate or over‑consolidation are observed, such as honeycombing, air voids, vibrator trails, or segregation.”; “There may be visual clues on the surface during paving but the presence of a grout pocket in a core along the vibrator trail is hard evidence of segregation.”; “Segregation may be recognized in cores taken from the hardened pavement.”</li>
+<li><strong>Screed and float condition</strong> – All floats and screeds are straight, free of defects, and capable of producing the desired finish.</li>
+<li><strong>Frequency adjustment based on mix properties</strong> – “Vibrator frequency should be adjusted for the following:” Workability; Response to vibration.</li>
+<li><strong>Inspection frequency</strong> – “pre‑shift daily checks of paver‑mounted vibrators and their sensors for frequency, amplitude, and the response to controls are vital.”; “As a minimum, the frequency of each vibrator should be checked twice per day, prior to the morning shift and about mid‑shift.”</li>
+<li><strong>Data review</strong> – it is important to download and review the data daily.</li>
+<li><strong>Special cases for beam‑type specimens</strong> – The combined length of the vibrator shaft and vibrating element must be at least 3 inches more than the depth of the mold; insert the vibrator at intervals not exceeding 6 inches.</li>
+<li><strong>Blade angle and surcharge for vibratory truss screed</strong> – “the leading edge of the blade should be at an angle to the surface, and the proper surcharge … should be carried in front of the leading edge.”; “excessive vibration can embed the coarse aggregate too deep and create a layer of mortar at the surface.”</li>
+</ol>
+<p>These characteristics constitute the complete set of items that must be inspected or tested to ensure proper concrete vibration consolidation. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>]</p>
+<p><small>[1] — Ch. 8 (pp. 237–238), Ch. 9 (p. 271); [2] — Ch. 5 (pp. 204–249), App. G (pp. 481–484); [3] — 2 Overview of Concrete Pavemen… (pp. 28–32); [4] — Placing and Finishing Equipment (p. 33); [6] — Ch. 5 (p. 120); [8] — Vibratory Truss Screeds (p. 40); [9] — Ch. 5 (p. 106); [10] — Vibrator Frequency and Height (p. 39), Vibrators (p. 29); [11] — Ch. 7 (p. 72)</small></p>
+<p>Measurements of concrete vibration consolidation are taken both continuously during operation and at scheduled intervals. Continuous monitoring systems provide a real‑time readout of each vibrator’s frequency, with alarm settings that alert the operator when frequencies drift high or low. In addition, routine manual verification is required: operators perform pre‑shift daily checks of paver‑mounted vibrators and their sensors for frequency (and amplitude), using a handheld tachometer, and repeat the check around mid‑shift—resulting in at least two measurements per workday; another source recommends a single daily check after paving when hydraulic oil is hot to capture optimal performance. All collected data—from continuous monitors or periodic tachometer readings—are downloaded and reviewed each day, and daily profile analyses are performed to evaluate any frequency, height, or angle changes that affect pavement smoothness. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>]</p>
+<p><small>[1] — Ch. 8 (pp. 237–238); [2] — Ch. 5 (pp. 204–247), App. G (pp. 481–484); [3] — 2 Overview of Concrete Pavemen… (pp. 31–32); [10] — Vibrator Frequency and Height (p. 39); [11] — Ch. 7 (p. 72)</small></p>
+<p>Acceptance of concrete vibration consolidation is achieved only when the finished surface exhibits no visual signs of inadequate or excessive consolidation—no honeycombing, air voids, vibrator trails, or segregation—and when each vibrator operates at the frequency specified for the job and is positioned according to the manufacturer’s spacing and alignment guidelines. The tolerances therefore include a zero‑defect visual condition and compliance with job‑specific vibration frequency ranges, proper alignment, and daily verification that VPM readings remain within those recommendations and that equipment is clean. If any of these criteria are not met, the work is deemed non‑conforming; the paving operation must be stopped immediately. Corrective actions require the contractor to adjust vibration equipment settings, paver speed, or related processes, and to adjust or replace vibrators that drift outside their prescribed frequency range, show mis‑alignment, or become dirty, following the manufacturer’s recommendations, before resuming placement. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p><small>[2] — Ch. 5 (pp. 247–249); [3] — 2 Overview of Concrete Pavemen… (pp. 31–32)</small></p>
+<h2 id="expected-performance-and-maintenance">Expected performance and maintenance</h2>
+<p>The common failures observed when concrete vibration consolidation deviates from proper practice include segregation of the mix, loss of entrained air, excessive voids or honeycombing, and weak surface layers. Segregation can arise from mishandling of handheld tools: “Operators should neither drag spud vibrators through the concrete nor attempt to move the concrete laterally because either will tend to cause segregation.” It is also triggered by applying too much energy: “too much vibrational energy &hellip; can cause problems with segregation of aggregate and mortar, loss of entrained air quantity and quality, and numerous distresses associated with the resulting variations in strength and durability.” Over‑vibration, such as leaving the vibrator inserted for too long, produces similar effects. Insufficient or ineffective vibration creates under‑consolidated zones: “underconsolidation due to a &ldquo;dead&rdquo; vibrator.” These zones manifest as large air pockets and honeycombing: “Fresh (or “plastic”) paving concrete &hellip; may contain large voids or pockets of air (including “honeycombing”), &hellip; if not addressed, can be sources of variability.” The guides therefore emphasize monitoring vibration duration, frequency, and equipment condition to avoid these distresses. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>]</p>
+<p>The following figure illustrates common consolidation defects that can occur during paving operations.</p>
+<p><img alt="Examples of consolidation defects including an unclosed surf" src="assets/concrete-vibration-consolidation/a74cfbf107f3bb8c4acc6f5bc9b374cf7216fbaa8378a20580f45de54ddb8303.jpg" />
+<em>Examples of consolidation defects including an unclosed surface, honeycombed edges, and excessive mortar segregation.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays three distinct concrete surface conditions: a left panel showing a flat slab with scattered dark debris, a center panel revealing a rough, void-filled edge where coarse aggregate is exposed without surrounding paste, and a right panel depicting a machine finishing a slab with visible streaks of separated mortar.</p>
+<p><small>[1] — Ch. 8 (pp. 236–238); [2] — Ch. 5 (pp. 242–249), App. G (pp. 481–484); [3] — 2 Overview of Concrete Pavemen… (pp. 28–32); [8] — Equipment for Hand/Wet Screedi… (p. 39), Vibratory Truss Screeds (p. 40); [10] — Vibrator Frequency and Height (p. 39); [11] — Ch. 7 (p. 72)</small></p>
+<p>Preventive maintenance for concrete vibration consolidation relies on continuous real‑time monitoring, routine inspections, and prompt corrective actions. Vibrator sensing systems that provide a real‑time readout of frequency and generate alarms for high, low or loss of vibration form the core of the monitoring program, and regular verification of the readout and alarm function is required; any sustained deviation signals repair of the vibrator or its control circuitry. Continuous electronic vibration monitoring should record frequency data, set alarm limits (typically 5,000–8,000 VPM) and trigger alerts for corrective action, while job‑specific ranges may require 6,000–11,000 VPM. Operators must download and review the data daily to identify out‑of‑tolerance conditions. Daily pre‑shift checks verify each vibrator’s frequency, amplitude and response; the frequency of each unit is checked twice per day – before the morning shift and mid‑shift – using a handheld tachometer or equivalent device. If any quality‑control check detects a slowing, failing or otherwise malfunctioning vibrator, paving must be stopped and the defective unit swapped out with a spare; crews should keep replacement vibrators and parts readily available.</p>
+<p>Regular inspections assess critical components such as hydraulics, electrical systems and structural integrity to spot wear or potential issues. Preventive tasks include lubrication, hydraulic filter changes and calibration of frequency and amplitude settings. Periodic verification that the vibrator head size does not exceed one‑quarter of the mold width and that the combined shaft and head extend at least three inches beyond the mold depth ensures consolidation quality; any deviation requires servicing or head replacement. Monitoring insertion spacing (no more than six inches) and vibration time (five to ten seconds per point) helps prevent over‑vibration and segregation.</p>
+<p>A pre‑work verification of each unit confirms that every vibrator is operating before the paver starts, after which initial frequencies are set and final adjustments made at the start of paving while the vibrators are under load, ensuring correct head height and angle. Physical stops must be installed on hydraulic cylinders to prevent heads from striking dowel or tie‑bar baskets or continuous reinforcement.</p>
+<p>Adequate supplies of appropriately sized vibrators – no larger than 1 in (25 mm) in diameter – must be available on site and each unit kept in proper working condition. Floats and screeds are inspected to confirm they are straight, free of defects and capable of producing the desired finish.</p>
+<p>Throughout a shift the mounts and dampening devices are examined for wear; worn engine mounts must be serviced promptly because they can introduce excess vibration that degrades surface quality. After each day’s paving the equipment is cleaned to prevent contamination that reduces efficiency. Any loss of uniform vibrational energy, indicated by uneven consolidation or surface defects, should trigger re‑mounting, servicing or repair of the affected vibrator.</p>
+<p>If the paver speed is reduced, vibration frequency may need to be lowered to maintain consistent extrusion pressure, and frequency adjustments are also made when paving over a stiff sub‑base that reflects more energy. Continuous oversight using dedicated vibrator monitors provides the quickest feedback about potential consolidation issues, allowing immediate repair actions before quality problems manifest. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>]</p>
+<p><small>[1] — Ch. 8 (pp. 237–238), Ch. 9 (p. 271); [2] — Ch. 5 (pp. 204–247), App. G (pp. 481–484); [3] — 2 Overview of Concrete Pavemen… (pp. 28–32); [6] — Ch. 5 (p. 120); [9] — Ch. 5 (p. 106); [10] — Vibrator Frequency and Height (p. 39), Vibrators (p. 29); [11] — Ch. 7 (p. 72)</small></p>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li><li id="ref-3"></li><li id="ref-4"></li><li id="ref-5"></li><li id="ref-6"></li><li id="ref-7"></li><li id="ref-8"></li><li id="ref-9"></li><li id="ref-10"></li><li id="ref-11"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

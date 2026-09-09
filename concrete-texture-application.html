@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concrete Texture Application</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html" class="active" aria-current="page">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Concrete Texture Application</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=concrete-texturing">concrete-texturing</a><a class="tag" href="index.html?q=surface-quality">surface-quality</a><a class="tag" href="index.html?q=friction-enhancement">friction-enhancement</a><a class="tag" href="index.html?q=texture-orientation">texture-orientation</a><a class="tag" href="index.html?q=automated-equipment">automated-equipment</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>Concrete texture application is a finishing technique applied while the slab is still plastic—or after it has set enough to be free of bleed water—by pulling a drag media such as artificial turf or moistened coarse burlap across the surface to produce a shallow, negatively‑oriented micro‑roughness[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]. Its purpose is to create controlled micro‑roughness that improves slip resistance, reduces tire‑pavement noise and prevents an overly smooth finish that could jeopardize vehicle safety and rider comfort, especially on wet pavements[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]. Effective texture must exhibit a fine pattern finer than one inch—typically 1/8 to 1/4 in.—with grooves oriented longitudinally or, if transverse, closely spaced and randomized, and the concrete mix must contain sufficient polishing‑resistant sand to retain friction at the intended traffic speed[<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]. The operation is normally performed by a texture machine that follows the paver (or by manual dragging), run at a constant speed with reliable steering and elevation control, after which curing compound is applied immediately so that texturing does not delay moisture protection[<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-applicability">Purpose and applicability</a></li><li><a href="#required-inputs">Required inputs</a></li><li><a href="#equipment-and-personnel">Equipment and personnel</a></li><li><a href="#work-sequence">Work sequence</a></li><li><a href="#staging-and-logistics">Staging and logistics</a></li><li><a href="#quality-control-and-acceptance">Quality control and acceptance</a></li><li><a href="#safety-and-environmental-controls">Safety and environmental controls</a></li><li><a href="#curing-protection-and-handoff">Curing, protection, and handoff</a></li><li><a href="#expected-performance-and-maintenance">Expected performance and maintenance</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (9)</summary><div class="sources-body"><a href="#ref-1">2019-12_IMCP_manual</a>, <a href="#ref-2">ACPTP-2022-4_QC_QA_of_concrete_airfield_pvmt_manual_w_cvr_508</a>, <a href="#ref-3">How_to_Reduce_Tire-Pavement_Noise_final</a>, <a href="#ref-4">QC_for_concrete_paving_web</a>, <a href="#ref-5">concrete_pvmt_preservation_guide_3rd_edition_web</a>, <a href="#ref-6">concrete_trails_guide</a>, <a href="#ref-7">hif13059</a>, <a href="#ref-8">overlays_parking_lots_guide_2nd_ed_web</a>, <a href="#ref-9">smooth_concrete_pvmt_guidelines_w_cvr</a></div></details>
+
+<h2 id="purpose-and-applicability">Purpose and applicability</h2>
+<p>Across the guides, concrete texture application is presented as the remedy for pavement surfaces that lack a controlled micro‑roughness. When slabs remain overly smooth they suffer from insufficient traction—particularly when wet—and generate excessive tire‑pavement noise, which together jeopardize vehicle safety and rider comfort. The method also prevents an uneven or insufficient surface finish that would otherwise compromise slip resistance and the visual quality of the pavement. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p>The following figure illustrates how different texture profiles impact these critical performance metrics.</p>
+<p><img alt="Comparison of noise and friction for various concrete paveme" src="assets/concrete-texture-application/41d5c189ed7da30dcf4ae34b60cab8f355c4ae33eabbe8fa11d570672c769917.jpg" />
+<em>Comparison of noise and friction for various concrete pavement textures</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>It illustrates that quieter surfaces vary in friction in the same way that louder surfaces do, showing no direct relationship between friction and noise for textures such as drag, longitudinal tining, diamond grinding, and transverse tining. The data points demonstrate that quieter concrete pavements can be durable and cost-effective to build without sacrificing safety because there is not a direct relationship between friction and noise.</p>
+<p><small>[1] — Ch. 3 (pp. 59–60); [3] — 2 Overview of Concrete Pavemen… (pp. 19–37); [4] — Ch. 4 (p. 78); [5] — Ch. 3 (p. 61); [7] — 5. Plant Site and Mixture Prod… (p. 78); [8] — Boom Broom Method (pp. 45–46), Burlap Drag Texture (p. 44)</small></p>
+<p>\u201cDragging artificial turf or moistened, coarse burlap across the surface of plastic concrete creates a shallow surface texture.\u201d This method is appropriate when the pavement serves low‑speed traffic (≤45 mph) because \u201cThis texturing method is inexpensive, results in relatively quiet pavements, and provides sufficient friction characteristics for many roadways, particularly those with speeds less than 45 mph.\u201d It can also satisfy higher‑speed applications if the mix contains polishing‑resistant sand, as \u201cIowa has found that drag textures can provide adequate friction on roadways with higher speeds when the concrete mixture includes adequate amounts of polishing‑resistant (e.g., siliceous) sand\u201d. </p>
+<p>When tire‑pavement noise reduction is a priority, a modest texture is required: \u201cA completely smooth concrete surface is not quiet.\u201d and \u201cSome (smaller) texture is necessary in order to minimize the noise that is generated.\u201d Accordingly, \u201cPre‑texturing the pavement with a drag texture prior to tining is therefore important,\u201d especially when longitudinal tining is used because it yields more consistent surfaces. Although \u201cTransverse tining is an inexpensive method for providing durable, high‑friction pavement surfaces\u201d and \u201cThe friction qualities are especially evident on wet pavements,\u201d it should be avoided in noise‑critical projects due to its audible whine. </p>
+<p>Equipment considerations: where the corridor can accommodate a texture machine, \u201cIn most concrete paving operations, some variant of a texture machine follows the paver.\u201d The unit \u201cSaid simply, the texture equipment applies the final texture to the surface of the paved concrete.\u201d and \u201cQuite often, liquid curing compound is applied from this equipment, when specified.\u201d If space is limited, \u201cOne instance in which a separate texture machine might not be used in paving operations is when construction conditions are too tight and the width of the machine cannot be accommodated,\u201d so texture must be integrated with the paver or omitted. </p>
+<p>Burlap‑based drag textures require proper timing and surface condition: \u201cThe texturing should be completed once the concrete is sufficiently set and without the presence of bleed water (Figures 31 and 32).\u201d \u201cWet burlap can be used for finishing and texturing the trail surface.\u201d It may be attached to equipment – \u201cBurlap that covers the trail width is attached to the back of a paving machine or screed and is dragged along to create the textured surface,\u201d – or applied manually – \u201cIt can also be dragged manually by two people on either side of the trail.\u201d </p>
+<p>For strip‑paved slabs, especially those ≤28 ft wide, drag texturing performs best: \u201cworks best when the strip placement method is used and the placement width is narrow, generally not exceeding 28 ft\u201d and \u201cAstroTurf drag texturing is best suited for narrow strip paving.\u201d The process must be clean and properly moist; excess moisture creates a slurry film – \u201cIf the burlap drag produces a slurry film during application, the burlap has too much moisture\u201d – and the surface should be free of dried concrete – \u201cthe AstroTurf drag should be relatively clean and free of dried concrete prior to application.\u201d The drag is applied after screeding and floating but before curing: \u201cAstroTurf drag texturing follows all screeding and floating of the slab and precedes curing compound application.\u201d and \u201cprecedes the application of curing compound.\u201d \u201cDragging wet burlap over the pavement behind the final placement operation provides a uniformly light texture to concrete\u201d. </p>
+<p>If any of these prerequisites are not satisfied—high‑speed traffic without polishing‑resistant sand, a need to avoid noise‑producing transverse tining, insufficient set or presence of bleed water, full‑width pours exceeding 28 ft, inability to keep the drag clean or moist, or corridor constraints that preclude a texture machine—another finishing method should be selected. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p><small>[1] — Ch. 3 (pp. 59–60); [3] — 2 Overview of Concrete Pavemen… (pp. 19–34); [6] — Burlap (p. 23); [8] — Artificial Grass (AstroTurf) D… (p. 44), Burlap Drag Texture (p. 44)</small></p>
+<h2 id="required-inputs">Required inputs</h2>
+<p>The texture process relies on a drag media—either artificial turf or moistened, coarse burlap—that is pulled over plastic concrete to form a shallow surface finish. The concrete mix must contain adequate amounts of polishing‑resistant (e.g., siliceous) sand to supply the friction needed for traffic. In addition, the mixture should be well graded; mixtures that are extremely gap graded will tend to segregate during handling and placing, so a balanced aggregate gradation is required. Texturing must be completed while the slab remains wet: finish texturing before the surface of the pavement experiences any drying, and then apply curing compound without delay. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p>The following figure illustrates the turf drag attachment used to apply this finish.</p>
+<p><img alt="Turf drag attachment on a texture machine" src="assets/concrete-texture-application/291c055ba1e2ccdccec87cbdd90fa55891c2a47e92c776d7c02682fe9961b8e9.jpg" />
+<em>Turf drag attachment on a texture machine</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The image displays a mechanical apparatus featuring a long frame with a strip of artificial turf attached to its underside. This device is positioned over a freshly poured concrete slab, demonstrating the equipment used for texturing the surface.</p>
+<p><small>[1] — Ch. 3 (p. 59); [3] — 2 Overview of Concrete Pavemen… (pp. 19–27), App. B (p. 42); [6] — Burlap (p. 23); [8] — Artificial Grass (AstroTurf) D… (p. 44), Burlap Drag Texture (p. 44)</small></p>
+<p>The guides agree that texture patterns must be finer than one inch; any repeating surface pattern shall be avoided at intervals of 1 in. or larger (“Avoid (flatten) texture that repeats itself at intervals of 1 in. or larger.”, “Avoid texture patterns with intervals of 1 in. or greater.”). Fine texture is required on the order of 1/8–1/4 in. (“some fine texture (that is on the scale of 1/8–1/4 in.) should be provided.”).</p>
+<p>Texture must be negatively oriented, i.e., grooves pointing downward rather than upward fins (“Texture should be “negatively oriented&rdquo;, meaning that any “deep” texture should point down”, “Impart texture that points down (i.e., grooves) rather than up (i.e., fins).”). Longitudinal orientation is preferred (“When possible, orient grooves in the longitudinal direction.”) and when transverse grooves are used they shall be closely spaced and randomized (“If grooves are oriented in the transverse direction, they should be closely spaced and randomized whenever possible.”, “If used, maintain transverse grooves closely spaced and randomized whenever possible.”).</p>
+<p>For tined textures the spacing of the individual tines must meet the project specification (“On tined surfaces, texture spacing is controlled by ensuring that the individual tines are spaced to meet the specification.”, “verify that the tine width and spacing meet project specifications”, “Verify that tine spacing is in accordance with the specification.”). All tines shall be clean, straight, of equal length, and set at the required angle to achieve the specified depth (“Tines should be clean and straight to produce acceptable tining (Figure 5.22), and their length and angle should be adjusted to ensure that the texture depth is appropriate.”, “Use clean and straight tines (Figure 41).”, “Check that all tines are the same length.”, “Confirm that all tines are straight.”).</p>
+<p>The texture machine must operate at a constant or uniform speed; longitudinal travel is typically 25–75 ft/min and transverse travel about 30 ft/min (“Normal ground speed for longitudinal texturing is typically on the order of 25 to 75 feet per minute.”, “The speed of transverse texturing across the width of the slab has been observed to be on the order of 30 ft/min.”, “Operate the texture machine at a consistent speed.”, “The texturing machine (Figure 5.21) should be operated at a constant speed using adequate steering and elevation controls (e.g., stringline, 3D machine control, or referencing of the slab).”, “Ideally, the texture speed should be set so the machine can steer accurately; it should advance in such a way as to maintain alignment with the stringline, as well as to minimize unwanted vibrations.”).</p>
+<p>Steering and vertical positioning are controlled by reliable references such as a stringline, three‑dimensional machine control, or direct slab reference (“Use stringline to control the steering and elevation of the texture machine.”, “The texturing machine … should be operated at a constant speed using adequate steering and elevation controls (e.g., stringline, 3D machine control, or referencing of the slab).”).</p>
+<p>Pre‑construction checks include: confirming crown and/or cross‑slope of the equipment matches the pavement cross‑section (“set the crown and/or cross-slope of the texture equipment to match the pavement crosssection.”); inspecting tines for bend, missing pieces, length, straightness; verifying grinding head type and wear within tolerances (“verify that the correct grinding head is being used for the concrete being textured, and the wear on the head is within recommended tolerances.”); checking chain tension, greasing, hydraulic leaks as part of daily maintenance; performing a dry run of the texture/cure machine to verify steering, elevation and spray operation (“Dry run the texture/cure machine to verify that the steering, elevation, and spray systems are operating correctly.”). The contractor must also ensure that any burlap or broom drags are sound, properly positioned parallel to the pavement centreline, and within width limits (burlap “generally not exceeding 28 ft.”; broom “normally 4 to 6 ft wide” and may be used on slabs “up to sixty feet wide”, with “small overlap of the broom’s path allowed on each pass”; “The texturing broom is typically of equal width to the boom on which it is mounted”). Moisture control is verified by observing that no slurry film forms (“If the burlap drag produces a slurry film during application, the burlage has too much moisture.”). Finally, texture work shall not delay or impede curing provisions (“Texturing should not impede or delay the use and application of curing provisions (Fick et al. 2012).”). [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>]</p>
+<p>The following figure illustrates a diamond grinding head with its blades and spacers.</p>
+<p><img alt="Close-up view of a diamond grinding head with embedded abras" src="assets/concrete-texture-application/92505bb5eef6d9542d7a8a3d8632feb25ea1d94678df770134068aace297d560.jpg" />
+<em>Close-up view of a diamond grinding head with embedded abrasive blades and spacers.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The image displays the circular profile of a concrete texture machine&rsquo;s grinding head, featuring multiple vertical segments separated by gaps. The use of this specific equipment is verified during pre-construction checks to ensure it matches the concrete being textured and that wear remains within recommended tolerances.</p>
+<p><small>[3] — 2 Overview of Concrete Pavemen… (pp. 20–36), App. B (pp. 41–42), Surface texture (bumps and dip… (p. 12); [4] — Ch. 4 (p. 78); [5] — Ch. 3 (p. 60); [7] — 5. Plant Site and Mixture Prod… (p. 78); [8] — Boom Broom Method (pp. 45–46), Burlap Drag Texture (p. 44), Pull Broom Method (p. 45); [9] — Texture and Cure (pp. 30–31)</small></p>
+<h2 id="equipment-and-personnel">Equipment and personnel</h2>
+<p>The concrete‑texture operation demands a qualified texture‑machine or placement‑machine operator who can &ldquo;Verify that the equipment and materials being used are set up to meet the nominal texture per the project specifications,&rdquo; adjust tine width, spacing, crown and cross‑slope, and select an operating speed that minimizes vibration while keeping the machine &ldquo;operated at a constant speed using adequate steering and elevation controls.&rdquo; The operator must keep all tines clean, straight, correctly angled and spaced, perform daily hydraulic system checks, replace worn components, and conduct a dry run of the machine before work begins to confirm steering, elevation and any spray systems are functional. Crew members are responsible for routine inspection and maintenance of texture attachments—including checking fluid levels, filters, bolt torque, and cleaning hardened concrete buildup—so that the equipment remains capable of producing uniform texture.</p>
+<p>Personnel assigned to broom or burlap texturing must be skilled in the specific method employed. &ldquo;Broom texture is applied with either a pole‑mounted broom operated by one person (the pole broom method), a pull rope–mounted broom operated by two people on either side of the placement operation (the pull broom method), or a broom mounted to the extension boom of a placement machine (the boom broom method).&rdquo; The pole‑broom operator must time the pass immediately after screeding and floating and before curing compound or sawcutting; the pull‑broom crew must coordinate their movements to maintain parallel coverage; and the boom‑broom operator must synchronize broom motion with concrete placement. When wet burlap is used, a paving‑machine or screed operator secures the burlap to the rear of the equipment while two laborers stand on either side to guide the drag, all of whom must recognize when the concrete has set sufficiently and no bleed water remains.</p>
+<p>A dedicated quality‑control inspector should be included in the crew to verify compliance with texture depth, alignment with stringlines or centerline, and adherence to the project’s QC plan. This inspector confirms that tines remain within specification, that drags are installed soundly, and that any curing‑compound spray nozzles operate correctly. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>]</p>
+<p><small>[3] — 2 Overview of Concrete Pavemen… (pp. 24–36); [4] — Ch. 4 (p. 78); [6] — Burlap (p. 23); [8] — Broom Texture (p. 44), Pull Broom Method (p. 45); [9] — Texture and Cure (pp. 30–31)</small></p>
+<h2 id="work-sequence">Work sequence</h2>
+<p>Before any concrete texture operation begins, the slab must be in the proper condition and all supporting equipment and materials must be ready. The guides agree that the concrete must still be plastic—&ldquo;The concrete must be placed and remain in its plastic state before a drag texture can be applied&rdquo;—or, for methods that follow setting, it must have hardened enough to be set and free of bleed water. All texture tools are inspected: tines are checked for correct length and spacing (&ldquo;Check the tine spacing—confirm that nominal spacing is met&rdquo;), and any bent or mortar‑laden units are replaced. The burlap, turf, or broom drags are examined and cleaned; &ldquo;The burlap should be clean and free of dried concrete prior to application.&rdquo; Finally, a curing plan must already be in place so that texturing does not postpone it (&ldquo;Texturing should not impede or delay the use and application of curing provisions&rdquo;). [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>]</p>
+<p><small>[1] — Ch. 3 (p. 59); [3] — 2 Overview of Concrete Pavemen… (pp. 20–37), App. B (pp. 41–42); [4] — Ch. 4 (p. 78); [5] — Ch. 3 (p. 61); [6] — Burlap (p. 23); [7] — 5. Plant Site and Mixture Prod… (p. 78); [8] — Artificial Grass (AstroTurf) D… (p. 44), Boom Broom Method (pp. 45–46), Broom Texture (p. 44), Burlap Drag Texture (p. 44); [9] — Texture and Cure (pp. 30–31)</small></p>
+<ol>
+<li><strong>Prepare the slab</strong> – Screed and float the fresh concrete to a level surface; then verify that the concrete has hardened enough and that no bleed water or dried concrete remains on the surface before any texture work.</li>
+<li><strong>Inspect and ready the equipment</strong> – Perform a dry run of the texture/cure machine, checking steering, elevation, spray systems, hydraulic fluid levels, chain tension, and lubrication; clean and straighten all tines, drags, and brooms, replace any damaged components, and ensure that drags are installed securely so their texture will run parallel to the pavement centerline.</li>
+<li><strong>Specify and verify rake/tine configuration (for tining)</strong> – Order the tining rake with the required tine spacing, then at the start of each paving operation inspect the rake to confirm nominal spacing, correct length, straightness, and replace any bent or mortar‑laden tines.</li>
+<li><strong>Set rake geometry</strong> – Adjust the rake angle and lowering distance so that tine tips (or drag supports) are parallel to the intended pavement surface and at equal heights across the width; tighten bolts and verify a constant angle throughout the job.</li>
+<li><strong>Prepare drag material</strong> – Moisten burlap, AstroTurf, or other drag material before commencing the texturing pass; ensure the material is clean and free of excess moisture that would create a slurry film.</li>
+<li><strong>Apply pre‑texturing drag</strong> – Drag the lightly‑wet burlap (or AstroTurf) longitudinally across the slab while the concrete is still wet, creating a heavy drag texture before any tining; manual dragging by two workers is also acceptable. Remove excess mortar buildup as needed.</li>
+<li><strong>Perform tining (if required)</strong> – Operate the texture machine at a constant speed using adequate steering and elevation controls such as a stringline or 3‑D machine control. Conduct longitudinal or transverse tining with clean, straight tines whose length and angle have been set to achieve the desired depth (shorter tines for hot, dry conditions; longer tines for cool, damp conditions). Keep the equipment aligned with the pavement crown to maintain uniform groove depth.</li>
+<li><strong>Apply broom texture (alternative method)</strong> – Use a pole‑mounted, pull‑rope, or boom‑mounted broom to create texture in the direction of concrete placement. The boom broom can apply curing compound directly behind it and is performed after screeding/floating and before final sawcutting.</li>
+<li><strong>Immediate curing</strong> – As soon as texturing is completed, apply curing compound in multiple coats or employ wet‑curing methods; ensure that texture work does not impede or delay the curing provisions.</li>
+<li><strong>Ongoing verification</strong> – Frequently re‑check tine alignment, drag parallelism, and equipment settings after each relocation of the machine; correct any deviations promptly to meet acceptance criteria.</li>
+<li><strong>End‑of‑day maintenance</strong> – Clean all texture equipment, inspect hydraulic fluid levels, chain tension, and lubrication, and store drags/brooms safely for the next day’s work.</li>
+<li><strong>Proceed to final operations</strong> – After curing, perform final sawcutting if required. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>]</li>
+</ol>
+<p>The following figure illustrates the longitudinal tining process on a freshly placed concrete surface.</p>
+<p><img alt="Longitudinal tining of a newly placed concrete surface" src="assets/concrete-texture-application/8402962e985e3c1d4fbced56c65ca3469ba1cd2659d5bf2abef6e4debf6892cd.jpg" />
+<em>Longitudinal tining of a newly placed concrete surface</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The image displays a close-up view of a freshly paved concrete surface featuring closely spaced, parallel grooves running longitudinally along the pavement. A metal apparatus with vertical tines is visible on the left side, which corresponds to the machinery used for imparting this texture while the slab is still plastic. This visual evidence demonstrates the creation of a fine pattern with grooves oriented longitudinally, which aligns with the requirements for effective concrete texture application.</p>
+<p><small>[3] — 2 Overview of Concrete Pavemen… (pp. 19–36), App. B (pp. 41–42); [4] — Ch. 4 (p. 78); [6] — Burlap (p. 23); [7] — 5. Plant Site and Mixture Prod… (p. 78); [8] — Artificial Grass (AstroTurf) D… (p. 44), Boom Broom Method (pp. 45–46), Broom Texture (p. 44), Burlap Drag Texture (p. 44), Pull Broom Method (p. 45); [9] — Texture and Cure (pp. 30–31)</small></p>
+<p>The guides require that curing begin immediately after the drag‑texture operation. Texturing and curing must be performed consecutively with no pause; the surface must be finished before any drying occurs, and the curing compound is applied without delay. The recommendation is to apply the cure “as soon as possible after placement (and texturing).” Because the same equipment often performs both actions, the process is described as a continuous operation. In addition, the drag material should be moistened before commencing the texture work to ensure proper adhesion. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The figure below illustrates the proper use of curing equipment on a texture-cure machine.</p>
+<p><img alt="Curing equipment mounted on a texture-cure machine following" src="assets/concrete-texture-application/536a0cd6c5ae0c75867e8e5371bfa047eb642f9bbaace3a99b91f824dc23be9b.jpg" />
+<em>Curing equipment mounted on a texture-cure machine following good practice.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The image displays a large piece of paving machinery equipped with a spray bar and associated hoses, positioned at the edge of a freshly placed concrete slab. The machine is shown in the process of applying curing compound immediately after the texture operation.</p>
+<p><small>[3] — 2 Overview of Concrete Pavemen… (pp. 19–20), App. B (p. 42); [7] — 5. Plant Site and Mixture Prod… (p. 78)</small></p>
+<h2 id="staging-and-logistics">Staging and logistics</h2>
+<p>The operation must fit within the available clearance; <strong>when construction conditions are too tight and the width of the machine cannot be accommodated</strong>, texture equipment cannot be used. Drag methods are limited by strip width – they <strong>works best when the strip placement method is used and the placement width is narrow, generally not exceeding 28 ft.</strong> although a pull‑broom can be applied on slabs <strong>This method has been successfully used in slabs up to 60 ft wide.</strong> Sufficient lateral clearance is also required so that burlap or broom drags can be positioned soundly and remain parallel to the pavement centerline; <strong>Verify that all drags are installed soundly and will result in texture that is parallel to the centerline of the pavement.</strong></p>
+<p>Site‑access constraints include transport‑induced damage: <strong>Tines are often bent or damaged during transport.</strong> therefore <strong>The spacing of tines should be checked frequently to identify missing, bent, and misaligned tines.</strong> Clear, straight‑line access along the placement direction is needed for longitudinal dragging, and uninterrupted length along slab edges is required for pull‑broom operation.</p>
+<p>Weather influences tine selection and curing timing. In hot, dry conditions the surface loses moisture rapidly; <strong>evaporation rate is constantly monitored during and immediately after placement</strong> and <strong>Use shorter tines for hot dry weather, firm pavement surface, and deeper texture</strong> while <strong>use longer tines for cool damp weather, soft pavement surface, and shallower texture</strong>. Immediate curing is required – the cure compound must be applied as soon as possible after texturing.</p>
+<p>Environmental constraints demand a clean, moisture‑controlled surface. The pavement must be <strong>should be relatively clean and free of dried concrete prior to application</strong> and excess water from misting must be avoided: <strong>Ensure that the misting spraybar and/or hose(s) for wetting drags are operating correctly and will not result in excess water being applied to the pavement surface.</strong> If the burlap drag is over‑wet, a slurry film forms; <strong>If the burlage drag produces a slurry film during application, the burlap has too much moisture.</strong> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>]</p>
+<p>The following figure illustrates how improper moisture control can lead to excessive intermediate aggregates near the surface.</p>
+<p><img alt="Close-up of a concrete surface exhibiting deep, irregular gr" src="assets/concrete-texture-application/b34e9aafae46274826f97de00dce304692f6321f25ed5e9cdaf9aa6f20db3e9c.jpg" />
+<em>Close-up of a concrete surface exhibiting deep, irregular grooves and exposed aggregate.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The image displays a concrete pavement surface characterized by deep, vertical ridges with significant variation in depth and width. Such segregation causes nonuniform wear and modulation in noise levels, contrasting with the fine pattern required for effective slip resistance.</p>
+<p><small>[3] — 2 Overview of Concrete Pavemen… (pp. 19–34), App. B (p. 42); [6] — Burlap (p. 23); [8] — Artificial Grass (AstroTurf) D… (p. 44), Burlap Drag Texture (p. 44), Pull Broom Method (p. 45); [9] — Texture and Cure (pp. 30–31)</small></p>
+<h2 id="quality-control-and-acceptance">Quality control and acceptance</h2>
+<p>Inspection of concrete texture application requires verification of several inter‑related characteristics. The surface creation method must be confirmed; Dragging artificial turf or moistened, coarse burlap across the surface of plastic concrete creates a shallow surface texture, and the drag material must be clean, free of dried concrete, and wetted only enough to avoid a slurry film. The resulting texture must meet pattern‑spacing limits – the pavement surface must not exhibit a repeating pattern at intervals of one inch or larger and must display a fine texture on the order of 1/8 to 1/4 in. Texture orientation shall be negatively oriented, with grooves pointing downward; longitudinal grooves are preferred, while transverse grooves, when used, must be closely spaced and randomly distributed. When higher vehicle speeds are anticipated, the concrete mix shall contain sufficient polishing‑resistant (siliceous) sand to retain friction.</p>
+<p>Concrete quality checks include confirming that the mix has not segregated, that density, workability, gradation and aggregate size near the surface are appropriate, and that no bleed water is present before texture is applied. Pre‑texturing with a heavy drag should be completed prior to any tining operation.</p>
+<p>tines must be clean, free of damage, securely bolted, equal in length, perfectly straight; they must also be set to the correct length and angle, and spaced according to design tolerances. Uniform tine depth across the slab is required, which depends on aggregate quantity, concrete stiffness, workability, and the downward force applied by each tine.</p>
+<p>Equipment performance checks include operating the texture machine at a constant speed with steering and elevation guided by reliable references (stringline or 3‑D control), using the correct grinding head whose wear is within tolerances, ensuring the tips of tines are parallel to the pavement surface, maintaining frame integrity (tightened bolts, stable hydraulic system, proper chain tension, minimized vibrations), and minimizing laitance buildup on the tools. Consistent tracking of the texture equipment must be verified.</p>
+<p>Curing provisions must commence immediately after texturing without delay; multiple passes or a higher concentration of curing compound should be applied, spray nozzles and misting systems inspected for correct operation, and over‑watering avoided. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>]</p>
+<p><small>[1] — Ch. 3 (p. 59); [3] — 2 Overview of Concrete Pavemen… (pp. 19–36), App. B (pp. 41–42); [4] — Ch. 4 (p. 78); [5] — Ch. 3 (pp. 60–61); [6] — Burlap (p. 23); [7] — 5. Plant Site and Mixture Prod… (p. 78); [8] — Artificial Grass (AstroTurf) D… (p. 44), Burlap Drag Texture (p. 44); [9] — Texture and Cure (pp. 30–31)</small></p>
+<p>Measurements of concrete texture spacing are performed by inspecting the individual tines on the texturing rake to verify they conform to the specified pitch. The inspection is required when the rake is ordered from the manufacturer, at the start of each paving operation, and after every relocation of the equipment, because transport can bend or damage the tines. Throughout the project the spacing should be checked frequently to catch any missing, bent, or misaligned tines before they affect surface quality. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The following figure illustrates how such damage can result in nonuniform texture depth across the width of a transverse tining rake.</p>
+<p><img alt="Nonuniform texture depth across width of transverse tining r" src="assets/concrete-texture-application/5a00196c1435461acfb9cd6427aafac0d28d70799759ed438bbbe9e92ce8febb.jpg" />
+<em>Nonuniform texture depth across width of transverse tining rake</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The image displays a concrete surface featuring parallel longitudinal grooves created by a texturing tool. A distinct vertical line divides the slab, separating an area with deep, well-defined tines from an adjacent section where the texture is significantly shallower and less visible.</p>
+<p><small>[3] — 2 Overview of Concrete Pavemen… (p. 20)</small></p>
+<p>The work is accepted only when the burlap, turf, or broom drags are soundly installed so that the resulting texture runs parallel to the pavement centerline, the misting spraybar and hoses wet the drags without over‑watering, and all tines are clean, undamaged and spaced according to the specification; equipment steering, elevation and spray systems must also operate correctly during a dry run. Any drag found defective must be replaced, bent or mortar‑laden tines must be swapped out, and clogged spray nozzles cleaned before proceeding. These checks constitute the acceptance criteria, while replacement of non‑conforming drags or tines and adjustment or cleaning of the misting system are the prescribed corrective actions. [<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>]</p>
+<p><small>[9] — Texture and Cure (pp. 30–31)</small></p>
+<h2 id="safety-and-environmental-controls">Safety and environmental controls</h2>
+<p>Concrete‑texture machines introduce several occupational and public safety hazards if they are not rigorously maintained. Unmaintained equipment can produce “unwanted vibrations can result from texture equipment if not properly maintained,” especially because “The machine is powered by a combustion engine (often diesel)” whose vibration levels rise when fuel, oil or coolant checks are neglected. Mechanical stability is further compromised when “Loose bolts can result in an unstable frame and/or rattling that, in turn, create vibrations,” exposing operators to whole‑body vibration and loss of control. Hydraulic systems pose additional risks; the guidance states “It is important to check for leaks in the hydraulic system daily and to change the hydraulic fluid and filters per the manufacturer’s recommendations,” because a contaminated or leaking system may cause erratic attachment movement or failure. Finally, the texture attachments themselves are sources of pinch‑point and impact danger: “Broken or damaged tines should be replaced as needed,” since defective tines can produce uneven grooving that creates slip hazards for pedestrians after the slab cures. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The following figure illustrates a schematic of the texture-cure machine discussed above.</p>
+<p><img alt="Schematic of a texture-cure machine showing its main compone" src="assets/concrete-texture-application/98c6b9a1aff8263bae24985c99af8d876f33f39c060d2cd919e8a7c285b5f684.jpg" />
+<em>Schematic of a texture-cure machine showing its main components.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays a schematic diagram of a large, yellow piece of construction equipment labeled as a &lsquo;texture-cure machine&rsquo;. Key components identified in the diagram include an engine, operator&rsquo;s controls, and a cure tank mounted on a long truss-like frame.</p>
+<p><small>[3] — 2 Overview of Concrete Pavemen… (pp. 33–36)</small></p>
+<h2 id="curing-protection-and-handoff">Curing, protection, and handoff</h2>
+<p>The completed textured slab is protected by applying curing compound immediately after the texture is placed, before any drying can occur. Operators are instructed to finish texturing and then “apply curing compound without delay,” keeping the mortar moist throughout early strength development. Many projects use equipment that combines the texture‑creating tines with a built‑in cure tank or spray bar, so “texturing is typically performed with the same piece of equipment as curing.” When such integrated machines are not used, the guides call for rapid application of liquid compound from a separate tank, often spraying directly behind a broom or drag (“Additionally, a boom broom can apply curing compound directly behind the brooming operation”). To ensure uniform protection, the curing material is applied in multiple passes—or at a higher concentration—while “ensuring consistent tracking of texture equipment” and “minimizing vibrations.” The tines and spray nozzles must be clean and correctly set; “clean all curing compound spray nozzles,” inspect tines for damage or mortar buildup, and perform a dry run to verify steering, elevation, and spray functions (“dry run the texture/cure machine to verify that the steering, elevation, and spray systems are operating correctly”). Across the sources, these practices create a continuous moisture‑retaining film that safeguards the fresh concrete during the cure period. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>]</p>
+<p>The following figure illustrates how clean and straight tines minimize positive texture during this process.</p>
+<p><img alt="Close-up of a texture machine's tine assembly creating longi" src="assets/concrete-texture-application/e32930471ebedb6c6124b1022f4f0c0c62d4cd21a5eddc951d87345e04e76605.jpg" />
+<em>Close-up of a texture machine&rsquo;s tine assembly creating longitudinal grooves in fresh concrete.</em> [<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The image displays the mechanical tines of a texturing device dragging across a wet concrete surface to create uniform, parallel grooves.</p>
+<p><small>[3] — 2 Overview of Concrete Pavemen… (pp. 19–37), App. B (pp. 41–42); [5] — Ch. 3 (p. 61); [7] — 5. Plant Site and Mixture Prod… (p. 78); [8] — Artificial Grass (AstroTurf) D… (p. 44), Boom Broom Method (pp. 45–46), Broom Texture (p. 44), Burlap Drag Texture (p. 44); [9] — Texture and Cure (pp. 30–31)</small></p>
+<h2 id="expected-performance-and-maintenance">Expected performance and maintenance</h2>
+<p>The guides identify several recurring failures in concrete texture application. They note that &ldquo;uniform transverse tining has been shown to exhibit undesirable noise due to tire-pavement interaction&rdquo; and that it creates &ldquo;creating an audible whine that is very annoying and should be avoided if possible.&rdquo; Even when &ldquo;randomly spaced and/or skewed transverse tining may reduce the audible whine while providing adequate friction,&rdquo; the guides caution that this method &ldquo;random and/or skewed transverse tining is not an adequate solution for reducing tire-pavement noise.</p>
+<p>Texture design errors are also highlighted. The guides advise to &ldquo;Avoid (flatten) texture that repeats itself at intervals of 1 in. or larger.&rdquo; and to &ldquo;Avoid extremely smooth (e.g., floated or polished) surfaces; instead, some fine texture (that is on the scale of 1/8 to 1/4 in.) should be provided.&rdquo; They require a &ldquo;Texture should be “negatively oriented&rdquo;, meaning that any “deep” texture should point down (e.g., grooves) rather than up (e.g., fins).&rdquo; When grooves run transversely they &ldquo;should be closely spaced and randomized whenever possible.&rdquo;</p>
+<p>Tine‑related defects are repeatedly mentioned. The guides stress that &ldquo;spacing of tines should be checked frequently to identify missing, bent, and misaligned tines.&rdquo; and that &ldquo;texture spacing is controlled by ensuring that the individual tines are spaced to meet the specification.&rdquo; They further warn that &ldquo;Tine depth is arguably the most difficult variable to control,&rdquo; because &ldquo;as the mixture changes in consistency, the depth will also change, leading to undesirable variations in texture,&rdquo; with &ldquo;high spots in the pavement surface will likely be tined deeper than low spots&rdquo; and that &ldquo;the quantity and size of aggregate particles that are dislodged by the tining process will have an impact on the consistency of texture depth.&rdquo; Additional tine problems include &ldquo;broken or damaged tines should be replaced as needed,&rdquo; &ldquo;Check the tine spacing—confirm that nominal spacing is met.&rdquo;, &ldquo;Check that all tines are the same length.&rdquo;, &ldquo;Confirm that all tines are straight.&rdquo;, and &ldquo;Clean the tines.&rdquo;</p>
+<p>Equipment‑induced distress is described extensively. The guides list &ldquo;machine vibrations and/or oscillations that can possibly be transmitted to the pavement surface&rdquo; as a source of &ldquo;introducing unwanted texture variability.&rdquo; They note that &ldquo;unwanted vibrations can result from texture equipment if not properly maintained&rdquo; and that &ldquo;Loose bolts can result in an unstable frame and/or rattling that, in turn, create vibrations.&rdquo; Rough or &ldquo;jerky&rdquo; motion of the machine &ldquo;will ultimately affect the texture applied to the surface of the concrete slab,&rdquo; with &ldquo;Sudden increases of vibrations from the engine, puttering noises, or “jerky” movement may be indicators that an oil change is due.&rdquo; They also point out that a &ldquo;poorly maintained hydraulic system may result in nonuniform movement of the texture attachment (or even failure, in extreme cases of contamination).&rdquo;</p>
+<p>Concrete mix segregation creates further distress. The guides explain that &ldquo;Segregation of the concrete mix, including that due to improper vibration on the paver, can lead to inconsistencies in surface texture,&rdquo; citing &ldquo;vibrator trails&rdquo; where &ldquo;texture depth is deeper in the “vibrator trails” because the tines penetrated further into the softer, segregated mix directly over the vibrators,&rdquo; and concluding that &ldquo;segregation can lead to premature pavement failures.&rdquo;</p>
+<p>Improper moisture application during burlap or misting drags is another failure mode. The guides caution that &ldquo;water should be added to the burlap; however, it is important that excessive water is not applied&rdquo; and that &ldquo;If the burlap drag produces a slurry film during application, the burlap has too much moisture.&rdquo; They also require that &ldquo;Ensure that the misting spraybar and/or hose(s) for wetting drags are operating correctly and will not result in excess water being applied to the pavement surface.&rdquo;</p>
+<p>Finally, mis‑installed or worn texture devices cause orientation errors. The guides advise to &ldquo;Inspect all burlap, turf, and broom drags; replace as necessary.&rdquo;, to &ldquo;Verify that all drags are installed soundly and will result in texture that is parallel to the centerline of the pavement,&rdquo; and to &ldquo;Inspect and clean all tines; replace any tines that are bent or have mortar buildup.&rdquo; [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>]</p>
+<p>The following figure illustrates a schematic of the longitudinal tining texture equipment used to apply these finishes.</p>
+<p><img alt="Schematic of longitudinal tining texture equipment" src="assets/concrete-texture-application/fa834112a978b987d3671bec856f9e1dc9b0a90d30b3f165791f130b86f11087.jpg" />
+<em>Schematic of longitudinal tining texture equipment</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays a schematic diagram of the mechanical frame and hydraulic support system for a concrete pavement texturing machine. It illustrates how leg barrels, which are described as hydraulic cylinders that fix an attachment to the frame, assist in movement and elevation control. The diagram highlights components such as crown adjustment and independent hydraulic controls, which are critical for maintaining the consistency of the texture applied to the surface.</p>
+<p><small>[1] — Ch. 3 (pp. 59–60); [3] — 2 Overview of Concrete Pavemen… (pp. 20–37), App. B (pp. 41–42), Surface texture (bumps and dip… (p. 12); [8] — Burlap Drag Texture (p. 44); [9] — Texture and Cure (pp. 30–31)</small></p>
+<p>The guides agree that preventive care for concrete texture application hinges on three interrelated actions. First, surface protection must begin with proper curing; as one source stresses, &ldquo;Since the durability of the mortar at the surface is so critical to the success of a tined surface, excellent curing techniques become mandatory.&rdquo; This implies multiple applications of curing compound or wet‑curing where noise sensitivity demands it, and continuous monitoring of evaporation rates until the texture work is finished. </p>
+<p>Second, the condition of the tining tools governs both friction performance and long‑term durability. Across the documents the consistent message is that &ldquo;Tines should be clean and straight to produce acceptable tining&rdquo; and that &ldquo;The spacing of tines should be checked frequently to identify missing, bent, and misaligned tines.&rdquo; Regular visual inspection, cleaning of mortar buildup, and replacement of any bent or worn tines keep the pattern uniform and prevent premature segregation of paste. </p>
+<p>Third, ancillary components such as drags must be kept in good order. The guidelines state unequivocally, &ldquo;Inspect all burlap, turf, and broom drags; replace as necessary.&rdquo; Ensuring each drag is securely mounted guarantees that the resulting texture runs parallel to the pavement centreline and that moisture is applied evenly when misting spraybars are used. </p>
+<p>In addition to these core practices, the guides embed monitoring steps within quality‑control plans: operators should run the texture machine at a constant speed with reliable steering and elevation control, perform daily checks of fuel, oil, coolant, and hydraulic fluid levels, and verify that vibration‑producing components are functioning correctly. Prompt repair or replacement of any malfunctioning part—whether a bent tine, a worn drag, or a defective vibrator—extends equipment life and preserves the intended friction and noise‑reduction characteristics of the textured surface. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>]</p>
+<p>The following figure illustrates the equipment configuration discussed above.</p>
+<p><img alt="Side view of texture-cure machine on single track, and close" src="assets/concrete-texture-application/d4db1ed318b04d3f97c3145b69bca31149b98bbf619bf2e8a689f98623b156ac.jpg" />
+<em>Side view of texture-cure machine on single track, and close up of track</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays a yellow construction vehicle identified as a texture-cure machine equipped with continuous tracks. A close-up view reveals the heavy metal track assembly, which includes elevation jacks (legs) and individual wear pads that support the frame. Proper maintenance of these components is essential to minimize vibrations that transfer from the tracks to the frame and into the fresh concrete.</p>
+<p><small>[3] — 2 Overview of Concrete Pavemen… (pp. 19–37), App. B (pp. 41–42); [4] — Ch. 4 (p. 78); [5] — Ch. 3 (p. 61); [7] — 5. Plant Site and Mixture Prod… (p. 78); [9] — Texture and Cure (pp. 30–31)</small></p>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li><li id="ref-3"></li><li id="ref-4"></li><li id="ref-5"></li><li id="ref-6"></li><li id="ref-7"></li><li id="ref-8"></li><li id="ref-9"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

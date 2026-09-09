@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concrete Tensile Strength Testing</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html" class="active" aria-current="page">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Concrete Tensile Strength Testing</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=concrete-properties">concrete-properties</a><a class="tag" href="index.html?q=tensile-strength">tensile-strength</a><a class="tag" href="index.html?q=modulus-of-elasticity">modulus-of-elasticity</a><a class="tag" href="index.html?q=material-integrity">material-integrity</a><a class="tag" href="index.html?q=testing-procedures">testing-procedures</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>Concrete tensile strength testing in pavement engineering comprises two principal laboratory methods—flexural (modulus of rupture) testing of prismatic beams and the indirect splitting tensile test on cylindrical cores—each applying a measured load to a specimen of uniform cross‑section until failure, thereby quantifying the concrete’s ability to resist tension that develops under traffic‑induced bending[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]. In flexural testing a beam is loaded at a constant rate (typically 125–175 lbf/in² per minute) either at third‑point or center‑point positions as prescribed by AASHTO T 97/ASTM C78 or ASTM C293/AASHTO T 177, and the resulting modulus of rupture is calculated from the peak load and beam geometry; in the splitting test a vertical compressive load is applied at 1.3 mm/min to a cylinder (per ASTM C‑496) causing it to split along its mid‑plane, with tensile strength derived from the ultimate load and specimen dimensions[<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]. The measured tensile values—typically about one‑tenth of compressive strength—serve as primary inputs for pavement thickness design, traffic opening decisions, and assessment of existing slabs, while specimen moisture condition, end preparation, and aggregate size limits are critical to obtaining reliable results[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#material-purpose-and-applicability">Material purpose and applicability</a></li><li><a href="#composition-and-characteristics">Composition and characteristics</a></li><li><a href="#key-material-properties">Key material properties</a></li><li><a href="#behavior-and-mechanisms">Behavior and mechanisms</a></li><li><a href="#durability-and-deterioration">Durability and deterioration</a></li><li><a href="#influence-of-production-and-placement">Influence of production and placement</a></li><li><a href="#selection-specification-and-improvement">Selection, specification, and improvement</a></li><li><a href="#performance-evaluation-and-implications">Performance evaluation and implications</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (6)</summary><div class="sources-body"><a href="#ref-1">2019-12_IMCP_manual</a>, <a href="#ref-2">Guide_to_FDR_with_Cement_Jan_2019_reprint</a>, <a href="#ref-3">concrete_pvmt_distress_assessments_and_solutions_guide_w_cvr</a>, <a href="#ref-4">concrete_pvmt_preservation_guide_3rd_edition_web</a>, <a href="#ref-5">preservation_reference_manual</a>, <a href="#ref-6">testing_guide</a></div></details>
+
+<h2 id="material-purpose-and-applicability">Material purpose and applicability</h2>
+<p>Concrete tensile strength testing in pavement engineering consists of two principal methods: flexural‑strength (modulus of rupture) testing of beams and the indirect splitting tensile test on cylindrical specimens. The flexural tests—most commonly performed with third‑point loading as defined by AASHTO T 97/ASTM C78, but also possible with center‑point loading per ASTM C293/AASHTO T 177—load a simple beam at a constant rate until failure, and the resulting modulus of rupture is calculated. This provides a direct measure of the concrete’s ability to resist the tensile stresses that develop when traffic loads bend a slab, and the measured flexural strength serves as a primary input for pavement thickness design and for determining the slab depth required to prevent flexural cracking. The splitting tensile test, defined in ASTM C‑496, applies a vertical compressive load at a constant deformation rate to a cylinder or core until it fails in tension; the failure load is used in a standard equation to obtain indirect tensile strength. Results from laboratory‑cured specimens, field‑taken cores, and in‑place cores are employed to verify that the hardened concrete has achieved sufficient tensile capacity before opening to traffic and to assess the structural integrity of existing slabs, especially when evaluating cracked or shattered pavement sections. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates the setup for an indirect tension test.</p>
+<p><img alt="Schematic of the indirect tension test on a cylindrical conc" src="assets/concrete-tensile-strength-testing/5752da24617385443daca204a7e98d77003eb4fd0a8380175552fc6663b7c33d.jpg" />
+<em>Schematic of the indirect tension test on a cylindrical concrete specimen.</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The figure depicts a cylindrical core with diameter D and length L subjected to vertical compressive loads applied along its top and bottom edges.</p>
+<p><small>[1] — Ch. 3 (pp. 56–57), Ch. 6 (pp. 161–165); [4] — Ch. 3 (p. 70); [5] — Ch. 3 (pp. 68–69)</small></p>
+<h2 id="composition-and-characteristics">Composition and characteristics</h2>
+<p>Concrete tensile strength testing is performed on specimens that possess a uniform cross‑section—either cylindrical cores or prismatic beams. The guides specify cylindrical specimens “typically 6 × 12 in. or 4 × 8 in.” with “the diameter of the mold … at least three times the largest aggregate,” and beam specimens “a simple beam… subjected to third‑point loading (ASTM C78) or center‑point loading (ASTM C293).” In all cases the material must be a solid concrete core or beam of known dimensions; length L and diameter D for cylinders, and defined width, depth, and span for beams. The test applies a measured force—either an axial compressive load on the cylinder side strip (“loading a cylinder … until a crack forms down the middle”) or a continuously increasing flexural load on the beam (“applied continuously at a constant, increasing rate—typically between 125 and 175 lbf/in² per minute—until it fractures”). The loading rate is controlled: “a vertical compressive load is applied at a constant deformation rate of 1.3 mm per minute” for splitting tests, and the same continuous rate for flexural beams. Critical physical characteristics include the condition of specimen ends (“ground or capped”) and moisture state, both of which “greatly influence… stress distribution” and “have a considerable effect on the resulting strength.” Proper handling—“careful handling during saw‑cutting, transport, and trimming”—is required to avoid pre‑test damage that could compromise results. The tensile strength is derived from the ultimate load together with the known geometry (e.g., σ_t = 2P_ult/(πLD) for cylinders or breaking load divided by cross‑sectional area for beams). [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p><small>[1] — Ch. 6 (pp. 164–165); [4] — Ch. 3 (p. 70); [5] — Ch. 3 (pp. 68–69); [6] — Ch. 7 (p. 90)</small></p>
+<p>Variations in raw‑material composition, source, processing, and proportioning exert a direct and measurable influence on concrete tensile strength testing. Because flexural (tensile) strength is derived from an empirical link to compressive strength, each mixture requires its own calibration of the coefficients that relate these properties; any change in the constituents or their ratios alters that relationship. Moreover, where a specimen originates and how it is handled after casting further modify the observed tensile performance. Field‑cast and cured specimens typically display lower splitting tensile strengths than laboratory‑cured cylinders due to greater variability in curing conditions, while moisture state at testing can shift results—moist specimens tend to retain higher flexural response even as compressive strength may drop. Test piece dimensions also play a role, with smaller cylinders often yielding higher compressive (and thus inferred tensile) values from the same mix. Consequently, accurate prediction of concrete tensile behavior demands mixture‑specific laboratory calibration during proportioning and careful control of specimen source, curing, moisture, and size. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 3 (pp. 56–57), Ch. 6 (pp. 164–165)</small></p>
+<h2 id="key-material-properties">Key material properties</h2>
+<p>The guides agree that concrete tensile‑strength testing is governed by a combination of mechanical, physical, chemical and thermal properties. Mechanically, the tests rely on &ldquo;flexural or modulus of rupture, which represents the ultimate tensile stress at the extreme fiber of a beam&rdquo; and on the &ldquo;indirect tensile (splitting) test evaluates concrete’s tensile capacity, a mechanical property expressed as σ_t and calculated from the ultimate vertical compressive force applied to a cylindrical core together with its length and diameter.&rdquo;  Stiffness also matters: &ldquo;stiffness (modulus of elasticity) and Poisson’s ratio control deflection and lateral strain, influencing crack initiation during the test,&rdquo; while the tensile capacity is linked to compression by the fact that &ldquo;concrete’s tensile capacity is roughly one‑tenth of its compressive strength&rdquo; and that &ldquo;the modulus of elasticity rises with increasing compressive strength.&rdquo;  Physically, specimen condition is critical: &ldquo;specimen moisture content and geometry are critical,&rdquo; &ldquo;keeping the cylinder moist avoids drying‑induced strength loss,&rdquo; and &ldquo;proper dimensions and end preparation ensure a uniform tensile stress distribution.&rdquo;  Accurate dimensional data are required because the result depends on &ldquo;accurate knowledge of the specimen’s physical dimensions (length L and diameter D).&rdquo;  Chemically, the presence of admixtures or heat treatment can modify behavior: &ldquo;admixtures or heat treatment that accelerate early strength can alter the microstructure, increase permeability and reduce durability, thereby affecting measured tensile behavior.&rdquo;  Thermally, the concrete’s temperature history influences when reliable testing is possible: &ldquo;temperature history captured by maturity testing determines the rate of strength development and the point at which the concrete attains sufficient tensile capacity for reliable testing.&rdquo; [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates the generalized stress-strain behavior of concrete that results from these complex mechanical and physical interactions.</p>
+<p><img alt="Generalized stress-strain curve for concrete" src="assets/concrete-tensile-strength-testing/baacbc98b4a854797ab8a0c54682f787ede11525069374b850c939a2711794c9.jpg" />
+<em>Generalized stress-strain curve for concrete</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays a generalized stress-strain curve illustrating the relationship between applied load and resulting deformation in concrete. It identifies an elastic range where the material returns to its original shape, followed by inelastic deformation leading to failure. The modulus of elasticity parameter is used in the structural design of the pavement and for modeling the risk of cracking.</p>
+<p><small>[1] — Ch. 3 (pp. 56–57), Ch. 6 (pp. 161–168), Ch. 10 (pp. 324–331); [5] — Ch. 3 (pp. 68–69)</small></p>
+<p>The tensile properties of concrete are quantified through direct flexural (modulus of rupture) tests on prismatic beams and indirect splitting tensile tests on cylindrical cores. In the flexural approach, a beam is loaded until rupture; &ldquo;Flexural strength testing is conducted on a concrete beam under either center‑point or third‑point loading conditions.&rdquo; The third‑point configuration &ldquo;provides a more conservative estimate of the flexural strength than the center‑point test,&rdquo; and is described in &ldquo;The first method, ASTM C78/AASHTO T 97, Standard Test Method for Flexural Strength of Concrete (Using Simple Beam with Third-Point Loading), loads the sample beam into an apparatus that utilizes third‑point loading and bearing blocks to test the flexural strength of the concrete.&rdquo; A single‑point load alternative is defined by &ldquo;ASTM C293/AASHTO T 177 applies a single central point load at a constant rate (typically 125–175 lbf/in² per minute), and the latter generally yields higher flexural strength values.&rdquo; Upon failure, &ldquo;Upon breaking, the modulus of rupture or flexural strength of the specimen is calculated,&rdquo; which &ldquo;Flexural strength (also called the modulus of rupture [MOR]) is used in concrete pavement design because it characterizes the strength under the type of loading that the pavement will experience in the field (bending).&rdquo; The resulting value is described as &ldquo;A measure of the ultimate load‑carrying capacity of a beam, sometimes referred to as ‘rupture modulus’ or ‘rupture strength.’&rdquo;</p>
+<p>For indirect tensile capacity, the splitting test is employed: &ldquo;The indirect tensile strength of concrete is obtained by the splitting tensile test defined in ASTM C‑496, where a cylindrical core is loaded vertically along its diameter at a constant deformation rate of 1.3 mm per minute until failure.&rdquo; The recorded ultimate compressive load (P_ult) together with specimen dimensions are inserted into &ldquo;σ_t = 2 P_ult / (π L D)&rdquo; to produce the tensile strength, expressed in psi or pascals. The test is described as &ldquo;The splitting tensile test involves loading a cylinder or core axially along a strip on its side (ASTM C496) until a crack forms down the middle, causing failure of the specimen.&rdquo; Moisture condition influences results: &ldquo;The moisture content of the test specimen has a considerable effect on the resulting strength.&rdquo;</p>
+<p>Both testing modalities share a common calculation principle: &ldquo;A measured force is applied to concrete samples of consistent cross‑sectional area (beams and cylinders) until the samples fail,&rdquo; and &ldquo;The peak load recorded at failure is divided by the known cross‑sectional area of the specimen, yielding the material’s tensile strength.&rdquo; The resulting tensile values are typically expressed as a fraction of compressive strength—approximately ten percent—as noted that &ldquo;the tensile strength is only about 10 percent of the compressive strength,&rdquo; and they serve to classify concrete for pavement thickness design and fatigue assessment. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p><small>[1] — Ch. 3 (pp. 56–57), Ch. 6 (pp. 161–165), Ch. 10 (p. 324); [4] — Ch. 3 (p. 70); [5] — Ch. 3 (pp. 68–69); [6] — Ch. 7 (p. 90)</small></p>
+<h2 id="behavior-and-mechanisms">Behavior and mechanisms</h2>
+<p>The splitting tensile test subjects a concrete cylinder to an axial load applied along its side, generating tensile stresses on the plane of loading that cause the specimen to split in half. Moisture condition strongly influences the measured strength; specimens kept moist or saturated tend to exhibit lower compressive values but higher flexural (and consequently tensile) strengths compared with dry samples, so testing is normally performed while the surface remains wet. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The following figure illustrates the splitting tensile strength test setup described above.</p>
+<p><img alt="Splitting tensile strength test setup for a concrete cylinde" src="assets/concrete-tensile-strength-testing/925a8b8d17aceb6b75cc5a7b78690614f4334e9d36c8a8235fccfa3f02b17fb6.jpg" />
+<em>Splitting tensile strength test setup for a concrete cylinder.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure shows a cylindrical concrete specimen positioned horizontally within a heavy steel loading frame on a compression testing machine. A strip bearing pad is placed along the top of the cylinder to apply an axial load, which induces tensile stresses on the plane containing the applied load causing the specimen to split.</p>
+<p><small>[1] — Ch. 6 (pp. 164–165)</small></p>
+<p>Across the guides, concrete tensile strength testing is governed by intertwined physical, chemical, and mechanical mechanisms. Physically, the moisture content of a specimen and the condition of its ends or cores have a considerable effect on measured strength, while the underlying microstructural quality—porosity and permeability—determines how the material responds to tension. Chemically, achieving high early‑strength through admixtures or heat curing often degrades that microstructure, leading to higher permeability and reduced durability, which in turn lowers tensile capacity. Mechanically, the test imposes axial loading that creates normal stresses across an imagined plane of separation—&ldquo;Intensity of internal force (i.e., force per unit area) exerted by either of two adjacent parts of a body on the other across an imagined plane of separation&rdquo;—and when these forces are normal to the plane they constitute normal stress. In splitting tensile tests, &ldquo;The loading induces tensile stresses on the plane containing the applied load, causing the cylinder to split.&rdquo; Flexural testing adds further mechanical control: the stress distribution depends on the loading configuration (third‑point loading with bearing blocks versus center‑point loading), with third‑point arrangements producing different rupture values and ASTM C293 typically yielding higher flexural strength. In both flexural methods the load is increased continuously at a constant rate—specified between 125 and 175 lbf/in² per minute—until failure, as &ldquo;The load is applied continuously at a constant, increasing rate until the beam breaks.&rdquo; Repeated flexural loading initiates microcracks that can coalesce into macro‑cracks and propagate with each cycle, influencing long‑term tensile performance. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p><small>[1] — Ch. 6 (pp. 161–165), Ch. 10 (p. 331); [4] — Ch. 3 (p. 70)</small></p>
+<h2 id="durability-and-deterioration">Durability and deterioration</h2>
+<p>The tensile strength obtained in concrete splitting‑tensile or flexural tests is highly susceptible to a range of deterioration mechanisms, damage processes, and durability concerns. The guides note that &ldquo;high early strength achieved by chemical admixtures or heating will often result in a poorer microstructure, higher permeability, and loss of potential durability,&rdquo; which lowers tensile capacity, and that &ldquo;the rate of strength development will also influence the risk of cracking.&rdquo; Under cyclic loads, &ldquo;under fatigue, repeated loading will first result in the formation of small microcracks, some of which will grow into macrocracks, which then propagate with every load cycle,&rdquo; further degrading performance. Moisture is critical: &ldquo;the moisture content of the test specimen has a considerable effect on the resulting strength,&rdquo; and specimens must be kept moist with surfaces that have not been allowed to dry. Field‑cured samples frequently exhibit lower strengths than laboratory‑cured ones because of greater variability, and &ldquo;test results are greatly influenced by the conditions of the cylinder ends and cores.&rdquo; Damage introduced during specimen extraction and handling also compromises results; as one guide warns, &ldquo;care must also be taken in transporting and trimming the beam for testing to ensure that it is not damaged prior to testing,&rdquo; and any pre‑test cracks or defects lower the measured modulus of rupture. When testing already cracked or shattered slabs, existing field deterioration directly influences the outcomes, making meticulous specimen preparation essential for reliable tensile strength data. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p><small>[1] — Ch. 6 (pp. 161–165); [4] — Ch. 3 (p. 70)</small></p>
+<p>Concrete tensile‑strength testing becomes most vulnerable when the concrete develops rapid early strength—especially through chemical admixtures or heating—which creates a poorer microstructure and higher permeability, reducing durability. Fast strength gain also raises the risk of early‑age cracking, whereas slower development yields a denser, less permeable matrix that mitigates deterioration. Repeated flexural (fatigue) loading accelerates damage by initiating microcracks that can coalesce into macrocracks with each load cycle. Test reliability is further compromised by moisture conditions: &ldquo;The moisture content of the test specimen has a considerable effect on the resulting strength.&rdquo; Dry specimens underestimate tensile capacity, while fully saturated cylinders display altered compressive and flexural responses. Additionally, improper preparation of cylinder ends—such as untreated or poorly ground surfaces—introduces variability and can produce erroneous tensile results. Field‑cast specimens, which are less controlled than laboratory‑cured samples, also tend to show greater strength scatter and lower average values, increasing susceptibility to inaccurate assessments. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The following figure illustrates this vulnerability to early-age cracking by displaying a high-risk scenario identified shortly after paving.</p>
+<p><img alt="An example plot reported by HIPERPAV showing a high risk of" src="assets/concrete-tensile-strength-testing/7307a8bc3d8c5bdf50c7b0bc0f8276eb624944559fa597b16b61e99e7e75e0e9.jpg" />
+<em>An example plot reported by HIPERPAV showing a high risk of cracking at about six hours after paving</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays the predicted tensile stress and strength development in concrete over a period of elapsed time since construction. It illustrates how early-age cracking risk is assessed by comparing allowable stress against predicted stress, where exceeding the strength indicates likely failure.</p>
+<p><small>[1] — Ch. 6 (pp. 161–165)</small></p>
+<h2 id="influence-of-production-and-placement">Influence of production and placement</h2>
+<p>Because tensile strength is obtained from split‑cylinder tests, the way the specimen is cured has a direct impact on the measured value. Specimens that remain moist until testing retain higher apparent tensile capacity, whereas drying reduces strength, and field‑cured cylinders typically record lower values than laboratory‑cured ones due to greater variability in the field. Consequently, the reported split‑tensile strength reflects not only the concrete mix but also the moisture condition imposed during curing. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 6 (pp. 164–165)</small></p>
+<p>Construction practices that accelerate early strength—such as using chemical admixtures or applying heat—can create a poorer microstructure and higher permeability, which undermine durability and thus degrade the concrete’s tensile performance over time. Likewise, a rapid rate of strength gain raises the risk of early‑age cracking, introducing microcracks that later evolve into larger flaws under repeated loading, thereby compromising long‑term tensile strength. Variations introduced at placement and curing—especially field‑cast specimens that experience greater variability than laboratory‑cured ones, inadequate preparation or capping of cylinder ends, and uncontrolled moisture conditions—have the strongest impact on long‑term tensile strength results because they directly alter the specimen’s internal stress state and moisture gradient. A saturated test piece, for example, can lower compressive strength while inflating flexural (and indirectly tensile) values, so maintaining consistent end treatment and moist curing is essential for reliable long‑term testing outcomes.</p>
+<p>Key verbatim observations:
+- &ldquo;high early strength achieved by chemical admixtures or heating will often result in a poorer microstructure, higher permeability, and loss of potential durability.&rdquo;
+- &ldquo;The rate of strength development will also influence the risk of cracking (see Early-Age Cracking later in this chapter.)&rdquo;
+- &ldquo;Test results are greatly influenced by the conditions of the cylinder ends and cores.&rdquo; [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 6 (pp. 161–165)</small></p>
+<h2 id="selection-specification-and-improvement">Selection, specification, and improvement</h2>
+<p>The selection of a concrete tensile‑strength test is governed first by the type of stresses that the structure will experience. When bending dominates, flexural strength becomes the controlling parameter because &ldquo;Most loads on pavements &hellip; result in bending (or flexure), which introduces compressive stresses on one face of the pavement and tensile stresses on the other.&rdquo; Accordingly, the test method must reproduce realistic stress conditions. For uncracked slabs the preferred approach is a third‑point beam test; for cracked or shattered sections where higher apparent strength values are sought, a center‑point test is chosen. This distinction is captured in the guidance: &ldquo;When a standard, uncracked pavement section is to be characterized, the third‑point loading method (ASTM C78/AASHTO T 97) is appropriate; for cracked or shattered slabs where higher apparent strength values are desired, the center‑point loading method (ASTM C293/AASHTO T 177) is preferred.&rdquo; The third‑point configuration is further endorsed because &ldquo;The third-point loading configuration, described under AASHTO T 97/ASTM C78, is more commonly used in pavement design and provides a more conservative estimate of the flexural strength than the center-point test.&rdquo;</p>
+<p>Specimen considerations also drive selection. Cylinder or beam dimensions must satisfy aggregate size limits (diameter at least three times maximum aggregate) and be kept moist to avoid drying effects; moisture &ldquo;The moisture content of the test specimen has a considerable effect on the resulting strength. Testing should be performed on a test specimen that has been maintained in a moist condition (the surface has not been allowed to dry).&rdquo;</p>
+<p>When the objective is to evaluate tensile capacity directly from cores taken from the pavement, the indirect splitting test is specified: &ldquo;The indirect tensile (splitting) test &hellip; aligns with ASTM C‑496 and can be performed on the same cores used for compression testing or slab thickness determination; compliance with the standard’s prescribed constant deformation rate of 1.3 mm per minute further guides its specification for pavement evaluation applications.&rdquo; Finally, logistical factors such as the difficulty of extracting a beam, traffic control requirements, and risk of pre‑test damage are weighed when choosing between simple‑beam methods.</p>
+<p>Thus, across the guides, criteria include: dominant stress mode (bending vs direct tension), condition of the slab (cracked/uncracked), required conservatism of strength estimate, specimen size/aggregate constraints, moisture state, adherence to ASTM/AASHTO standards and deformation rates, and practical considerations of sample extraction and testing logistics. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[1] — Ch. 3 (pp. 56–57), Ch. 6 (pp. 161–165); [4] — Ch. 3 (p. 70); [5] — Ch. 3 (pp. 68–69)</small></p>
+<p>To improve concrete tensile‑strength testing reliability, practitioners should (1) replace variable beam flexural tests with calibrated mixture‑specific empirical correlations to compressive or split‑tensile results—“many state transportation agencies do not mandate the use of beam tests for monitoring concrete quality during construction. Instead, it is common to develop mixture-specific empirical correlations to other tests, such as compressive strength or split tensile strength”—and calibrate the MR = a√f&rsquo;c (a≈7.5‑10) or MR = b f&rsquo;c^(2/3) relationships for each mix; (2) adopt maturity testing per ASTM C1074 to continuously track early‑age strength—“The use of the maturity tests is becoming increasingly more common for assessing the in-place strength of concrete for opening the pavement to traffic (ASTM C1074, ACPA 2015). Maturity testing provides a reliable technique for continuously monitoring concrete strength gain during the first 72 hours”—thereby reducing dependence on single‑point beam results; and (3) enforce strict specimen preparation for split‑tensile cylinders: grind or cap ends using approved methods—“ASTM C617/AASHTO T 231 outline methods for using sulfur mortar capping.”—or unbonded neoprene caps, keep specimens moist to avoid moisture gradients, and select cylinder dimensions that satisfy the three‑times‑aggregate rule. Laboratory‑cured reference samples should be used for calibration, which together mitigate end‑condition effects and improve repeatability. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The following figure illustrates the comparison of compressive and flexural strength correlations derived from these empirical relationships.</p>
+<p><img alt="Comparison of compressive and flexural strength correlations" src="assets/concrete-tensile-strength-testing/f5af3228e812f02a2e3fb2f9a9e3f06a6ff73dbbcb96ed526494bfbe0fe323b7.jpg" />
+<em>Comparison of compressive and flexural strength correlations, based on equations 3.1 and 3.2</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure plots two linear trends representing the relationship between concrete&rsquo;s compressive strength (x-axis) and its flexural strength or modulus of rupture (y-axis). One trend follows a square root correlation ($MR = 9    imes    ext{sqrt}(f&rsquo;<em c="c">c)$), while the other follows a power law correlation ($MR = 2.3   imes f&rsquo;</em>$).}^{(2/3)</p>
+<p><small>[1] — Ch. 3 (pp. 56–57), Ch. 6 (pp. 164–165)</small></p>
+<h2 id="performance-evaluation-and-implications">Performance evaluation and implications</h2>
+<p>Laboratory evaluation of concrete tensile capacity relies on both flexural‑beam and splitting‑tensile methods. Flexural strength testing is conducted on a concrete beam under either center-point or third-point loading conditions, and the third-point loading configuration, described under AASHTO T 97/ASTM C78, is more commonly used in pavement design and provides a more conservative estimate of the flexural strength than the center‑point test. Standardized procedures include ASTM C78/AASHTO T 97 (simple beam with third‑point loading) and ASTM C293/AASHTO T 177 (center‑point loading), each applying a continuously increasing load until failure to calculate modulus of rupture. Many state transportation agencies do not mandate the use of beam tests for monitoring concrete quality during construction; instead, it is common to develop mixture‑specific empirical correlations to other tests, such as compressive strength or split tensile strength. The splitting tensile test involves loading a cylinder or core axially along a strip on its side (ASTM C496) until a crack forms down the middle. Laboratory‑cured specimens are prepared in accordance with ASTM C31, C192/AASHTO T 23 and T 126, while in‑situ specimens cored or sawed from hardened concrete follow ASTM C42/AASHTO T 24; both types are used to determine the specified concrete strength within a designated time period. The use of maturity tests is becoming increasingly more common for assessing the in‑place strength of concrete for opening the pavement to traffic (ASTM C1074, ACPA 2015); maturity testing provides a reliable technique for continuously monitoring concrete strength gain during the first 72 hours.</p>
+<p>Field evidence is obtained by extracting a beam from an existing pavement—sawcutting it in place, transporting it carefully, and testing it under controlled conditions; this test method is labor‑and traffic‑control intensive to sawcut the beam from the roadway and repair the void. The same splitting‑tensile procedure can be applied directly to cores taken from the pavement, a practice that is particularly valuable for pavement evaluation purposes as it is performed on cores taken from the pavement.</p>
+<p>Across the guides, no long‑term or durability monitoring data are described for concrete tensile strength; the evidence presented focuses on immediate laboratory and field measurements. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[1] — Ch. 3 (pp. 56–57), Ch. 6 (pp. 164–165); [4] — Ch. 3 (p. 70); [5] — Ch. 3 (pp. 68–69)</small></p>
+<p>Concrete tensile behavior is a controlling factor in pavement design and service life. Because concrete’s tensile capacity is low—&lsquo;the tensile strength is only about 10 percent of the compressive strength&rsquo;—designers must rely on flexural properties to prevent cracking under traffic loads. Accordingly, &lsquo;Concrete strength is a primary thickness design input in all pavement design procedures,&rsquo; and &lsquo;Flexural strength (also called the modulus of rupture [MOR]) is used in concrete pavement design because it characterizes the strength under the type of loading that the pavement will experience in the field (bending).&rsquo; These inputs dictate slab thickness, construction schedules, and opening times. In service, repeated wheel loads initiate micro‑cracking; &lsquo;repeated loading will first result in the formation of small microcracks, some of which will grow into macrocracks, which then propagate with every load cycle,&rsquo; accelerating deterioration and increasing maintenance demands. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 3 (pp. 56–57), Ch. 6 (pp. 161–165)</small></p>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li><li id="ref-3"></li><li id="ref-4"></li><li id="ref-5"></li><li id="ref-6"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

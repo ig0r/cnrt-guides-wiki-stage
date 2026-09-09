@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Airport Concrete Pavement Construction Guidelines</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html" class="active" aria-current="page">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Airport Concrete Pavement Construction Guidelines</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=airport-concrete-pavement">airport-concrete-pavement</a><a class="tag" href="index.html?q=construction-requirements">construction-requirements</a><a class="tag" href="index.html?q=faa-specifications">faa-specifications</a><a class="tag" href="index.html?q=quality-control">quality-control</a><a class="tag" href="index.html?q=contractor-guidelines">contractor-guidelines</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>The Airport Concrete Pavement Construction Guidelines are a systematic, enforceable quality‑control/quality‑assurance framework for FAA‑ or DoD‑controlled airport concrete pavements that consolidates agency and contractor responsibilities into a single set of standardized inspection, testing, and corrective‑action procedures[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. By mandating documented supervision of all material inputs, certified mix‑design verification, qualified personnel and equipment, and explicit pre‑construction, production, curing, and acceptance criteria—including texture, smoothness, ride quality, a minimum forward paver speed of 2.5 ft/min, and a seven‑day flexural strength of 450 psi (FAA) or 550 psi (DoD)—the guidelines ensure pavement is placed only after meeting strict hard‑ and soft‑metric tolerances before it can be opened to traffic[<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. This coordinated approach eliminates fragmented expectations that have historically led to non‑conforming materials, structural failures, and costly rework, thereby protecting safety, durability, and cost‑effectiveness of airport pavements[<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-applicability">Purpose and applicability</a></li><li><a href="#required-inputs">Required inputs</a></li><li><a href="#equipment-and-personnel">Equipment and personnel</a></li><li><a href="#work-sequence">Work sequence</a></li><li><a href="#staging-and-logistics">Staging and logistics</a></li><li><a href="#quality-control-and-acceptance">Quality control and acceptance</a></li><li><a href="#safety-and-environmental-controls">Safety and environmental controls</a></li><li><a href="#curing-protection-and-handoff">Curing, protection, and handoff</a></li><li><a href="#expected-performance-and-maintenance">Expected performance and maintenance</a></li><li><a href="#references">References</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (8)</summary><div class="sources-body"><a href="#ref-1">2019-12_IMCP_manual</a>, <a href="#ref-2">ACPTP-2022-4_QC_QA_of_concrete_airfield_pvmt_manual_w_cvr_508</a>, <a href="#ref-3">QC_for_concrete_paving_web</a>, <a href="#ref-4">commentary_on_AASHTO_R_101_manual_web</a>, <a href="#ref-5">concrete_pvmt_preservation_guide_3rd_edition_web</a>, <a href="#ref-6">hif13059</a>, <a href="#ref-7">overlay_construction_doc_dev_guide_w_cvr</a>, <a href="#ref-8">testing_guide</a></div></details>
+
+<h2 id="purpose-and-applicability">Purpose and applicability</h2>
+<p>The Airport Concrete Pavement Construction Guidelines address the chronic lack of a coordinated, consistent, and enforceable quality‑control/quality‑assurance system for airport concrete pavements. Without such a framework, fragmented expectations and inconsistent QC practices allow non‑conforming materials and construction methods to be placed, creating safety hazards, structural failures, premature deterioration, and costly rework. By establishing a single, systematic framework that aligns agency and contractor responsibilities, standardizes inspection, testing, and corrective actions, and requires verification of texture, smoothness, ride quality, and strength before opening to traffic, the guidelines eliminate the confusion and coordination gaps that have historically jeopardized pavement safety, durability, and cost‑effectiveness. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p>The figure below illustrates the four stages of quality control for airport concrete paving that should be included in the Construction Quality Control Plan.</p>
+<p><img alt="Four stages of QC for airport concrete paving that should be" src="assets/airport-concrete-pavement-construction-guidelines/b6b08b2b094213f04e55b26a5bf849bff42e6ea28c18365adf2205a1fcd60450.jpg" />
+<em>Four stages of QC for airport concrete paving that should be included in the CQCP.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays a hierarchical diagram where a large yellow block labeled &ldquo;CQCP&rdquo; branches into four distinct colored boxes representing sequential phases. These phases are identified as Materials and mixture design submittals, Mix ture verification through trial and control/test strip, Mix ture production and construction process control (QC), and Mixture and construction acceptance. This visual breakdown illustrates the systematic framework required for airport concrete pavement construction by defining the specific inspection and testing procedures that must be included in a Contractor Quality Control Plan (CQCP).</p>
+<p><small>[2] — Ch. 1 (pp. 24–33), Ch. 2 (pp. 55–69), Ch. 3 (pp. 92–131), Ch. 5 (pp. 171–249), Ch. 7 (pp. 339–345), App. A (pp. 374–385), App. B (pp. 391–407), App. E (pp. 447–458), App. G (pp. 478–488), App. I (pp. 515–516); [3] — App. A (p. 117), App. C (pp. 122–123), App. D (pp. 135–144); [6] — 1. Quality Assurance Concepts (p. 10), 3. Quality Assurance for Concr… (p. 38), App. D (p. 124)</small></p>
+<p>The Airport Concrete Pavement Construction Guidelines are appropriate when the work falls under FAA or DoD authority and meets the thresholds that trigger the full suite of quality‑assurance requirements. &ldquo;Airport Concrete Pavement Construction Guidelines should be applied whenever a project involves airport pavement work that falls under FAA P‑501 or DoD UFGS 32‑13‑14.13 specifications, because these standards demand detailed analysis of concrete mix design, joint construction, curing, surface elevation tolerances and other airfield‑specific features.&rdquo; &ldquo;The Airport Concrete Pavement Construction Guidelines are appropriate when a project needs a general, starting‑point framework for achieving quality concrete performance—particularly to structure the pre‑bid, pre‑construction and pre‑pour meetings that define key design and construction elements.&rdquo; Conversely, an alternative method should be used whenever these conditions are not met: if a project is not funded by FAA/AIP or does not fall under FAA design standards, another agency’s specifications (e.g., DoD or local highway standards) apply; projects outside the military tri‑service airfields should follow non‑airport specifications; contracts below $500,000 or without federal funds may employ a less formal QA approach without a mandatory CMP/CQCP; when suppliers cannot meet the required aggregate tolerances, a standard highway construction approach is more appropriate; and if schedule pressures force opening of pavement before the seven‑day cure period or before achieving the prescribed flexural strength (450 psi FAA, 550 psi DoD), a structural evaluation must replace the standard guideline thresholds. &ldquo;For small maintenance or repair projects with a total volume less than two thousand cubic yards, the FAA does not require use of PWL, so a less‑stringent method may be applied.&rdquo; Because the guidelines are intentionally broad and not highly detailed, they should be supplemented or replaced with more specific, site‑specific specifications whenever local or state requirements demand additional detail or when the project’s complexity exceeds what an outline can adequately control. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p>The following figure illustrates a conservative timeline for mixture and materials approval in a DoD airport concrete paving project.</p>
+<p><img alt="Timeline for mixture and materials approval for DOD airport" src="assets/airport-concrete-pavement-construction-guidelines/b81e8297777c245a0477ca7625b2eedbec5f1dee777b0ed4b5c93caabc9623a6.jpg" />
+<em>Timeline for mixture and materials approval for DOD airport concrete paving project.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays a Gantt chart illustrating the sequential testing phases required to approve aggregate materials and concrete mixtures, including freeze-thaw resistance, deleterious content, alkali-silica reaction potential, and strength testing. The timeline indicates that the aggregate testing phase is a major piece of the critical path at startup, potentially taking as much as 7.25 months for DOD approval before concrete mixture design commences.</p>
+<p><small>[2] — Ch. 1 (pp. 31–33), Ch. 2 (p. 69), Ch. 3 (pp. 110–111), Ch. 5 (pp. 212–213), Ch. 7 (pp. 343–345), App. B (pp. 391–393), App. I (p. 516); [6] — App. D (p. 124)</small></p>
+<h2 id="required-inputs">Required inputs</h2>
+<p>The Airport Concrete Pavement Construction Guidelines require that all aggregates be obtained under direct supervision of the contractor’s quality‑control manager, estimator, and purchasing agent, with full testing and documented approval before inclusion in the mix. The supplier must provide particle‑size gradations that meet defined tolerances for critical stone sizes so the blended aggregate can satisfy the concrete mixture design’s performance and workability criteria, and QA personnel must review all test results to confirm conformance. Fresh concrete must be delivered with a consistent mixing time and sufficient truck capacity to keep the paving machine moving forward, preserving slump and preventing segregation; site planning must account for travel‑time factors such as speed limits, haul‑road conditions, active runway or taxiway crossings, weather, and potential equipment breakdowns because these influence slump loss and the ability to maintain the minimum forward motion specified by FAA and DoD. The mix design must be proven to meet specification performance criteria before full‑scale production, delivering a concrete that extrudes from the paver within the prescribed edge‑slump tolerance and exhibits required plastic and hardened properties—including strength, surface texture, thickness, grade, smoothness, joint face deformation, and proper plan‑joint alignment—with little or no finishing. Additionally, the contractor must consider site‑specific climate and subgrade conditions to ensure the selected mix and construction methods align with FAA/DoD standards and the stricter elevation and smoothness tolerances for runways, taxiways, aprons, and arresting gear areas. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The following figure illustrates examples of washed sand with varying particle sizes to demonstrate the gradation requirements for aggregates.</p>
+<p><img alt="Comparison of washed sand samples with different particle si" src="assets/airport-concrete-pavement-construction-guidelines/af8d120b24f89f41ab09f75d30f3897c05e4b812ddd4bc43eaf987bd278c9c68.jpg" />
+<em>Comparison of washed sand samples with different particle sizes.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays two distinct piles of granular material on a white background, representing the physical variability found in construction aggregates. One pile is lighter and composed of coarser particles, while the other is darker brown and consists of finer sand grains. Aggregate variability usually controls the consistency of concrete mixtures, making quality control essential for airfield paving projects where resupply frequently occurs.</p>
+<p><small>[2] — Ch. 2 (p. 69), Ch. 5 (pp. 247–249), App. B (pp. 392–393), App. E (pp. 447–449)</small></p>
+<p>The airport concrete pavement design and pre‑construction requirements are defined by the FAA Standard Specifications (AC 150/5370‑10H) and, for DoD projects, UFGS 32‑13‑14.13. The governing provisions include Section 50 (Control of Work), Section 60 (Control of Materials), Item C‑100 (Contractor Quality Control Program) and Item P‑501 (Cement Concrete Pavement). Design parameters that must be documented in the contractor’s quality‑control plan cover concrete mix design, slab thickness, subgrade preparation, joint layout, curing method, surface texture and strict surface‑elevation tolerances that reflect runway, taxiway and apron cross‑slopes.</p>
+<p>The QC plan must fully describe how subgrade layers will be constructed or prepared to meet the pavement specifications, including support conditions, fine‑grading tolerances, measurable acceptance criteria (action limits, suspension limits and corrective‑action procedures), checklists and visual inspections. Access to all material‑handling areas is required so that sampling, testing and equipment loading can be observed.</p>
+<p>Before concrete placement the position of reinforcing steel must be verified by probing behind the paver at 300 ft intervals. Pre‑paving otherwise requires no QC measurements, but the contractor must submit and obtain approval for the concrete mixture design, certify that the quality‑management program (QMP) and Concrete Quality Control (CQC) laboratory personnel hold current certifications, and provide batch‑plant certification together with mixer‑efficiency performance testing.</p>
+<p>A control or test strip is required prior to production paving. FAA P‑501 permits a 250‑ft start‑up segment followed by an unrestricted‑length control strip; DoD UFGS limits the test section to 600 ft with at least 400 ft of continuous pavement for acceptance. The strip must meet hard‑metric tolerances such as edge slump tolerance, thickness, grade, smoothness, joint‑face deformation and plan‑joint alignment, and soft‑metric criteria including surface texture and allowable bug holes.</p>
+<p>Curing periods are explicit: the surrounding lanes must be cured for at least 7 days and attain a minimum field‑cured concrete flexural strength of 450 psi (FAA) or 550 psi (DoD) before loading by paving machines or construction trucks. Strength is verified with field‑cured flexural beam specimens cast within 1,000 ft of the placement point, prepared in accordance with ASTM C31/C31M and tested per ASTM C78 (or an approved maturity method). Laboratories must be accredited to ASTM C1077 and technicians must label specimens and document sampling locations.</p>
+<p>Pre‑construction testing also includes aggregate‑gradation verification and trial mixes. Test results are evaluated using the Percent Within Limits (PWL) method; contractors must achieve at least 90 % PWL for both strength and thickness, keep surface elevation within allowable tolerances, grind high spots smooth, and limit ride‑smoothness to 15 inches per mile on segments longer than 500 ft (profilograph) or meet straightedge tolerances on shorter sections.</p>
+<p>Maturity monitoring is required to confirm that slab strength is sufficient before traffic is allowed. The HIPERPAV analysis defines the allowable sawing time window, and coring of the pavement is performed to verify slab thickness as part of the QC program.</p>
+<p>Production paving speed is limited to a minimum forward motion of 2.5 ft/min, with typical rates of 3–7 ft/min to control slump loss and segregation. Records of slowdowns or stops must be linked to station locations for later quality‑issue tracking. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p>The following figure illustrates how adjusting the edges of the slipform mold helps prevent edge slump during paving.</p>
+<p><img alt="Comparison of horizontal and edge-slump-adjusted slipform mo" src="assets/airport-concrete-pavement-construction-guidelines/aa6cba0425db3b1748f099686ab1a42a76c0c63232b4de38dcea6364a1deddeb.jpg" />
+<em>Comparison of horizontal and edge-slump-adjusted slipform mold profiles.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure illustrates the geometric difference between a standard horizontal slipform mold profile and an adjusted profile designed to compensate for concrete slump at the pavement edges. By adjusting the mold geometry, the extruded concrete pavement achieves vertical edges rather than rounded ones, a critical quality metric tied directly to smoothness and joint face deformation during construction.</p>
+<p><small>[2] — Ch. 1 (p. 31), Ch. 2 (p. 69), Ch. 5 (pp. 212–249), App. B (pp. 392–393), App. E (pp. 447–449), App. G (pp. 478–488), App. I (pp. 515–516); [3] — App. A (p. 117), App. D (p. 144); [6] — 4. Pre-Paving (p. 55), App. D (p. 125)</small></p>
+<h2 id="equipment-and-personnel">Equipment and personnel</h2>
+<p>The guidelines require that concrete be produced at the Contractor’s onsite batch plant, placed with slipform pavers, consolidated using a self‑powered, hand‑operated vibrator was used to consolidate the concrete around the light cans, finished with concrete saws, cured with curing machines, and tested by the contractor’s quality‑control personnel. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The following figure illustrates key components in consolidating concrete.</p>
+<p><img alt="Nighttime view of a slipform paver consolidating concrete wi" src="assets/airport-concrete-pavement-construction-guidelines/87c8b222252c8e298d8dc7c0d3843547e010b8eb1dd738afb553b53cb3cef16f.jpg" />
+<em>Nighttime view of a slipform paver consolidating concrete with workers nearby.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a large, yellow slipform paving machine operating at night under bright floodlights on a construction site. Several workers wearing high-visibility safety vests are standing near the front of the paver as it processes concrete.</p>
+<p><small>[2] — Ch. 3 (pp. 120–128), App. B (pp. 404–405)</small></p>
+<p>The guidelines require a layered, fully qualified team that includes contract‑administration authority, engineering supervision, construction‑inspection staff, and dedicated QA/QC personnel. All QA and QC staff must be &ldquo;qualified (educated, trained, certified, and experienced) people in QA and QC positions that have a working knowledge of the concrete paving process,&rdquo; and they must have authority to interpret test results, make timely decisions, and communicate with contractors and owners. Acceptance personnel must be knowledgeable regarding the specification provisions, exercise engineering judgment, and provide timely communication.</p>
+<p>The contractor side is led by a Contractor Quality Control Manager who heads a certified QC organization. The crew includes a superintendent, paving supervisor, foreman, batch‑plant operators, a paving‑machine operator who &ldquo;identifies an appropriate combination of paving speed and vibrator frequency to ensure proper consolidation and surface characteristics,&rdquo; and qualified testing laboratory technicians. An on‑site Owner QA inspector serves as the &ldquo;eyes and ears of the Owner,&rdquo; performing soft‑ and hard‑measure tests and recording daily conditions. Senior‑level construction inspectors experienced in concrete street, highway or parking‑lot work support the effort, assisted by qualified RPRs, QA technicians, and engineers.</p>
+<p>Production Quality Control personnel are required to conduct all inspections, collect samples, and perform testing &ldquo;at the frequencies indicated&rdquo; in the quality plan. Laboratory staff must hold QMP/CQC certifications, be accredited (ASTM C1077), and understand the specifications, test methods, and associated standards. Batch‑plant operators must operate certified plants and mixers tested for efficiency, with documented certification of material sources and mixture designs.</p>
+<p>All personnel—including subcontractors—must possess documented experience with FAA P‑501/UFGS 32‑13‑14 specifications, hold required security clearances, and complete any applicable driver‑training or flight‑line permit programs. Supporting roles such as estimator, purchasing agent, material suppliers, traffic‑control manager, utility‑location representatives, and a maintenance team for equipment calibration are also mandated to ensure compliance with mix designs and process control.</p>
+<p>The project team must clearly define the chain of command and assign specific roles and responsibilities to all key staff, recording contact information for contractor and agency representatives, traffic‑control managers, material suppliers, and utility‑location representatives. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p>The following figure illustrates the roles and relationships within FAA projects.</p>
+<p><img alt="Organizational chart showing the chain of command and qualit" src="assets/airport-concrete-pavement-construction-guidelines/5a9fd3f2cc7ace5aecf3c475393b43767c3cd74de2e3f964a93813b4959d87a8.jpg" />
+<em>Organizational chart showing the chain of command and quality control relationships in FAA projects.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays a hierarchical structure where the Sponsor oversees three main branches: Design Engineer, Resident Project Representative (RPR), and Contractor. Under these primary roles are specific functional units such as Design Quality Control, Acceptance, Quality Assurance, and Contractor Quality Control (CQC).</p>
+<p><small>[2] — Ch. 1 (pp. 24–26), Ch. 2 (pp. 54–69), Ch. 3 (pp. 110–128), Ch. 5 (pp. 212–249), Ch. 7 (pp. 339–345), App. B (pp. 392–406), App. E (pp. 447–458), App. G (pp. 478–488), App. I (pp. 515–516); [3] — App. D (p. 141); [6] — App. D (p. 125)</small></p>
+<h2 id="work-sequence">Work sequence</h2>
+<p>Before any Airport Concrete Pavement Construction Guidelines can be applied, the following prerequisite actions must be completed:</p>
+<ul>
+<li>
+<p>A Construction Management Program (CMP) that defines how quality‑assurance will be performed must be established and submitted for approval. The CMP &ldquo;must satisfy FAA AC 150/5370‑12B&rdquo; and is required when paving costs exceed $500,000 with federal funds.</p>
+</li>
+<li>
+<p>The owner/sponsor must select and contract a qualified design‑and‑construction consultant (including subconsultants) with contracts that &ldquo;clearly delineate the division of responsibility and authority between the sponsor, the consultant, resident engineer/inspectors, and the quality assurance (QA) testing firm.&rdquo; A pre‑design conference must be held to review QA/QC requirements, construction safety, and operational impacts.</p>
+</li>
+<li>
+<p>A complete design package—plans, specifications, and cost estimates—must be prepared and approved. The contractor must prepare a project‑specific quality‑control (QC) plan that &ldquo;details self‑monitoring procedures for every phase&rdquo; and select the required paving equipment per FAA P‑501 or UFGS 32‑13‑14.13.</p>
+</li>
+<li>
+<p>All material sources and mixture designs must be certified; &ldquo;All materials suppliers will be responsible for testing and inspection to verify that materials meet the appropriate specifications prior to delivery to the project,&rdquo; and the project must provide documented information on how any additional concrete‑mixing materials will be delivered and stored.</p>
+</li>
+<li>
+<p>Concrete mixture proportioning studies must be completed, and a control/test strip must be established where trial batches are placed, evaluated, and formally approved by the Owner’s acceptance decisionmaker.</p>
+</li>
+<li>
+<p>Coordination meetings covering design (pre‑bid) and early construction phases (pre‑construction and pre‑pour) must be held to align objectives, specifications, and quality controls. The decision‑making hierarchy must be identified and key staff roles assigned.</p>
+</li>
+<li>
+<p>Acquisition‑planning tasks must be finished: procurement staff educated on airport pavement specifics; service contracts for pre‑qualification, geotechnical/topographic surveys, design engineering with QA input, and construction inspection secured; a qualified QA team identified and trained; all required permits and submittal approvals (e.g., Storm Water Pollution Prevention Plan, FAA Form 7640, FAA Form 7460 submitted at least 45 days before construction) obtained; and security clearances for personnel entering the Airport Operations Area are in place.</p>
+</li>
+<li>
+<p>Physical site preparation must be completed: subgrade and subbase constructed to specification; pavement alignment staked with a stringline; fine grading performed within tolerance limits; dowel baskets installed where required; reinforcing steel for CRCP sections placed and its location verified by probing behind the paver at regular intervals before paving starts.</p>
+</li>
+<li>
+<p>Logistical plans—including construction survey, haul‑road and access points, traffic control, allowable working days, payment schedules, subcontractor coordination, and liquidated damages agreements—must be finalized.</p>
+</li>
+</ul>
+<p>Only after these documented, approved actions and permits are in place can the Airport Concrete Pavement Construction Guidelines be implemented. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p><small>[2] — Ch. 1 (pp. 32–33), Ch. 2 (pp. 54–69), Ch. 3 (pp. 92–111), Ch. 7 (pp. 339–345), App. A (pp. 374–383), App. B (pp. 392–407), App. E (pp. 447–458); [3] — App. D (p. 135); [6] — 3. Quality Assurance for Concr… (p. 38), 4. Pre-Paving (p. 55), App. D (pp. 124–125)</small></p>
+<p>The merged sequence of operations for airport concrete pavement construction proceeds as follows:
+1. <strong>Subgrade/Subbase Construction</strong> – the subgrade and any required sub‑base are built to meet design thickness and compaction criteria. 
+2. <strong>Staking and Stringline Installation</strong> – staking and stringlines are placed to establish the pavement layout and control tolerances.
+3. <strong>Fine Grading</strong> – fine grading shapes the surface to the specified elevations and smoothness.
+4. <strong>Dowel Basket Placement</strong> – dowel baskets are installed at prescribed locations for joint reinforcement.
+5. <strong>Paver Equipment Preparation</strong> – paver equipment is prepared, calibrated, and readied for concrete placement.
+6. <strong>Trial Batching</strong> – trial batches, either placed off‑site as sacrificial pavement or during a “dial‑in” phase, are laid to produce sacrificial pavement that will later be removed.
+7. <strong>Dial‑In Adjustments</strong> – mixture proportions and paver operation are incrementally adjusted without concern for acceptance of the trial section.
+8. <strong>Control/Test Strip Start‑up</strong> – once the mix and operation are dialed in, the contractor declares start‑up of the control/test strip; concrete is extruded from the paver meeting edge‑slump tolerance with little or no finishing.
+9. <strong>QA Evaluation</strong> – the QA team reviews hard‑metric test results and soft‑metric criteria (surface texture, bug holes) before granting approval for full production.
+10. <strong>Slipform Paving</strong> – slipform paving operations commence (typically 6:30 am to 3:40 pm); concrete is produced at the contractor’s onsite batch plant on the east side of the airport facility.
+11. <strong>Special Installations</strong> – light‑can encasements are placed and consolidated with a self‑powered hand‑operated vibrator.
+12. <strong>Final Testing</strong> – required concrete testing is performed by contractor QC personnel. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p>The following figure illustrates a finishing crew during the paving of Runway 25, lane 3.</p>
+<p><img alt="Finishing crew during paving of Runway 25, lane 3 (17 April" src="assets/airport-concrete-pavement-construction-guidelines/98b7f632d8973e2893baa11fe9c73db8bee0ba054deb488dfbef163fd4d74189.jpg" />
+<em>Finishing crew during paving of Runway 25, lane 3 (17 April 2024)</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a construction site where workers in high-visibility safety gear are manually finishing a large expanse of freshly poured concrete pavement.</p>
+<p><small>[2] — Ch. 3 (pp. 120–128), App. E (pp. 447–449); [6] — 3. Quality Assurance for Concr… (p. 38)</small></p>
+<p>The guidelines define three primary timing intervals that must be observed before concrete paving can begin, after concrete is cast, and before newly placed pavement is loaded or opened to traffic. First, the contractor must file FAA Form 7460 (Notice of Proposed Construction or Alteration) at least forty‑five days prior to the planned start date, establishing a mandatory lead time for regulatory review. Second, once a concrete beam has been cast, specimens must be shipped to an off‑site testing laboratory within a window of twenty‑four to forty‑eight hours, and the actual travel time may not exceed four hours, ensuring moisture retention and valid strength development before final curing. Third, a newly paved fill‑in lane may not be loaded by paving equipment or construction trucks until the adjacent lanes have cured for at least seven days and the field‑cured concrete has reached a flexural strength of no less than 450 psi (FAA) or 550 psi (DoD), as verified by ASTM C31 specimens, with joints sealed or protected where required. In addition to these intervals, the guides require that the allowable sawing window after placement be established through a HIPERPAV analysis based on concrete maturity, and that opening to traffic be timed only after documented monitoring confirms equipment loading limits and achieved strength; any deviation from these windows triggers corrective actions such as crack repair or joint filling before further progress. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The following figure illustrates how proper curing practices influence the timing of the joint sawing window.</p>
+<p><img alt="The impact of good curing on the joint sawing window (after" src="assets/airport-concrete-pavement-construction-guidelines/8dcd3bc0795b4c4cd3bab9d360f1fecc191d523e88e60a0491b67a7d32246156.jpg" />
+<em>The impact of good curing on the joint sawing window (after ACPA 2011).</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays a graph plotting concrete strength and internal stress against time to define an optimal &ldquo;Sawing Window&rdquo; for pavement joints. It illustrates that the window opens when concrete reaches a minimum strength sufficient to prevent excessive raveling during sawing, and closes when internal stress equals the concrete&rsquo;s tensile strength, leading to cracking.</p>
+<p><small>[2] — Ch. 5 (pp. 212–213), App. B (pp. 402–403), App. G (pp. 485–486); [3] — App. A (p. 117)</small></p>
+<h2 id="staging-and-logistics">Staging and logistics</h2>
+<p>The guides require that work zones be arranged so inspectors have clear access to material‑delivery points, stockpile areas and the equipment used in concrete production, with “Means to provide accessibility to allow inspections of locations and equipment supporting materials delivery, materials storage, sampling and testing, production.” Haul roads and access points are identified early; “The Contractor haul route between each phase of the project and the staging area must be reviewed, and potential limitations and delays due to security and traffic must be gained,” and a “Traffic control plan for each phase of the work” is prepared. Traffic control is treated as a planned expense – “Traffic control is planned to preclude the inevitable rather than be considered an expense.” – and studies are performed to schedule deliveries during low‑traffic periods: “To minimize conflict with public traffic and potential issues with construction, studies should be done to determine the time(s) of day for contractor operations.” When on‑site batch plants or aggregate stockpiles are not justified, “In cases where projects are not large enough to warrant the establishment of an on‑site batch plant and aggregate stockpiles, ready‑mix concrete suppliers are engaged.” The staging area is positioned to keep travel time between mixing and placement short, and delivery timing is synchronized with paving speed; “Typical paving speed is 3 to 7 feet per minute.” and a minimum forward motion of “minimum forward motion of 2.5 feet per minute (UFGS 2024)” must be maintained. Planning must consider the full set of variables affecting flow: “Planning must consider not only the number of available haul trucks, but also speed limits, haul road conditions, active runway or taxiway crossings, backing movements required, truck discharge times, weather, and possible equipment breakdowns.” Continuous monitoring of equipment loading and pavement strength is required before traffic is permitted – “Methods to monitor construction equipment loading and strengths for opening to traffic” – and the QC manager ensures the crew understands that speed variations affect mixture plasticity. Sub‑contractor activities are reviewed together with the construction schedule and haul‑road plans during agency‑contractor coordination meetings, ensuring all parties align on access routes, stockpile placement, and equipment movement. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p>The following figure illustrates typical truck operations during these paving activities.</p>
+<p><img alt="A large yellow slipform paver and a red dump truck operating" src="assets/airport-concrete-pavement-construction-guidelines/202afcca506b0339a209a26f11ffbc846d70c51451d8477f13de9ec66fb30e58.jpg" />
+<em>A large yellow slipform paver and a red dump truck operating on an airport pavement construction site.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays heavy machinery, specifically a yellow slipform paver with workers standing on its platform and a red dump truck positioned nearby to supply material.</p>
+<p><small>[2] — Ch. 3 (pp. 97–98), Ch. 5 (pp. 247–249); [3] — App. A (p. 117); [6] — App. D (p. 125)</small></p>
+<p>The guides identify “available space, controlled site access, prevailing weather, and site‑specific environmental conditions” as the four inter‑related categories that dominate airport concrete pavement construction. Space constraints appear at both macro and micro levels; when on‑site staging is impossible the contractor must site the yard off‑airport but keep haul routes short enough to satisfy the fifteen‑minute travel‑time rule and to limit slump loss, and flexural‑strength beam specimens require dedicated curing space and must be cast close to the paving line—“cast within 1000&rsquo; of point of placement (in front of the paving machine)”—to stay within ASTM temperature limits. Site‑access is tightly regulated: “All personnel need clearances, drivers must complete specialized training, and haul routes are escorted across active runways or taxiways with strict speed limits, backing‑movement controls, and limited crossing windows,” and the guides note that “operational and security requirements at busy airports make this item a challenge, if not prohibitive.” In addition, the contractor must identify “Haul roads and access points” and develop a “Traffic control plan for each phase of the work,” while ensuring “Means to provide accessibility to allow inspections of locations and equipment supporting materials delivery, materials storage, sampling and testing, production.” Weather constraints are monitored in daily progress reports—“Weather constraints are recorded daily in progress reports, with particular attention to rainfall amounts and sub‑freezing temperatures that affect concrete slump loss, workability, and curing compliance”—and the schedule is limited by “Working days allowed and method of counting,” which are dictated by site conditions such as weather. Both the FAA and DoD specifications also require continuous forward motion of the paving machine and minimal stoppages: “Both the FAA and DoD specifications mandate continuous forward motion of the paving machine and require stoppages to be kept to a minimum.” Environmental factors include climate‑driven mix‑design choices, required storm‑water controls, and permitting: “Environmental considerations include the local climate, which drives mix‑design selection, curing methods, and equipment choice, as well as regulatory requirements such as a Storm Water Pollution Prevention Plan and FAA Form 7460 filing for runoff and airspace impacts,” and geometric limits imposed by runway geometry: “Surface‑elevation tolerances tied to runway and taxiway cross‑slopes further restrict allowable placement grades.” Finally, test‑beam logistics are bounded by transport limits—“Transportation time is limited to 4 hours by FAA P‑501”—and moisture preservation requirements—“Each beam must remain covered with wet burlap and plastic while transporting to maintain moisture levels.” [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p>The following figure illustrates the constraints associated with base and pavement surface elevation tolerances.</p>
+<p><img alt="Constraints associated with base and pavement surface elevat" src="assets/airport-concrete-pavement-construction-guidelines/e6778a65bbbf81e3618876d441a0a2c436667300339e431c2bf2c134599554b2.jpg" />
+<em>Constraints associated with base and pavement surface elevation tolerances.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure illustrates the vertical stacking of subgrade, base, and concrete pavement layers, indicating that each layer is subject to specific grade tolerance limits. It visually defines a thickness tolerance for the concrete pavement relative to the underlying base, showing how deviations in plan grade affect the final structural depth.</p>
+<p><small>[2] — Ch. 2 (pp. 56–57), Ch. 3 (pp. 97–118), Ch. 5 (pp. 247–249), Ch. 7 (pp. 343–345), App. B (pp. 392–403), App. G (pp. 478–488); [3] — App. A (p. 117); [6] — App. D (p. 125)</small></p>
+<h2 id="quality-control-and-acceptance">Quality control and acceptance</h2>
+<p>&ldquo;The guidelines mandate inspection and testing of every characteristic that influences the performance of airport concrete pavement.&rdquo; Accordingly, the guides require verification of:</p>
+<ol>
+<li><strong>Materials</strong> – all constituent materials (Portland cement, blended cements, fly ash, slag, aggregates, admixtures, water) must meet applicable specifications (e.g., ASTM C150, C595, C618, C989) and aggregate gradations must fall within the tolerances of the mix design. &ldquo;The specifications for all products being supplied&rdquo; are confirmed and uniformity across batches is measured.</li>
+<li><strong>Mix Design &amp; Production</strong> – concrete mix‑design proportions and batch‑plant performance are inspected; mixture‑design submittals must satisfy project specs, and batch‑plant certification with mixer‑efficiency tests is required. Certification of material sources is also verified.</li>
+<li><strong>Thickness &amp; Elevation</strong> – slab thickness must conform to tolerance limits and be confirmed by coring before traffic opening; surface elevation must lie within allowable tolerances.</li>
+<li><strong>Strength</strong> – field‑cured flexural strength (minimum 450 psi) and compressive strength are tested, with acceptance requiring at least the prescribed 90 % PWL for both strength and thickness.</li>
+<li><strong>Surface Texture &amp; Smoothness</strong> – surface texture, grade/elevation tolerances, edge slump, and overall smoothness are inspected; ride quality is measured with a California profilograph (smoothness &lt; 15 in/mile) and any bumps identified for grinding must be removed.</li>
+<li><strong>Joints</strong> – joint‑face deformation, plan‑joint alignment, and joint‑filling product brand/lot number are verified; expansion, slip, construction, and contraction joint materials, dowels, and tie bars must follow approved methods.</li>
+<li><strong>Reinforcement &amp; Embedded Items</strong> – steel location is probed behind the paver at 300 ft intervals; placement of dowels, tie bars, and reinforcement mats is inspected.</li>
+<li><strong>Subgrade &amp; Base Layers</strong> – subgrade preparation, aggregate‑base, and cement‑treated base layers are examined for support conditions and fine grading; QC measurements, checklists, visual inspections, action limits, suspension limits, and corrective actions are applied.</li>
+<li><strong>Equipment &amp; Workmanship</strong> – hydraulics, electrical systems, paver speed, and vibrator frequency are monitored to prevent over‑consolidation, honeycombing, or thickness variation; pre‑shift daily checks of the paver‑mounted vibrator are required.</li>
+<li><strong>Quality Management Documentation</strong> – each construction step is documented through &ldquo;Key inspection items&rdquo;, &ldquo;Quality control measurements&rdquo; and &ldquo;Checklists&rdquo; to confirm compliance; laboratory and personnel certifications (QMP/CQC) must be current.</li>
+</ol>
+<p>These characteristics collectively define the inspection and testing regime for airport concrete pavement construction across the sources. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p>The following figure illustrates the various sources of construction variability that influence these inspection and testing requirements.</p>
+<p><img alt="Sources of Construction Variability" src="assets/airport-concrete-pavement-construction-guidelines/d3e3bade846feaa5a76426574dc552e77e3a2e4ff9c5e17f306c1d88ff48cf23.jpg" />
+<em>Sources of Construction Variability</em> [<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p>The figure displays four distinct bell-shaped curves labeled Material, Process, Sampling, and Testing. These individual distributions are shown to combine into a single, wider distribution at the bottom labeled Composite Variability. The variability observed in concrete paving projects is attributable to four sources: material, process, sampling, and testing.</p>
+<p><small>[2] — Ch. 1 (pp. 31–32), Ch. 2 (p. 69), Ch. 5 (pp. 192–249), App. A (pp. 370–388), App. B (pp. 392–407), App. E (pp. 447–449), App. G (pp. 478–479), App. I (pp. 515–516); [3] — Ch. 3 (pp. 34–35), App. A (p. 117), App. D (p. 144); [6] — 3. Quality Assurance for Concr… (p. 38), 4. Pre-Paving (p. 55), App. D (p. 125)</small></p>
+<p>The guides specify that no quality‑control measurements are taken during the pre‑paving phase; the only verification required is the position of reinforcing steel, which is confirmed by probing behind the paver at approximately 300 ft intervals as the machine advances. Once paving begins, the Construction Management Program (CMP) provides a complete list of every test and defines the type of measurement and its frequency. Measurements are performed continuously throughout construction: soft‑hand and hard‑hand concrete quality tests are carried out by the QA inspector with observations and results recorded each day in the daily report; equipment performance is measured each day as part of the contractor’s maintenance routine, including pre‑shift inspections of the paver‑mounted vibrator; and structural parameters—concrete strength, pavement thickness and grade—are measured for every lot, where a lot is defined as a day&rsquo;s placement not exceeding 2 000 cubic yards, allowing acceptance and unit‑price adjustments to be evaluated on a daily basis. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p>The following figure illustrates one of the verification methods used during construction to ensure proper pavement alignment.</p>
+<p><img alt="Spot checking the grade elevation behind the paving machine" src="assets/airport-concrete-pavement-construction-guidelines/b59b9178efafa0a928512baaf2138fe37ca42c69e87d4513adc71feee94e0924.jpg" />
+<em>Spot checking the grade elevation behind the paving machine using a simple stringline method.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>A worker holds a yellow tape measure vertically against the surface of freshly placed concrete to verify its height relative to a taut stringline stretched across the pavement. This activity demonstrates the verification of grade elevation, which is required to be checked behind the paving machine routinely to ensure real-time adjustments maintain grade elevation within tolerances.</p>
+<p><small>[2] — Ch. 3 (pp. 110–118), App. B (pp. 404–405), App. I (pp. 515–516); [6] — 4. Pre-Paving (p. 55)</small></p>
+<p>The Airport Concrete Pavement Construction Guidelines define clear acceptance criteria and associated corrective actions for any non‑conforming work. A paving operation is only accepted when the machine maintains continuous forward motion of at least 2.5 ft/min, with typical speeds ranging from 3 to 7 ft/min, and when no visible signs of inadequate or excessive consolidation—such as honeycombing, air voids, vibrator trails, or segregation—appear on the surface. If any of these defects are observed, the contractor must immediately stop paving and adjust equipment settings or mix‑handling procedures to correct the problem, documenting the location for later review. In addition, a control or test strip is only accepted when the contractor’s materials, mix design, equipment operation and construction processes satisfy all hard‑metric tolerances—such as edge slump tolerance, plastic and hardened concrete properties, thickness, grade, smoothness, joint face deformation and plan‑joint alignment—and also meet any soft‑metric provisions identified in the specification. When an RPR finds deviations that are completely out of tolerance and not improved during the control/test strip, the acceptance decision is clear – remove and replace the section and try again; less severe deviations may be tolerated with a pay adjustment rather than a full redo. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The following figure illustrates how test results are categorized based on their alignment with acceptance limits and targets.</p>
+<p><img alt="Concentric circles representing test results falling within" src="assets/airport-concrete-pavement-construction-guidelines/4c4421aac2b31820913228d44e2b3e20d9953e5286ceb7224d590ff531efc99f.jpg" />
+<em>Concentric circles representing test results falling within acceptance limits, consistent control but not optimally meeting target, and test results showing both consistency and quality meeting target.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays three concentric zones: an innermost circle containing scattered &lsquo;x&rsquo; marks, a middle ring surrounding it, and an outer ring encompassing the entire structure.</p>
+<p><small>[2] — Ch. 5 (pp. 247–249), App. E (pp. 447–449)</small></p>
+<h2 id="safety-and-environmental-controls">Safety and environmental controls</h2>
+<p>The Airport Concrete Pavement Construction Guidelines enumerate a range of on‑site dangers that affect both construction personnel and members of the traveling public. In an active airport environment any lapse in vehicle management can lead to runway incursions, property damage, and personnel injury; therefore strict traffic‑control planning is mandated, with the guidance stating that &ldquo;Traffic control is planned to preclude the inevitable rather than be considered an expense.&rdquo; Equipment failures, accidental wet loads of concrete, or a truck unintentionally entering fresh concrete further create slip, crush, or exposure risks for crews while also threatening aircraft safety if public traffic is not tightly segregated. Worker‑specific hazards arise from handling the large test specimens required for quality verification. The manual notes that &ldquo;heavy and bulky specimens are prone to rough handling&rdquo; and that each cured beam weighs roughly 70 lb, &ldquo;Each beam in a mold will weigh about 70 lbs making it difficult for one person to move the specimens.&rdquo; Improper lifting or transport in unsuitable vehicles can cause musculoskeletal strain or crushing injuries. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The following figure illustrates a plant site traffic control plan that isolates stockpiles from batch vehicle paths to mitigate these risks.</p>
+<p><img alt="Plant site traffic control plan isolating stockpiles from ba" src="assets/airport-concrete-pavement-construction-guidelines/455e385f7422c7403fd10b833cdbf61790d8c411ccb30fde32ac2fe95f748c46.jpg" />
+<em>Plant site traffic control plan isolating stockpiles from batch vehicle paths (ACPA 2015).</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays a schematic of a concrete plant layout, illustrating the spatial relationship between aggregate stockpiles on the left and the central batching equipment. Red dashed lines indicate specific routes for batch trucks to enter and exit the facility, while yellow loaders are shown moving material from the stockpiles into the plant hoppers. This visualizes the specific operational requirement for contractors to carefully plan plant site positioning and internal traffic flow to ensure safety and efficiency.</p>
+<p><small>[2] — Ch. 3 (pp. 97–98), App. B (pp. 402–403), App. G (pp. 478–486)</small></p>
+<h2 id="curing-protection-and-handoff">Curing, protection, and handoff</h2>
+<p>The completed slab is protected and cured by applying FAA‑approved curing products—either liquid membrane‑forming compounds or sheet coverings such as white polyethylene film, white burlap‑polyethylene sheeting, or waterproof paper—in accordance with AC 150/5370‑10H. These materials must conform to the applicable ASTM specifications (ASTM C171 for sheet curing and ASTM C309 for liquid membranes) and be handled, stored, and applied as detailed in the quality‑control plan to remain effective until the concrete reaches the required strength. The pavement must cure a minimum of seven days and achieve the prescribed field‑cured flexural strength (450 psi for FAA work, 550 psi for DoD projects) before any construction traffic is allowed, with joints sealed or otherwise protected and slab edges guarded against damage. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The following figure illustrates a curing machine applying curing compound to pavement constructed on Taxiway M.</p>
+<p><img alt="Curing machine applying curing compound to pavement construc" src="assets/airport-concrete-pavement-construction-guidelines/0ebc427feeb92d9b3c404600ac3ec698b624d6f8b55073643c964d6c5be4d02e.jpg" />
+<em>Curing machine applying curing compound to pavement constructed on Taxiway M.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a large yellow piece of construction equipment moving across a wide expanse of freshly poured concrete, which is the subject of the Airport Concrete Pavement Construction Guidelines.</p>
+<p><small>[2] — Ch. 5 (pp. 192–213), App. A (pp. 371–372)</small></p>
+<p>Work may be opened to construction traffic only after the concrete has cured for at least seven days and a field‑cured flexural strength meeting the applicable requirement is demonstrated—450 psi for FAA projects and 550 psi for DOD projects—with joints sealed or otherwise protected and any required edge protection in place; earlier opening is permissible only if an approved testing method confirms that the specified strength has been reached and a structural evaluation validates the allowable loads. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[2] — Ch. 5 (pp. 212–213)</small></p>
+<h2 id="expected-performance-and-maintenance">Expected performance and maintenance</h2>
+<p>The guides identify a range of controllable failures and distresses that can arise during airport concrete pavement construction. Mismatch between the aggregates used for proportioning studies and those actually delivered – “aggregates collected from the supplier for the mix‑proportioning study were … different than materials purchased and delivered to the contractor” – prevents the required workability and often leads to control‑strip rejection. Operational lapses such as “equipment break down”, “an occasional wet load of concrete”, and “a truck that inadvertently drives onto fresh concrete” produce visible deficiencies like edge slump. Failure to maintain the specified minimum forward speed (“minimum forward motion of 2.5 ft/min”) or improper vibration settings generates a suite of concrete distresses: “honeycombing, air voids, vibrator trails, or segregation”, open surface patches from low‑frequency vibration paired with slow paver speed, over‑ or under‑consolidation, loss of entrained air, and grout pockets along the vibration path. Surface‑texture problems (excessive bug holes), geometric errors (incorrect thickness, grade, smoothness, joint‑face deformation, misaligned plan joints) and edge‑slump tolerance violations are also cited as common rejection criteria. Post‑placement inspections frequently uncover cracking that must be addressed under “provisions for crack repair”, and any “nonconforming construction” such as deficient texture, smoothness, ride quality or improper joint filling triggers corrective actions before acceptance. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The following figure illustrates specific examples of these construction issues, including improper concrete placement ahead of the paver and honeycombing defects revealed after grinding.</p>
+<p><img alt="Photograph of honeycombing visible after grinding pavement s" src="assets/airport-concrete-pavement-construction-guidelines/8c51c6d5cb365f57e6a968af1b42e9d00fb5002c00ff45910461df66a3d50e3d.jpg" />
+<em>Photograph of honeycombing visible after grinding pavement surface.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a close-up view of a concrete surface characterized by numerous small, irregular voids and exposed aggregate particles.</p>
+<p><small>[2] — Ch. 2 (p. 69), Ch. 3 (pp. 97–98), Ch. 5 (pp. 247–249), App. E (pp. 447–449); [3] — App. A (p. 117)</small></p>
+<p>The guidelines embed preventive‑maintenance, continuous monitoring, and defined repair actions throughout the pavement life cycle.</p>
+<p>Before any lane is opened to aircraft or ground traffic, &ldquo;field‑cured concrete specimens must be taken in accordance with ASTM C31 and tested until the pavement has cured for at least seven days and reaches the prescribed flexural strength (450 psi for FAA projects, 550 psi for DoD projects).&rdquo; Early‑age strength may be estimated &ldquo;with the maturity method or calibrated sensors, and the chosen procedure must be documented in the CQCP and approved.&rdquo; If operational pressures demand earlier opening, a structural evaluation based on calculated contact stresses of the heaviest equipment is required and the QC manager ensures joints are sealed before traffic.</p>
+<p>A systematic preventive‑maintenance program for all paving equipment is mandated. &ldquo;Routine inspections of hydraulics, electrical systems and structural elements must be performed daily (pre‑shift checks) and at scheduled intervals, with lubrication, filter replacement and calibration of critical settings such as the paver‑mounted vibrator frequency.&rdquo; Any deficiency identified &ldquo;must be repaired promptly and documented&rdquo; to maintain compliance.</p>
+<p>The contractor is required to &ldquo;establish a robust QC plan that continuously monitors material procurement, mix design, aggregate testing, admixture dosing and concrete placement.&rdquo; Certified personnel conduct real‑time inspections; &ldquo;non‑conforming materials or workmanship trigger immediate corrective actions—mix adjustments, re‑mixing, or re‑placement—to avoid later repairs.&rdquo;</p>
+<p>Control‑test strips act as the proactive monitoring backbone before full production. Deficiencies detected while the concrete is still plastic are corrected using remedial methods prescribed in the plan.</p>
+<p>After placement, &ldquo;post‑placement inspections are required to evaluate the pavement’s texture, smoothness and ride quality,&rdquo; and &ldquo;continuous monitoring of equipment loading and concrete strength development using maturity methods must be performed before traffic is allowed.&rdquo; Surface quality is verified by grinding all bumps and confirming that &ldquo;the finished pavement must achieve a smoothness of less than 15 inches per mile measured with a California profilograph.&rdquo; Concrete must also meet or exceed &ldquo;90 % of the prescribed design load (PWL) in strength and thickness,&rdquo; and elevation tolerances must be satisfied. Failure to meet these criteria triggers repair actions such as additional grinding, resurfacing, crack repair, or joint filling; for minor interventions under 2 000 yd³, PWL verification may be omitted.</p>
+<p>A &ldquo;HIPERPAV analysis must be performed to determine the appropriate sawing window,&rdquo; and any identified nonconformances are corrected through &ldquo;prescribed crack repair and joint‑filling procedures that specify the exact product brand and lot number.&rdquo; Documented QC measurements, standardized checklists, and routine visual inspections cover all pavement layers—including subgrade, aggregate base, cement‑treated base and the concrete slab. &ldquo;Action limits and suspension limits are established so that any deviation from acceptable support conditions or fine grading triggers immediate corrective actions,&rdquo; which may include adjusting material placement, re‑grading, replacing portions of the base, routine coring to verify thickness, crack repair, or joint filling.</p>
+<p>During the pre‑paving phase the guidelines do not call for any preventive maintenance or repair actions; instead they require a specific monitoring activity. &ldquo;The steel reinforcement must be checked by probing behind the paver at regular intervals of about 300 feet, using a probe tool to confirm that the bars are located within the prescribed tolerances before concrete is placed.&rdquo; This verification step serves as the only quality‑control measurement required at this stage. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p>The figure below illustrates the probing process used to verify dowel locations.</p>
+<p><img alt="Worker probing for dowel locations behind a slipform paver." src="assets/airport-concrete-pavement-construction-guidelines/f22b1133a063dc2f32efaf1dd6dc9240889b449e58b95a2c9fc5667ee8b83601.jpg" />
+<em>Worker probing for dowel locations behind a slipform paver.</em> [<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p>A construction worker wearing safety gear kneels on the metal track of a slipform paver and uses a handheld probe tool to check the placement of reinforcement bars in fresh concrete.</p>
+<p><small>[2] — Ch. 5 (pp. 212–213), App. B (pp. 404–406), App. E (pp. 447–449), App. I (p. 516); [3] — App. A (p. 117), App. D (p. 144); [6] — 4. Pre-Paving (p. 55)</small></p>
+<h2 id="references">References</h2>
+<ol start="2">
+<li><a id="ref-2"></a>Best Practices Manual: Quality Control and Quality Acceptance of Concrete Airport Pavement · <code>ACPTP-2022-4_QC_QA_of_concrete_airfield_pvmt_manual_w_cvr_508</code></li>
+<li><a id="ref-3"></a>Quality Control for Concrete Paving: A Tool for Agency and Industry · <code>QC_for_concrete_paving_web</code></li>
+<li><a id="ref-6"></a>Field Reference Manual for Quality Concrete Pavements · <code>hif13059</code></li>
+</ol>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li><li id="ref-3"></li><li id="ref-4"></li><li id="ref-5"></li><li id="ref-6"></li><li id="ref-7"></li><li id="ref-8"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

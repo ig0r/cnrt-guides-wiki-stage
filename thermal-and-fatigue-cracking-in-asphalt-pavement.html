@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thermal and Fatigue Cracking in Asphalt Pavement</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html" class="active" aria-current="page">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Thermal and Fatigue Cracking in Asphalt Pavement</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=asphalt-pavement-distress">asphalt-pavement-distress</a><a class="tag" href="index.html?q=thermal-cracking">thermal-cracking</a><a class="tag" href="index.html?q=fatigue-cracking">fatigue-cracking</a><a class="tag" href="index.html?q=longitudinal-cracking">longitudinal-cracking</a><a class="tag" href="index.html?q=structural-deficiencies">structural-deficiencies</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>Thermal and fatigue cracking are the two principal distresses that degrade asphalt pavements, arising from environmental temperature swings and repeated traffic loading respectively[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]. In cold weather the binder oxidizes and hardens, causing contraction and brittleness that generate thermal cracks when tensile stresses exceed the pavement’s capacity; fatigue (alligator) cracking initiates where tensile stresses are greatest—often at the bottom of thin or weak layers—and propagates upward as an interconnected network of cracks under repeated wheel loads[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]. Low‑to‑medium severity is identified by crack openings ≤¾ in. with only slight spalling and no pumping, whereas high‑severity cracking exhibits openings greater than ¾ in., vertical distortion, movable pavement pieces, or pothole formation that compromise structural integrity and limit overlay options[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-treatment-objectives">Purpose and treatment objectives</a></li><li><a href="#distress-characterization-and-causes">Distress characterization and causes</a></li><li><a href="#applicability-and-treatment-selection">Applicability and treatment selection</a></li><li><a href="#condition-assessment-and-timing">Condition assessment and timing</a></li><li><a href="#materials-and-repair-details">Materials and repair details</a></li><li><a href="#treatment-procedures">Treatment procedures</a></li><li><a href="#quality-and-workmanship">Quality and workmanship</a></li><li><a href="#performance-and-service-life">Performance and service life</a></li><li><a href="#monitoring-and-follow-up">Monitoring and follow-up</a></li><li><a href="#references">References</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (6)</summary><div class="sources-body"><a href="#ref-1">2019-12_IMCP_manual</a>, <a href="#ref-2">Guide_to_FDR_with_Cement_Jan_2019_reprint</a>, <a href="#ref-3">concrete_overlay_repair_strategies_guide_web</a>, <a href="#ref-4">concrete_pvmt_distress_assessments_and_solutions_guide_w_cvr</a>, <a href="#ref-5">overlay_construction_doc_dev_guide_w_cvr</a>, <a href="#ref-6">overlays_parking_lots_guide_2nd_ed_web</a></div></details>
+
+<h2 id="purpose-and-treatment-objectives">Purpose and treatment objectives</h2>
+<p>The treatment targets cracking distress in asphalt pavements that originates from both temperature‑induced contraction and repeated traffic flexure. Cold temperatures produce thermal stresses in asphalt pavement, and When the temperature drops significantly, the asphalt binder becomes brittle and thermal cracking initiates. Thermal cracking is a common form of asphalt pavement deterioration in cold climates; This type of distress is primarily caused by shrinkage of the asphalt during low temperatures combined with hardening of the asphalt binder. The loads from vehicle wheels cause asphalt pavements to flex slightly, potentially resulting in fatigue cracking. Alligator cracking is a series of interconnected cracks caused by fatigue failure of the asphalt surface under repeated traffic loading, and Random cracking consists of diagonal, transverse, and longitudinal cracks. Generally, potholes are the end result of severe fatigue alligator cracking, and Potholes are small, bowl‑shaped depressions in the pavement surface that penetrate all the way through the asphalt down to the subbase course. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p>The following figure illustrates a common repair method for these distresses, showing asphalt pavement with patching.</p>
+<p><img alt="Asphalt pavement with patching" src="assets/thermal-and-fatigue-cracking-in-asphalt-pavement/dfac5358019c34ee1928a2f29829859304cf086feec185619cec374ec4286c09.jpg" />
+<em>Asphalt pavement with patching</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a two-lane asphalt road surface characterized by multiple areas of distress, including large potholes and irregular patches.</p>
+<p><small>[2] — Ch. 3 (pp. 39–41); [6] — App. A (pp. 53–59)</small></p>
+<h2 id="distress-characterization-and-causes">Distress characterization and causes</h2>
+<p>Alligator (fatigue) cracking typically originates at the bottom of thin asphalt layers where tensile stresses are greatest, although surface cracks can later appear as binder ages or during spring‑thaw weakening. The distress forms an interconnected network that may be confined to a localized area or extend across a lane, creating a complete crack system. Severity is described on a low‑to‑medium scale—characterized by slight spalling and no loose pieces—to high severity, which exhibits vertical depressions, severe spalling, movable fragments and pumping that irregularize the pavement profile. Because the mechanism is driven by repeated traffic loading, conditions such as thinner sections, larger loads, wet subbases or spring‑thaw reduce the number of load cycles required for propagation, leading to relatively rapid progression. The resulting displaced material and surface depressions degrade ride quality and create safety hazards: fragments can shift under traffic, the profile becomes uneven, and the pavement may become unsuitable for overlay without repair. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p>The figure below illustrates an example of this distress pattern in asphalt pavement.</p>
+<p><img alt="Asphalt pavement with extensive alligator cracking" src="assets/thermal-and-fatigue-cracking-in-asphalt-pavement/81499a02b9e1d4036dd99c42f1a93a9c1b87211f54ed9fa81cc8d4d2d387869e.jpg" />
+<em>Asphalt pavement with extensive alligator cracking</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a section of asphalt pavement characterized by an interconnected network of cracks forming irregular, polygonal shapes.</p>
+<p><small>[2] — Ch. 3 (p. 39); [6] — App. A (pp. 54–55)</small></p>
+<p>Fatigue (alligator) cracking in asphalt pavement is driven by several interrelated mechanisms: repeated heavy traffic loading accelerates crack initiation, especially when the surface or underlying layers are weak or thin, reducing structural capacity; inadequate drainage allows moisture to infiltrate and weaken the subbase/subgrade, further lowering support; and oxidation of the binder ages the asphalt, making it brittle and more prone to tensile failure. In cold‑weather regions, inadequate subbase drainage allows water to accumulate beneath the paved shoulder or widening, and freeze‑thaw cycles cause that saturated layer to expand and lift the pavement vertically. The resulting heave removes structural support from the overlay and tie‑bar connection, so when heavy traffic loads are applied longitudinal cracks develop just off the tie bar, accelerating distress in the asphalt surface. Thermal and fatigue cracking in asphalt pavement are driven by a combination of environmental, material‑related, and structural mechanisms. Extreme temperatures cause the binder to oxidize and harden, reducing its ability to expand and contract with temperature swings; this stiffness creates tensile stresses that exceed the pavement’s capacity, initiating thermal cracks. Cold‑weather shrinkage further contracts the binder while water that infiltrates through these cracks softens the underlying subgrade or subbase, diminishing structural support and allowing frost heave to impose additional tensile forces. Weak or insufficiently thick surface, base, or subgrade layers lower the pavement’s load‑bearing capacity, so repeated traffic loads generate high tensile stresses at the bottom of thin sections, leading to fatigue (alligator) cracking that propagates toward the surface as longitudinal cracks. Excessive loading—especially from heavy axle loads whose damage grows with the fourth power of weight—amplifies stress magnitude and duration, accelerating both rutting and crack formation. Binder aging through oxidation further stiffens the mix, while poor drainage permits moisture to remain in the support layers, compounding loss of support and promoting crack propagation. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p>The following figure illustrates how unstabilized asphalt bases concentrate stress on the subgrade compared to full-depth reclamation with cement.</p>
+<p><img alt="Comparison of stress distribution in unstabilized versus sta" src="assets/thermal-and-fatigue-cracking-in-asphalt-pavement/9fddba58291b9ba160d7b71060150f5bb8eefdb92145037e0c041849f892fd7d.jpg" />
+<em>Comparison of stress distribution in unstabilized versus stabilized pavement bases under wheel load.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure illustrates a cross-section comparison between an &lsquo;Unstabilized granular base&rsquo; and an &lsquo;FDR with cement base&rsquo;, both topped by an asphalt surface layer subjected to a tire load. In the unstabilized configuration, stress arrows are depicted as concentrated and penetrating deeply into the subgrade, whereas in the stabilized configuration, the stress is shown distributed more broadly across a wider area of the subgrade.</p>
+<p><small>[2] — Ch. 3 (p. 39); [5] — 5. Condition assessment profile (p. 39); [6] — App. A (pp. 53–59)</small></p>
+<h2 id="applicability-and-treatment-selection">Applicability and treatment selection</h2>
+<p>Fatigue (alligator) cracking is most likely when the asphalt layer is thin and the underlying base or subgrade is weak or moisture‑saturated, so that repeated traffic loads generate high tensile stresses at the bottom of the pavement; these factors reduce the number of load cycles needed for failure. Poor drainage, binder aging from oxidation, and seasonal weakening during spring thaw further increase susceptibility, producing an interconnected network of surface cracks that may propagate upward under such combined pavement, traffic, environmental, and site conditions. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure below illustrates how using a cement-stabilized base in full-depth reclamation can reduce fatigue cracking compared to an unstabilized base.</p>
+<p><img alt="Comparison of pavement deflection and fatigue cracking poten" src="assets/thermal-and-fatigue-cracking-in-asphalt-pavement/9a9e89fd97b8b288ddcfde4b4de386c7dbef2c9bc9a26d4cd027971837701a41.jpg" />
+<em>Comparison of pavement deflection and fatigue cracking potential between unstabilized granular base and FDR with cement base.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure illustrates a side-by-side comparison of two pavement structures under wheel loading: an unstabilized granular base on the left and a full-depth reclamation (FDR) with cement base on the right. The unstabilized base exhibits high deflection due to low stiffness, resulting in high asphalt strains and eventual fatigue cracking, whereas the FDR with cement base shows lower deflection due to higher stiffness, leading to lower asphalt strains and longer pavement life.</p>
+<p><small>[2] — Ch. 3 (p. 39)</small></p>
+<p>Thermal‑fatigue cracking makes a concrete overlay unsuitable when the distress is extensive. <strong>If severe alligator cracking is predominant throughout the project area, the parking lot is not a good candidate for a concrete overlay.</strong> In such cases the recommended alternative is full reconstruction with subbase/subgrade repair. <strong>Consideration should be given to constructing a new pavement, including repairs to the subbase/subgrade where necessary.</strong> When random cracks have widened beyond the overlay’s aggregate size—generally between three‑quarters and one‑and‑half inches—or when vertical movement creates openings larger than 1½ in., an overlay will not perform. <strong>fill any crack between ¾ in. and 1½ in. wide with fly ash slurry, concrete grout, or other nonasphalt material</strong> and, if the cause is subgrade or drainage related, <strong>If a subgrade or drainage issue is the cause, stabilize and drain the existing asphalt pavement prior to filling the crack</strong> before any further preservation treatment. [<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p><small>[6] — App. A (pp. 54–59)</small></p>
+<h2 id="condition-assessment-and-timing">Condition assessment and timing</h2>
+<p>A visual pavement condition survey is the primary inspection used to determine where thermal and fatigue cracking require treatment. The inspector walks the surface and records the type of cracking (alligator/fatigue, thermal, or random), pattern, and any associated distress such as spalling, pumping, or movement of pavement pieces. Each observed crack is measured for opening width with a calibrated gauge and noted for sealing condition and any vertical or horizontal displacement.</p>
+<p>For fatigue (alligator) cracking the guides define it as &ldquo;Alligator cracking is a series of interconnected cracks caused by fatigue failure of the asphalt surface under repeated traffic loading.&rdquo; Low‑to‑medium severity is identified when an area of interconnected cracks forms a complete system with little spalling and no pumping. The guides provide two equivalent descriptions: &ldquo;Low- to medium-severity alligator cracking (Figure A-2) appears as an area of interconnected cracks forming a complete system. The cracks may be slightly spalled, but no pumping or loose pieces are evident.&rdquo; and &ldquo;An area of interconnected cracks forming a complete system; cracks may be slightly spalled; no pumping or loose pieces are evident.&rdquo;</p>
+<p>High‑severity fatigue cracking is recognized by pockets of vertical surface depressions, severe spalling, and movable pavement pieces. Both descriptions are retained: &ldquo;High-severity alligator cracking (Figure A-3) appears as pockets of vertical surface depressions, along with small, severely spalled, interconnected cracks forming a complete pattern; pieces of pavement may move when subject to traffic.&rdquo; and &ldquo;Pockets of vertical surface depressions, along with small severely spalled interconnected cracks forming a complete pattern; pieces may move when subject to traffic; when pumping is evident, the roadway profile has dropped or is irregular.&rdquo;</p>
+<p>Thermal cracking assessment also relies on measured crack width and sealing condition. Low‑to‑medium severity thermal cracks are &ldquo;Low- to medium-severity thermal cracks (Figure A-10) are ¾ in. wide or less or are wider but sealed.&rdquo; High‑severity thermal cracks exceed three‑quarters of an inch and show vertical distortion: &ldquo;High-severity thermal cracks (Figure A-11) are more than ¾ in. wide with vertical distortion.&rdquo;</p>
+<p>The combined observations from these visual inspections, width measurements, and condition notes enable the evaluator to locate sections needing repair. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p><small>[2] — Ch. 3 (p. 39); [6] — App. A (pp. 54–59)</small></p>
+<p>The guides advise that remedial action for thermal and fatigue cracking should be started when the pavement reaches a low‑to‑medium severity stage, which is identified by an area of interconnected cracks forming a complete system, with only slight spalling (if any) and no evidence of pumping or loose pieces. At this level, alligator (fatigue) cracking shows the same pattern, and thermal cracking is limited to cracks ¾ in. wide or less (or wider but sealed); a concrete overlay can be placed without any pre‑overlay repairs. When distress advances to high severity—marked by vertical surface depressions, severely spalled cracks that move under traffic, visible pumping, or thermal cracks exceeding ¾ in. with vertical distortion—spot‑patching of the deteriorated zones is required before an overlay, and if severe alligator cracking dominates the area the pavement may not be a suitable candidate for an overlay. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p><small>[2] — Ch. 3 (p. 39); [6] — App. A (pp. 54–58)</small></p>
+<h2 id="materials-and-repair-details">Materials and repair details</h2>
+<p>Thermal and fatigue cracking are classified by crack width. Low‑to‑medium severity cracks are ≤¾ in. wide; high‑severity cracks exceed ¾ in. and may show vertical distortion or movement. &ldquo;Low‑to‑medium thermal cracks (Figure A‑10) are ¾ in. wide or less or are wider but sealed.&rdquo; For low‑to‑medium cracks (≈½ – ¾ in.) the repair is a simple fill: if the opening is less than the maximum aggregate size of the planned overlay, fill it with compatible asphalt filler; if larger, &ldquo;If the width of a crack is greater than the maximum aggregate size of the overlay, fill the crack with fly ash slurry or concrete grout&rdquo; to keep moisture out of the subgrade. High‑severity fatigue (alligator) cracking requires removal of all deteriorated material to the full pavement depth and placement of a concrete patch. &ldquo;Use a pavement saw extending at least 1 ft outside the distressed area to outline the concrete patch.&rdquo; The damaged subbase or subgrade must be repaired, and the void is filled with concrete during overlay construction; when firm support cannot be achieved, sub‑base excavation or installation of a drainage system may be required. Random (fatigue) cracking can also be treated with a concrete overlay provided any vertical or horizontal movement has been corrected to avoid reflective cracking. &ldquo;High‑severity thermal cracks (Figure A‑11) are more than ¾ in. wide with vertical distortion.&rdquo; Cracks &gt;¾ in. that exhibit movement are high‑severity and may require additional subbase support or drainage improvements before overlay placement. Cracks wider than 1½ in. with noticeable vertical movement must have the underlying cause identified and the subgrade stabilized prior to any filler. [<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p><small>[6] — App. A (pp. 54–59)</small></p>
+<p>The performance of thermal and fatigue cracking is governed by the condition of the binder, the structural support beneath the surface, and the geometric relationship between existing cracks and any overlay material. A binder that has become “Dried-out asphalt binder from oxidation (aging)” loses flexibility, so when temperatures drop it contracts more than the aggregates and becomes brittle; conversely, high heat accelerates the same oxidative stiffening, as noted by “Paradoxically, high heat and strong sunlight also cause the asphalt to oxidize, making it stiffer, less resilient, and more susceptible to cracking.” These material changes interact with pavement thickness and subgrade moisture: “The larger the load, and the thinner the asphalt, and the wetter subbase/subgrade, the fewer number of loading cycles is needed to cause failure.” To ensure that an overlay can effectively mitigate existing distress, the crack geometry must be compatible with the new surface aggregate size; therefore, “If the width of a crack is greater than the maximum aggregate size of the overlay, fill the crack with fly ash slurry or concrete grout to prevent entry of moisture into the subgrade.” Maintaining adequate thickness, using a non‑oxidized binder, providing proper drainage, and matching crack dimensions to overlay aggregates are the key compatibility requirements that control thermal and fatigue cracking performance. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p><small>[2] — Ch. 3 (pp. 39–41); [6] — App. A (pp. 53–59)</small></p>
+<h2 id="treatment-procedures">Treatment procedures</h2>
+<p>Begin by cleaning the pavement surface and assessing each crack. For low‑ to medium‑severity thermal or fatigue cracking, follow the guideline that “cracks up to about three‑quarters of an inch wide are filled with a compatible sealant,” using a sealant compatible with the intended overlay. When a crack exceeds the maximum aggregate size of the overlay, apply the rule that “any crack wider than the overlay’s maximum aggregate size must be sealed with fly ash slurry or concrete grout to keep moisture out of the subgrade.” For high‑severity fatigue (alligator) cracking, first implement the step that “For high‑severity fatigue (alligator) cracking, the pavement must first be sawed around the distressed zone with a cut extending at least one foot beyond the cracks,” then proceed to “then all deteriorated asphalt is removed to the full thickness and any damaged base or subgrade is repaired.” After removal, verify firm support; if necessary, excavate the subbase or install drainage before placing the overlay. Fill the cleaned cavity with concrete as part of the overlay, avoiding asphalt patches because they will not bond to the concrete overlay. For cracks between three‑quarters and one‑and‑a‑half inches wide, use fly ash slurry, concrete grout, or another non‑asphalt filler, and if vertical movement is observed in openings larger than 1½ inches, first stabilize and drain the pavement before any filling. [<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p><small>[6] — App. A (pp. 54–59)</small></p>
+<p>The guides agree that repair activities for thermal and fatigue cracking should be timed to avoid periods when the pavement is most vulnerable. Asphalt pavements weakened during the spring thaw are more susceptible to fatigue failure at that time than they are during the rest of the year, so work is preferably scheduled outside the thaw period. Cold temperatures also produce thermal stresses; when temperature drops significantly the binder becomes brittle and thermal cracking can initiate.</p>
+<p>Implementation follows a defined sequence. For high‑severity fatigue (alligator) cracking the first step is spot‑patching: a pavement saw is used to cut a perimeter at least 1 ft beyond the distressed zone, delineating the area for full‑depth removal. If the repair is isolated, the deteriorated asphalt is completely removed to the full depth and any damaged subbase or subgrade is repaired before a new overlay (or concrete slab where appropriate) is placed. This sequence must be completed prior to placing an overlay because severe cracking can disqualify the surface from receiving a concrete overlay.</p>
+<p>Equipment therefore includes a pavement saw capable of extending at least 1 ft beyond the crack zone, tools for full‑depth removal, and standard placement equipment for new asphalt or concrete layers. The guides note that wet subbase or subgrade conditions reduce the number of load repetitions needed to cause fatigue failure, reinforcing the need to address moisture issues during the repair sequence.</p>
+<p>Traffic control measures are not detailed in the sources; however, lane closures or restrictions must be planned according to standard safety practices for saw cutting, full‑depth removal, and material placement. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p><small>[2] — Ch. 3 (p. 39); [6] — App. A (pp. 54–58)</small></p>
+<h2 id="quality-and-workmanship">Quality and workmanship</h2>
+<p>The inspector should begin by assessing the material condition of the existing asphalt, looking for signs such as binder oxidation that indicate aging (“Dried-out asphalt binder from oxidation (aging)”).  Structural factors must also be verified – pavement thickness, subbase/subgrade strength, moisture content and drainage adequacy – because they govern the tensile stresses that produce fatigue failure.  When cracks are present, each random crack’s width must be measured and any vertical or horizontal movement noted: low‑ to medium‑severity cracks are ≤¾ in. wide with no historic movement, while wider cracks showing movement are high‑severity and demand correction of underlying causes before an overlay (“Low- to medium-severity random cracks (Figure A-12) are ¾. in. wide or less and exhibit no historical vertical or horizontal movement.”; “High-severity random cracks (Figure A-13) are more than ¾ in. wide and exhibit historical vertical or horizontal movement.”).  For alligator (fatigue) cracking, the inspector must recognize that it is a network of interconnected cracks caused by repeated traffic loading (“Alligator cracking is a series of interconnected cracks caused by fatigue failure of the asphalt surface under repeated traffic loading.”).  If severe alligator cracking is observed, preparation requires cutting at least one foot beyond the distressed zone, removing the deteriorated asphalt to full depth, repairing any damaged support layers, and placing a concrete patch to ensure proper bonding with an overlay.  In low‑to‑medium severity areas, repair may be omitted but verification of loading levels and surface integrity is still required before installation.  Throughout, the condition of the subbase/subgrade should be inspected for reduced support or shrinkage due to dry or cold weather, as these factors can precipitate both thermal and fatigue cracking. [<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p><small>[6] — App. A (pp. 54–59)</small></p>
+<p>The guides agree that a satisfactory condition for thermal and fatigue cracking is defined by low‑to‑medium severity. Under this classification, alligator (fatigue) cracking may be present but must remain limited to cracks ≤ ¾ in. wide with raveled edges; only slight spalling is permitted and there must be no evidence of pumping, loose pavement pieces, or vertical surface depressions. Block, transverse, thermal, or random cracks are also acceptable when their width does not exceed ¾ in.; wider thermal cracks are permissible if they have been sealed, and low‑to‑medium random cracks must show no historical vertical or horizontal movement. Any crack between ½ in. and ¾ in. should be filled, but no pre‑overlay repairs are required when the above limits are met. Potholes that do occur in association with fatigue cracking must be shallow—no deeper than 1 in.—and confined to a small isolated area within asphalt that is at least 4 in. thick. Exceeding these dimensional limits or displaying pronounced depressions, severe spalling, moving fragments, pumping, or vertical displacement elevates the condition to high severity and fails acceptance. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p>The figure below illustrates a typical example of low- to medium-severity alligator cracking that meets these acceptance criteria.</p>
+<p><img alt="Low- to medium-severity alligator cracking in asphalt paveme" src="assets/thermal-and-fatigue-cracking-in-asphalt-pavement/519f7494e2f2d79f6523e57cb14a229953f51bec8cdb78a0d31478babc49af92.jpg" />
+<em>Low- to medium-severity alligator cracking in asphalt pavement</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a close-up view of an asphalt surface characterized by an interconnected network of cracks forming irregular, block-like shapes.</p>
+<p><small>[2] — Ch. 3 (pp. 40–41); [6] — App. A (pp. 54–59)</small></p>
+<h2 id="performance-and-service-life">Performance and service life</h2>
+<p>Across the guides, thermal‑related block cracking and fatigue‑induced alligator cracking are described as the primary mechanisms that deteriorate asphalt pavement. Alligator cracking creates a network of interconnected surface cracks that can spall, develop vertical depressions, and eventually break the slab into small pieces that are dislodged by traffic, forming potholes. This loss of surface continuity markedly reduces ride quality, compromises the pavement’s ability to carry loads smoothly, and accelerates structural degradation, especially on thin overlays where pothole formation is most common. Block cracking similarly segments the surface into rectangular pieces as the binder hardens and can no longer expand‑contract with temperature cycles; widening cracks beyond three‑quarters of an inch signal high severity. In both cases, the emergence of large or deep depressions shortens durability and curtails the expected service life, often rendering the pavement unsuitable for further overlay or requiring extensive repair or reconstruction. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p>The figure below illustrates low- to medium-severity block cracking as a manifestation of these thermal distress mechanisms.</p>
+<p><img alt="Low- to medium-severity block cracking in asphalt pavement" src="assets/thermal-and-fatigue-cracking-in-asphalt-pavement/f6c4dd18f6624f2bc855c9b51d3c24047657aa9956cab60c8e5a6afb1b3d13d9.jpg" />
+<em>Low- to medium-severity block cracking in asphalt pavement</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a paved surface characterized by an interconnected network of cracks that divide the material into irregular, roughly rectangular blocks.</p>
+<p><small>[2] — Ch. 3 (p. 41); [6] — App. A (pp. 54–56)</small></p>
+<p>The dominant recurring distresses associated with thermal and fatigue cracking are alligator (fatigue) cracking, block cracking, potholes, longitudinal cracking at shoulders or overlays, and random transverse/diagonal cracks. Alligator cracking is described as “a series of interconnected cracks caused by fatigue failure of the asphalt surface under repeated traffic loading.” It typically initiates where tensile stresses are greatest—often at the bottom of thin pavements—and advances upward when loads are heavy, repetitions are many, the supporting subbase or subgrade is wet, drainage is inadequate, or freeze‑thaw cycles weaken the soil. Block cracking appears as “a series of interconnected cracks that divide the pavement into rectangular pieces.” This distress arises when the binder has hardened from oxidation or an unsuitable mix, limiting the asphalt’s ability to expand and contract with temperature changes; excessive stiffness in a cement‑treated base can aggravate it. When alligator networks become severe, small pavement blocks may break away, creating “small, bowl‑shaped depressions … that penetrate all the way through the asphalt down to the subbase course,” i.e., potholes, especially in thin surfacings.</p>
+<p>Longitudinal cracking can develop after vertical heave of a poorly drained subbase; freeze‑thaw cycles raise the shoulder and, under heavy traffic, produce cracks that follow the edge of the overlay. Random cracking—diagonal, transverse, or longitudinal patterns—generally reflects reduced support from the underlying layers, soil shrinkage in dry or cold periods, or early fatigue failure.</p>
+<p>Several treatment failures recur because the underlying causes are not addressed. “Filling cracks with bitumen can be a temporary fix for water- and frost-related distresses, but only proper construction—i.e., ensuring that groundwater drains away from the road—can mitigate this problem.” When moisture accumulation, weak subgrade, or insufficient structural thickness remain, cracks reappear and reflective cracking may develop in subsequent overlays. Severe alligator damage often requires full‑depth removal and concrete patching; low‑severity cracks left untreated before an overlay frequently lead to premature failure of the new surface.</p>
+<p>Key factors influencing the development of these distresses include: heavy axle loads (damage grows with the fourth power of load), high traffic repetitions, thin asphalt sections, wet or poorly drained subbase/subgrade, freeze‑thaw cycling, binder aging/oxidation, high heat and strong sunlight (“Paradoxically, high heat and strong sunlight also cause the asphalt to oxidize, making it stiffer, less resilient, and more susceptible to cracking.”), cold‑induced contraction, excessive stiffness of underlying cement‑treated bases, and overall inadequate structural design. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p>The impact of these structural factors is illustrated by comparing strain levels in different base configurations.</p>
+<p><img alt="Comparison of pavement deflection and strain between unstabi" src="assets/thermal-and-fatigue-cracking-in-asphalt-pavement/fc637b719a08bf9998315c494fd70915a1d17486c5e6d6c3ea162de5a7c52919.jpg" />
+<em>Comparison of pavement deflection and strain between unstabilized granular base and FDR with cement base.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure illustrates a cross-section comparison showing that an unstabilized granular base results in high deflection under wheel load, whereas an FDR with cement base exhibits lower deflection due to higher stiffness. This structural difference leads to high asphalt strains and eventual fatigue cracking on the left side, while the stabilized base results in lower asphalt strains and longer pavement life.</p>
+<p><small>[2] — Ch. 3 (pp. 39–41); [5] — 5. Condition assessment profile (p. 39); [6] — App. A (pp. 53–59)</small></p>
+<h2 id="monitoring-and-follow-up">Monitoring and follow-up</h2>
+<p>The guides agree that maintenance, repair, or rehabilitation is triggered when cracking reaches high‑severity conditions. High‑severity fatigue (alligator) cracking is described as &ldquo;As the alligator cracking becomes severe, the interconnected cracks create small chunks of pavement that can become dislodged as vehicles drive over them,&rdquo; which quickly leads to potholes—&ldquo;Potholes are small, bowl-shaped depressions in the pavement surface that penetrate all the way through the asphalt down to the subbase course.&rdquo; When these depressions exceed one inch deep or cover a large area, the fatigue life is considered exceeded. High‑severity alligator cracking also exhibits &ldquo;Pockets of vertical surface depressions, along with small severely spalled interconnected cracks forming a complete pattern; pieces may move when subject to traffic; when pumping is evident, the roadway profile has dropped or is irregular.&rdquo; Any form of cracking—thermal, block, random, or fatigue/alligator—that widens beyond three‑quarters of an inch and shows vertical or horizontal movement is identified as high severity and requires repair, overlay, or rehabilitation: &ldquo;When any form of cracking—thermal, block, random, or fatigue/alligator—exceeds three‑quarters of an inch and shows vertical or horizontal movement, the distress has reached high severity and requires repair, overlay, or rehabilitation.&rdquo; High‑severity thermal cracks are defined as &ldquo;High-severity thermal cracks (Figure A-11) are more than ¾ in. wide with vertical distortion.&rdquo; Severe block cracking is signaled when &ldquo;cracks are wider than ¾ in. or are adjacent to areas of severe random cracking that may also exhibit vertical distortion.&rdquo; High‑severity random cracks are described as &ldquo;High-severity random cracks (Figure A-13) are more than ¾ in. wide and exhibit historical vertical or horizontal movement.&rdquo; Early fatigue failure accompanied by subgrade shrinkage—&ldquo;Shrinkage of the underlying subgrade due to dry or cold weather&rdquo;—also indicates loss of structural support that must be addressed before further deterioration. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p>The following figure illustrates a high-severity pothole, which can result from the advanced deterioration of severe alligator cracking.</p>
+<p><img alt="High-severity pothole in asphalt pavement" src="assets/thermal-and-fatigue-cracking-in-asphalt-pavement/c3c5cdd5ecf27a0aac6dc5a11007e773be36b693b48220f484fec995e549c2f3.jpg" />
+<em>High-severity pothole in asphalt pavement</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a localized depression in the road surface where the asphalt has completely disintegrated, exposing the underlying aggregate.</p>
+<p><small>[2] — Ch. 3 (pp. 39–41); [6] — App. A (pp. 54–59)</small></p>
+<h2 id="references">References</h2>
+<ol start="2">
+<li><a id="ref-2"></a>Guide to FULL-DEPTH RECLAMATION (FDR) with Cement · <code>Guide_to_FDR_with_Cement_Jan_2019_reprint</code></li>
+<li><a id="ref-5"></a>Guide for the Development of Concrete Overlay Construction Documents · <code>overlay_construction_doc_dev_guide_w_cvr</code></li>
+<li><a id="ref-6"></a>IOWA STATE UNIVERSITY Institute for Transportation · <code>overlays_parking_lots_guide_2nd_ed_web</code></li>
+</ol>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li><li id="ref-3"></li><li id="ref-4"></li><li id="ref-5"></li><li id="ref-6"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

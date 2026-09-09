@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concrete Recycling Air Quality Impact</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html" class="active" aria-current="page">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Concrete Recycling Air Quality Impact</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=concrete-recycling">concrete-recycling</a><a class="tag" href="index.html?q=environmental-impacts">environmental-impacts</a><a class="tag" href="index.html?q=air-quality">air-quality</a><a class="tag" href="index.html?q=water-quality">water-quality</a><a class="tag" href="index.html?q=sustainability-practices">sustainability-practices</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>Concrete Recycling Air Quality Impact is a decision‑making framework that guides how concrete‑recycling operations are configured—whether crushing and grading occur on‑site or off‑site, how stockpiles are designed, and which dust‑control and respiratory‑protection measures are employed—to achieve the lowest possible air‑quality impacts for surrounding communities and workers [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. It addresses the generation of airborne particulates, especially respirable crystalline silica, that can breach EPA air‑quality standards and OSHA’s silica rule, requiring engineering controls such as water sprays, dust‑collection hoods, and speed‑limited haulage to meet regulatory limits [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. By evaluating site layout, wind conditions, proximity to sensitive receptors, haul distances, and applicable statutes, the concept ensures compliance with the Clean Air Act, local ordinances, and occupational health requirements while supporting sustainable reuse of reclaimed concrete aggregate [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-decision-context">Purpose and decision context</a></li><li><a href="#scope-and-applicability">Scope and applicability</a></li><li><a href="#information-needs">Information needs</a></li><li><a href="#alternatives">Alternatives</a></li><li><a href="#decision-criteria">Decision criteria</a></li><li><a href="#analysis-methods-and-tools">Analysis methods and tools</a></li><li><a href="#stakeholders-and-constraints">Stakeholders and constraints</a></li><li><a href="#timing-and-implementation">Timing and implementation</a></li><li><a href="#outcomes-and-follow-up">Outcomes and follow-up</a></li><li><a href="#references">References</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (3)</summary><div class="sources-body"><a href="#ref-1">ACPTP-2022-4_QC_QA_of_concrete_airfield_pvmt_manual_w_cvr_508</a>, <a href="#ref-2">RCA_practioner_guide_w_cvr</a>, <a href="#ref-3">Sustainable_Concrete_Pavement_508</a></div></details>
+
+<h2 id="purpose-and-decision-context">Purpose and decision context</h2>
+<p>The Concrete Recycling Air Quality Impact concept is intended to guide the decision on how concrete‑recycling operations are configured—whether crushing and grading are performed on‑site versus off‑site, how stockpiles are designed and managed, and which dust‑control and respiratory‑protection measures are applied—to achieve the lowest possible air‑quality impacts. By evaluating site layout, wind conditions, proximity to sensitive receptors, haul distances, and regulatory requirements, stakeholders can select the option that best mitigates dust, emissions, noise, and traffic concerns. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[2] — Ch. 7 (pp. 78–82)</small></p>
+<p>The guides identify that concrete recycling must address the problem of air‑quality degradation caused by fugitive dust and emissions from crushing, processing, and hauling equipment, and also note that the concrete recycling process faces the problem of uncontrolled particulate matter and greenhouse‑gas emissions that degrade local air quality and can breach statutory limits. The core issue is the generation of airborne particulates—including respirable crystalline silica—that can jeopardize community health, violate local noise and dust ordinances, and breach national standards such as the Clean Air Act and OSHA’s silica rule. Consequently, the performance goal is to control these emissions to meet EPA‑mandated air‑quality standards and protect occupational health while maintaining regulatory conformity. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p><small>[2] — Ch. 4 (p. 47), Ch. 7 (pp. 70–82); [3] — Ch. 5 (pp. 48–52)</small></p>
+<h2 id="scope-and-applicability">Scope and applicability</h2>
+<p>The guidance indicates that Concrete Recycling Air Quality Impact is appropriate for construction‑type projects in which existing concrete pavement is reclaimed and processed into unbound recycled concrete aggregate (RCA) base layers. It is most pertinent when the asset condition involves a deteriorated concrete slab slated for demolition or reconstruction, and during the construction phase where breaking, crushing, and screening activities generate dust and noise. Accordingly, designers should incorporate dust‑abatement measures such as water sprays or collection hoods and schedule noisy operations within permitted time windows. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure below illustrates a typical off-site concrete pavement recycling operation where such activities occur.</p>
+<p><img alt="Typical on-site mobile concrete pavement recycling operation" src="assets/concrete-recycling-air-quality-impact/f801250ec75b11fcaa05ca48fdbc00f992f075560e2e6b88bd4637a213fb74a7.jpg" />
+<em>Typical on-site mobile concrete pavement recycling operation</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a heavy industrial setup featuring a yellow excavator breaking up concrete slabs and feeding them into a large red mobile crushing plant. A white tanker truck is positioned near the machinery, likely providing water sprays to control dust generated during the processing of reclaimed concrete aggregate (RCA).</p>
+<p><small>[2] — Ch. 4 (p. 47), Ch. 7 (p. 82)</small></p>
+<p>When a recycling project is located in an urban environment where breaking and crushing generate noise and dust that cannot be kept within local ordinance limits, on‑site concrete recycling is not appropriate; the need to abate excessive noise by restricting work hours or to implement costly dust control measures can render the process impractical. Likewise, when the source concrete is suspected or shown to contain hazardous contaminants—such as asbestos, chemicals, metals, or sealants—or when it comes from projects with unknown service histories, recycling should be avoided because the material could release pollutants and affect air quality; disposal or remediation is preferred. Additionally, when the recycling location lies adjacent to sensitive receptors—such as residential populations, schools, hospitals, or vulnerable ecosystems—and/or prevailing wind conditions are likely to cause uncontrolled dust blow‑off, the air‑quality benefits of on‑site crushing become outweighed by potential dust and emission exposure. In each of these scenarios a different approach is preferable: send material to an off‑site facility with better containment, blend recycled aggregate with virgin material, select a site with natural sheltering features, or forgo recycling altogether. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The following figure illustrates a well-implemented on-site material crushing program in an urban area.</p>
+<p><img alt="On-site concrete recycling operation in an urban environment" src="assets/concrete-recycling-air-quality-impact/47311af11e5211a7a0a01450ab19e947147d1df87a30957511c4ceefbb970165.jpg" />
+<em>On-site concrete recycling operation in an urban environment with dust control measures.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a large pile of broken concrete rubble situated directly beneath the support columns of a highway overpass, indicating an active demolition or processing site within an urban setting. A black silt fence runs along the perimeter of the dirt path next to the rubble pile, serving as a physical barrier designed to contain dust and sediment from migrating into the adjacent grassy area.</p>
+<p><small>[2] — Ch. 4 (p. 47), Ch. 7 (pp. 73–79)</small></p>
+<h2 id="information-needs">Information needs</h2>
+<p>The air‑quality assessment for concrete recycling must gather a suite of site‑specific condition and environmental data. Required information includes expected dust and noise generation at crushing and screening stations, the moisture condition of the reclaimed concrete aggregate (RCA), stockpile height and layer thickness limits, prevailing wind direction and speed, local topography or vegetation that can shelter operations, and identification of nearby sensitive receptors such as residences, schools, hospitals, or ecologically valuable habitats. Traffic data are needed to model haul distances, vehicle types, speeds—preferably limiting speeds to around 20 mph—and timing of trips (off‑peak hauling) because vehicular sources dominate emissions. Cost considerations must capture the additional expense of dust‑abatement equipment such as collection hoods or water‑spray systems and any schedule constraints imposed by local noise ordinances. Environmental inputs should comprise baseline dust emission levels, wind‑speed thresholds that trigger suspension of demolition work, runoff pH, suspended and dissolved solids, drainage features, soil type, and required BMPs (e.g., misting, covering stockpiles). Stakeholder input must record community concerns about noise and dust and guide the decision between on‑site versus off‑site recycling to minimize local impacts. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[2] — Ch. 4 (p. 47), Ch. 7 (pp. 72–81)</small></p>
+<h2 id="alternatives">Alternatives</h2>
+<p>The feasible options that should be compared for concrete‑recycling air‑quality impact fall into several distinct categories. First, the location of processing – on‑site or near‑site crushing versus off‑site processing – influences haul distance, vehicle traffic, and associated fugitive dust. Second, dust‑suppression at crushing and screening stations can be achieved through engineering controls such as dust‑collection hoods or water‑spray systems; the guides note that “Dust abatement procedures (e.g., dust collection hoods and/or water sprays at the crushing and screening stations) are less problematic but do add cost to the process.” and that “the use of spray bars resulted in a nearly 50% reduction of dust emissions measured at a distance of 33 ft (10 m) from the crusher.” Third, traffic‑generated dust is addressed by water application on site traffic and by vehicle operation controls – reducing travel speed, minimizing haul length, employing two‑way transport cycles, and scheduling hauls during off‑peak periods; “one study found that reducing vehicle speeds from 30 to 20 mph reduced dust by 22%.” Fourth, stockpile management practices such as limiting pile height, building thin layers, misting during loading/unloading, covering or tarping piles, and using physical barriers (geotextile‑wrapped berms or placement beneath elevated structures) are recommended; “Best practices for stockpile management to mitigate air quality impacts include controlling stockpile height and minimizing the production of fines to prevent dust.” Fifth, engineering/enclosure controls and personal protective equipment should be evaluated when other measures are insufficient; “protecting operators with ventilated enclosures when possible” is cited. Across sources, maintaining dust collectors in proper working order and applying water sprays to control traffic‑generated dust are identified as the two primary options for comparison, with evaluation criteria that include particulate capture or suppression efficiency, maintenance requirements, cost, and regulatory compliance. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure below illustrates a high-performance perimeter control method using concrete blocks wrapped in geotextile fabric.</p>
+<p><img alt="Concrete blocks wrapped in geotextile fabric used as a perim" src="assets/concrete-recycling-air-quality-impact/a6bcf768d1380575f986026bd824fbaa938740cf202c63c714ef5249f25bfa3d.jpg" />
+<em>Concrete blocks wrapped in geotextile fabric used as a perimeter control barrier along a waterway.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a row of concrete barriers, identified as Jersey barriers, lined with black geotextile fabric to form a physical boundary next to a river. A berm constructed from crushed concrete aggregate is placed on the landward side of these barriers, acting as a filter berm to manage runoff and sediment.</p>
+<p><small>[2] — Ch. 4 (p. 47), Ch. 7 (pp. 72–82); [3] — Ch. 5 (p. 52)</small></p>
+<h2 id="decision-criteria">Decision criteria</h2>
+<p>The decision on how to manage concrete‑recycling air‑quality impacts should be driven first by criteria that protect the surrounding community and workers. Public impact dominates because excessive noise and dust must be controlled to meet local ordinances, which also constrain the work schedule. Safety is equally paramount given OSHA’s crystalline silica rule that mandates engineering controls to prevent worker exposure. Sustainability—specifically the potential for carbon sequestration through accelerated carbonation of recycled concrete aggregate—serves as a secondary but still important consideration. Cost, performance, durability, accessibility and schedule are subordinate to these three primary criteria. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[2] — Ch. 4 (p. 47), Ch. 7 (pp. 72–82)</small></p>
+<p>When evaluating concrete-recycling options for air-quality impact, regulatory compliance should be the primary filter; all generators and loaders must meet EPA standards. Within that compliant pool, choices that lower greenhouse-gas and particulate emissions are given higher priority, but alternative fuels are only adopted when they are economically feasible. Equipment that can draw power from the grid, such as radial stackers, is preferred because it typically produces fewer emissions than on-site fuel combustion. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p><small>[3] — Ch. 5 (p. 50)</small></p>
+<h2 id="analysis-methods-and-tools">Analysis methods and tools</h2>
+<p>The air‑quality impact assessment for recycled concrete relies on a decision‑tree flowchart that directs actions according to whether the material comes from known agency projects or unknown sources, with agency‑derived RCA exempted from toxicity testing. When the source is uncertain, the evaluation shifts to specific screening methods—visual inspection, review of service history, total lead content analysis and the Toxicity Characteristic Leaching Procedure (TCLP)—and compares results against hazardous‑waste thresholds defined in AASHTO specifications before permitting reuse. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[2] — Ch. 7 (pp. 73–74)</small></p>
+<h2 id="stakeholders-and-constraints">Stakeholders and constraints</h2>
+<p>The choice of concrete‑recycling method is bounded by a hierarchy of federal, state and local requirements. At the national level, &ldquo;Pollutants affecting air quality in the US are regulated under the Clean Air Act and Amendments (EPA 2017e).&rdquo; This baseline is reinforced by FHWA guidance that ties transportation projects to state air‑quality conformity plans. Worker health protections follow OSHA’s silica rule: &ldquo;Worker exposure is governed by OSHA’s Crystalline Silica Rule, which bans uncontrolled dust generation, mandates engineering controls such as water‑sprays or ventilated enclosures, and requires a written exposure control plan—thereby limiting equipment choices to those that can meet the prescribed respiratory‑protection thresholds.&rdquo; State specifications further limit stockpile geometry (e.g., caps on height and layer thickness) and require compaction densities of at least 95 % of the standard proctor test with permeability targets of 150–350 ft/day. Water‑quality permits, including NPDES and local storm‑water statutes, demand that &ldquo;Storm water runoff and washout water/sediment should be contained and/or filtered to prevent contamination of local waterways (local statutory requirements apply).&rdquo; Consequently, containment basins, filtration units or portable wheel‑wash systems must be provided. All mobile equipment must meet EPA emissions standards: &ldquo;All equipment (generators, front‑end loaders) should conform to EPA requirements,&rdquo; which steers selection toward low‑emission units and permits alternative fuels only when economically feasible. Design rules also dictate that reclaimed concrete aggregate be placed below drainage inlets and, when geotextiles are used, flow must run parallel to the fabric to avoid tufa formation and pipe clogging. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The following figure illustrates a front-end loader used for stockpiling aggregate.</p>
+<p><img alt="Front-end loader used for stockpiling aggregate" src="assets/concrete-recycling-air-quality-impact/270547023d6fbdd9db7a645a7091442de629ca75eb2c312771876d6c1cc968d8.jpg" />
+<em>Front-end loader used for stockpiling aggregate</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The image displays a yellow front-end loader positioned on a large mound of light-colored granular material, likely reclaimed concrete aggregate.</p>
+<p><small>[2] — Ch. 4 (p. 47), Ch. 7 (pp. 70–82); [3] — Ch. 5 (pp. 48–52), Ch. 6 (p. 83)</small></p>
+<h2 id="timing-and-implementation">Timing and implementation</h2>
+<p>The timing for deciding how to address air-quality impacts from recycled concrete should occur early in the project lifecycle. Specifically, the decision is expected to be made during pre-construction meetings and then revisited at construction progress meetings where mitigation strategies and monitoring plans are reviewed. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[2] — Ch. 7 (p. 76)</small></p>
+<p>Action to protect air quality is triggered by several observable or regulatory events:</p>
+<ol>
+<li><strong>Excessive noise</strong> – When on‑site recycling operations generate excessive noise, &ldquo;Excessive noise must be abated in accordance with local ordinances and requirements&rdquo;; this typically forces a restriction of operating hours for crushing or screening.</li>
+<li><strong>Dust generation</strong> – The moment dust is produced, &ldquo;Dust abatement procedures (e.g., dust collection hoods and/or water sprays at the crushing and screening stations) are less problematic but do add cost to the process,&rdquo; so collection hoods or water sprays must be deployed immediately.</li>
+<li><strong>Regulatory deadlines</strong> – The OSHA Crystalline Silica Rule for construction, announced in March 2016, becomes effective (September 23 2017 for construction work and June 23 2018 more broadly), obligating a Written Exposure Control Plan and engineering controls. Any breach of the Clean Air Act criteria‑pollutant standards also mandates corrective dust‑control and monitoring actions.</li>
+<li><strong>Wind‑speed thresholds</strong> – When wind speeds rise above the level identified by MnDOT (2017), &ldquo;suspending demolition when wind speeds exceed certain thresholds (MnDOT 2017)&rdquo; is required; crushing or demolition must be halted until conditions improve.</li>
+<li><strong>Stockpile dimensions</strong> – If a recycled‑concrete stockpile exceeds WSDOT limits, &ldquo;Washington State Department of Transportation (WSDOT) specifications limit stockpile height to 24 ft and require stockpile construction in layers less than 4 ft thick for stockpiles that will contain more than 200 cy of material,&rdquo; triggering layered placement, height control, and water‑misting whenever material is added or removed.</li>
+</ol>
+<p>These events, thresholds, and deadlines constitute the triggers that activate air‑quality mitigation measures for concrete recycling projects. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[2] — Ch. 4 (p. 47), Ch. 7 (pp. 70–82)</small></p>
+<p>Carrying out the chosen concrete‑recycling option requires the usual paving equipment for placing and compacting RCA, but it also calls for additional resources such as dust‑collection hoods or water‑spray systems at crushing and screening stations to meet air‑quality controls. Because noise from breaking and crushing must comply with local ordinances, work has to be scheduled within permitted hours, which can extend the overall production timeline and add cost. Proper moisture‑content monitoring and adherence to compaction specifications are also needed to avoid generating excess fines that could affect drainage and air quality. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The following figure illustrates a concrete recycling operation set up inside of Edens Expressway cloverleaf interchange.</p>
+<p><img alt="Concrete recycling operation set up inside of Edens Expressw" src="assets/concrete-recycling-air-quality-impact/3149bd4b08fb5df069af4b613a07478c2c03aa1b6cc76e1b446121ccdbfa4a9f.jpg" />
+<em>Concrete recycling operation set up inside of Edens Expressway cloverleaf interchange</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a large-scale concrete crushing plant situated within the curved boundaries of an expressway cloverleaf interchange. Visible equipment includes multiple piles of crushed aggregate, heavy machinery such as excavators and trucks, and a central processing area with conveyors. The crushing plant was set up in an interchange cloverleaf area to minimize haul distances from the source to the job site. Because the area was heavily populated, noise and air quality were serious concerns requiring operational modifications such as suspending operations during specific hours.</p>
+<p><small>[2] — Ch. 4 (p. 47)</small></p>
+<h2 id="outcomes-and-follow-up">Outcomes and follow-up</h2>
+<p>&ldquo;Success for concrete‑recycling air‑quality impact is achieved when on‑site noise and dust are kept within the limits set by local ordinances and meet defined reduction targets. This requires operating crushing and screening only during approved work windows, limiting haul‑vehicle speeds to ≤20 mph, and ensuring that all dust‑collection equipment is in proper working order. Effective dust abatement—&ldquo;Dust abatement procedures (e.g., dust collection hoods and/or water sprays at the crushing and screening stations) are less problematic but do add cost to the process&rdquo;—must be applied, including spray bars, water or misting systems, and regular sprinkling of vehicle routes, with work suspended when wind exceeds prescribed limits. Success is demonstrated through documented compliance (timing restrictions, speed controls, equipment inspections) and quantitative monitoring such as dust samplers placed at a standard distance (~33 ft) that show percent reductions—&ldquo;use of spray bars resulted in a nearly 50% reduction of dust emissions measured at a distance of 33 ft (10 m) from the crusher&rdquo; and &ldquo;reducing vehicle speeds from 30 to 20 mph reduced dust by 22%&rdquo;. Deviations are recorded as non‑compliance, providing a clear measurement of achievement. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure below illustrates a spray nozzle used for dust control on an aggregate conveyor.</p>
+<p><img alt="Nighttime operation of a water spray nozzle for dust suppres" src="assets/concrete-recycling-air-quality-impact/86800956b786bc9e4b911f14f62f0d889e1238346f8f3f8053642d61d64a3d7c.jpg" />
+<em>Nighttime operation of a water spray nozzle for dust suppression on an aggregate conveyor.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a close-up view of a large orange industrial component, identified as a spray nozzle, actively emitting a wide fan of mist into the dark environment. The use of such equipment is a critical engineering control for reducing airborne particulates generated during material handling.</p>
+<p><small>[2] — Ch. 4 (p. 47), Ch. 7 (pp. 78–79); [3] — Ch. 5 (p. 52)</small></p>
+<h2 id="references">References</h2>
+<ol start="2">
+<li><a id="ref-2"></a>Recycling Concrete Pavement Materials: A Practitioner&rsquo;s Reference Guide · <code>RCA_practioner_guide_w_cvr</code></li>
+<li><a id="ref-3"></a>SUSTAINABLE CONCRETE PAVEMENTS: A Manual of Practice · <code>Sustainable_Concrete_Pavement_508</code></li>
+</ol>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li><li id="ref-3"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

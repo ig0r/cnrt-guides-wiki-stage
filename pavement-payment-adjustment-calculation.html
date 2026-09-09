@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pavement Payment Adjustment Calculation</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html" class="active" aria-current="page">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Pavement Payment Adjustment Calculation</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=pavement-construction">pavement-construction</a><a class="tag" href="index.html?q=payment-adjustments">payment-adjustments</a><a class="tag" href="index.html?q=quality-metrics">quality-metrics</a><a class="tag" href="index.html?q=lower-quality-index">lower-quality-index</a><a class="tag" href="index.html?q=acceptance-criteria">acceptance-criteria</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>The Pavement Payment Adjustment Calculation is the mandated method for evaluating concrete airfield pavements—runways, taxiways and repairs—by measuring material strength, slab thickness, plan‑grade elevation and surface smoothness in both longitudinal and transverse directions, together with edge slump and joint deformation as pass/fail criteria [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. These measured attributes are compared to defined lower‑tolerance limits (e.g., 0.93 × specified strength, thickness no more than ½ in below the planned value, grade within ±½ in) and entered into the percent‑within‑limits (PWL) tables; a lot must achieve at least a 90 % PWL before any pay‑factor is applied, and the lowest resulting factor among strength, thickness, plan‑grade and smoothness determines the contractor’s unit‑price adjustment [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. The calculation therefore links concrete quality directly to payment by enforcing statistical acceptance criteria and mandatory corrective actions—such as grinding or removal and replacement—when any attribute falls outside its tolerance, ensuring consistent performance across standard runway and taxiway projects [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-quality-objectives">Purpose and quality objectives</a></li><li><a href="#scope-and-applicability">Scope and applicability</a></li><li><a href="#test-methods-and-procedures">Test methods and procedures</a></li><li><a href="#sampling-and-testing-frequency">Sampling and testing frequency</a></li><li><a href="#acceptance-criteria-and-tolerances">Acceptance criteria and tolerances</a></li><li><a href="#quality-control-and-process-monitoring">Quality control and process monitoring</a></li><li><a href="#nonconformance-and-corrective-action">Nonconformance and corrective action</a></li><li><a href="#documentation-and-reporting">Documentation and reporting</a></li><li><a href="#relationship-to-long-term-performance">Relationship to long-term performance</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (1)</summary><div class="sources-body"><a href="#ref-1">ACPTP-2022-4_QC_QA_of_concrete_airfield_pvmt_manual_w_cvr_508</a></div></details>
+
+<h2 id="purpose-and-quality-objectives">Purpose and quality objectives</h2>
+<p>The Pavement Payment Adjustment Calculation evaluates concrete airfield pavement by measuring its material strength, slab thickness, plan‑grade alignment (elevation), and surface smoothness in both longitudinal and transverse directions, and it also checks edge slump and joint deformation as pass/fail criteria. These key performance attributes are the basis for applying pay‑factor adjustments that control contractor compensation. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 3 (pp. 132–137), App. I (pp. 515–531)</small></p>
+<p>The Pavement Payment Adjustment Calculation is used to enforce the concrete airfield quality requirement that thickness, plan‑grade elevation, and surface smoothness all meet defined lower‑tolerance limits; any parameter falling outside those limits triggers a reduction in contractor payment. The UFGS specifications tie pay adjustments directly to these three characteristics—smoothness, plan grade, and thickness—and apply the lowest computed percent payment (or highest deduction percentage) for any one characteristic to determine the lot’s final payment. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The following figure illustrates the constraints associated with base and pavement surface elevation tolerances that underpin these payment adjustments.</p>
+<p><img alt="Constraints associated with base and pavement surface elevat" src="assets/pavement-payment-adjustment-calculation/f1f7d64cf3d9fe324abda7ac8e81d88fd905ec95d1e8f023c5f6ba467d7709cc.jpg" />
+<em>Constraints associated with base and pavement surface elevation tolerances.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure illustrates the vertical stacking of concrete pavement, base, and subgrade layers to demonstrate how individual plan grade tolerances accumulate across different strata. It visually depicts that while each layer may meet its own specific elevation limits, the compounding of these plus tolerances can result in a finished pavement thickness that falls outside the required tolerance range.</p>
+<p><small>[1] — Ch. 3 (pp. 132–137), App. I (pp. 515–531)</small></p>
+<h2 id="scope-and-applicability">Scope and applicability</h2>
+<p>The reviewer notes that the Pavement Payment Adjustment Calculation is applied to airport concrete pavements—including new or reconstructed runways and taxiways as well as repair work—by evaluating each defined lot or sub‑lot of concrete. It applies to the construction processes of slab placement, plan grading, and surface finishing that control slab thickness, plan grade, and transverse and longitudinal smoothness. Accordingly, for projects smaller than 2 000 cubic yards the PWL approach is omitted and payment follows the standard criteria in §501‑8.1, while larger runway/taxiway projects exceeding 500 ft also require profilograph smoothness testing. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 3 (pp. 132–137), App. I (pp. 517–531)</small></p>
+<p>Pavement Payment Adjustment Calculation is mandatory for standard runway or taxiway projects when a lot meets the lower tolerance limits for all acceptance criteria; the lot must first achieve at least a 90 % PWL score before any pay‑factor can be applied. Once the lot passes the required smoothness, plan‑grade and thickness tests (including any grinding or replacement that may have been performed), the individual percent factors derived from the applicable tables are calculated and the lowest of those percentages is applied to the unit price. The calculation is not optional – if a lot fails any specification requirement it is either paid at a reduced rate or, when the failure involves straightedge tolerances, the pavement must be removed and replaced rather than receiving a payment reduction. Straight‑edge exceedances therefore trigger removal rather than an adjustment. The process is inappropriate in areas where smoothness testing is excluded, such as over grade breaks, drainage structures, other pavement penetrations, or on paving lanes shorter than 200 ft; in those locations no pay‑factor is computed and the standard acceptance/rejection rules apply. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 3 (pp. 132–137), App. I (pp. 517–531)</small></p>
+<h2 id="test-methods-and-procedures">Test methods and procedures</h2>
+<p>To compute a pavement payment adjustment the contractor must perform a defined series of field and laboratory tests on each lot or sublot. First, the paved area is divided into sublots as required by the contract; a random sampling location is selected in each sublot and a test specimen (core or concrete coupon) is obtained. The specimens are tested for flexural strength and the cores for thickness according to the sampling and testing procedures described in the specification. Measurements of thickness, smoothness and grade are then recorded.</p>
+<p>&ldquo;Strength and thickness are evaluated for acceptance on a lot basis using PWL methods outlined in AC 150/5370-10H, Item C-110.&rdquo; The lower specification limits are set at 93 % of the required concrete strength and at the plan thickness minus ½ in. For smoothness, both straightedge and profilograph devices are used; &ldquo;Acceptance requirements for surface smoothness are described in Section 2.1.1, which provides a procedure for both straightedge and profilograph testing.&rdquo; Straightedge results are converted to payment percentages using Table 3.8: &ldquo;Straightedge Testing: the percentage payment factor for straightedge tests are computed using Table 3.8.&rdquo; Profilograph measurements follow the calibrated procedures in the manual and are similarly linked to the appropriate table.</p>
+<p>After each measurement the average (X) and sample standard deviation (Sₙ) of the n samples are calculated; the lower quality index is formed as &ldquo;Q _ { L } = ( X - L ) / S _ { n }&rdquo;. The Q‑values together with the number of samples are entered into Table 1 of Section C‑110 to obtain the PWL for each characteristic. Individual PWLs are then combined using the prescribed combination table, and any deductions for smoothness or grade deviations are subtracted to produce the final lot pay factor. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 3 (pp. 132–137), App. I (pp. 518–531)</small></p>
+<p>Valid pavement payment‑adjustment calculations depend on using properly calibrated profilograph equipment, having the readings taken by qualified personnel—such as operators who meet the FAA’s training and certification requirements or licensed surveyors for grade measurements—and following the specific measurement methods prescribed in AC 150/5370‑10H; while the source does not detail environmental controls, adherence to these calibration and operator standards is required for acceptance. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 3 (pp. 132–134)</small></p>
+<h2 id="sampling-and-testing-frequency">Sampling and testing frequency</h2>
+<p>The payment‑adjustment calculation first partitions the paved area into sublots that reflect changes in thickness, construction method or sequence. As the specification states, “Divide the lot into n sublots in accordance with the acceptance requirements of the specification.” Within each sublot a single sampling point is selected at random; the process is guided by the requirement to “Locate the random sampling position within the sublot in accordance with the requirements of the specification.” At that location the contractor obtains both material‑property and geometric measurements. For thickness control two cores are taken from every sublot, and if either core exceeds the allowable shortfall the sample size is increased: “For pavements 200 mm (8 in thick) or greater, if either of the two cores from a sublot show a thickness deficiency of 19 mm (0.75 in) or greater, two additional cores shall be drilled in the sublot and the average thickness of the four cores will be computed.” Flexural‑strength testing follows an identical sample size: “Flexural strength of four random specimens taken from Lot A (n=4 specimens).” Because one set of samples is collected per sublot, the overall testing frequency for a lot equals the number of sublots defined; each sublot therefore contributes a single thickness average and a single flexural‑strength result that are later used to compute averages, standard deviations, lower quality indices and ultimately the pay‑weight‑limit values. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 3 (pp. 136–137), App. I (pp. 518–531)</small></p>
+<p>To obtain a statistically‑representative data set for pavement payment‑adjustment calculations, the lot is first partitioned into sublots as required by the specification. Within each sublot a random sampling location is selected in accordance with the same requirements, and measurements are taken at those locations following the prescribed test procedures. The contractor initially extracts two concrete cores from each sublot; if either core exhibits a thickness deficiency that meets or exceeds the applicable limit, two additional cores are obtained and the average of all four cores is used to represent the sublot’s thickness. This approach—randomly locating samples within defined sublots and augmenting the sample size when deficiencies are detected—ensures that the measurements reflect the material, process, and overall condition of the completed work for payment‑adjustment purposes. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 3 (pp. 134–137), App. I (pp. 518–531)</small></p>
+<h2 id="acceptance-criteria-and-tolerances">Acceptance criteria and tolerances</h2>
+<p>The work is acceptable only when each measured attribute meets its lower specification limit and the statistical PWL requirement of at least 90 %. The lower limits are defined as follows: strength must be no less than 0.93 times the specified compressive strength (“Strength (L) = 0.93 × strength specified in paragraph 501-3.3”), thickness may not fall below the planned lot thickness minus 0.50 in (“Thickness (L) = lot plan thickness in inches – 0.50 in.”), and surface grade must stay within ±½ in of the design line, with an optional lateral tolerance of 0.1 ft (“The grade of the finished surface of the completed pavement cannot vary from gradeline elevations and crosssections shown on the plans by more than ½ inch (12 mm) vertically, or 0.1 ft (30 mm) laterally as an optional requirement.”). Smoothness is controlled both transversely and longitudinally: transverse smoothness measured with a straightedge must achieve at least a 95 % pay factor (“Transverse smoothness by straightedge: 95% pay factor”), while longitudinal smoothness (profilograph) requires the average profile index not to exceed 15 inches per mile. For each attribute the sample mean (X) and standard deviation (Sn) are used to compute a Quality Index QL = (X‑L)/Sn; the resulting QL is entered in Table 1 of AC 150/5370‑10H to obtain a percent‑within‑limits (PWL). The PWL for the lot must be ≥90 % for full payment. After individual pay factors are calculated, the contract unit price is adjusted by the lowest factor; any single out‑of‑tolerance condition therefore caps the overall payment. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The following figure illustrates contractor risk under this PWL acceptance approach using strength test results as an example.</p>
+<p><img alt="Illustration of the Contractor's risk in FAA's PWL acceptanc" src="assets/pavement-payment-adjustment-calculation/57de36826a45027f7dc05184384f444de3eb0d2e3a10b8debf1d3608de6a0dd1.jpg" />
+<em>Illustration of the Contractor&rsquo;s risk in FAA&rsquo;s PWL acceptance approach using strength test results as an example.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays a bell curve representing the variation in quality of material within a lot, centered at the Acceptable Quality Level (AQL). The area to the left of this limit is highlighted as a zone where there is a probability that samples will be taken, illustrating the risk of rejecting acceptable material due to statistical variation.</p>
+<p><small>[1] — Ch. 3 (pp. 132–137), App. I (pp. 517–531)</small></p>
+<p>The pavement payment adjustment process begins by checking every individual test result against its lower‑limit tolerance. If a measurement falls outside that limit, the corresponding pay factor is taken from the appropriate table. For strength and thickness the lot‑level statistics are then computed: the sample average (X) and standard deviation (Sn) are used to form the Lower Quality Index (QL = ( X - L ) / Sn). The QL value together with the number of measurements is entered in Table 1 to obtain a Percent Within Limits (PWL), which becomes the attribute’s pay factor. Separate pay factors are derived for strength, thickness and smoothness; when both strength and thickness exceed 100 % the higher factor is used, if only one exceeds 100 % the two factors are multiplied, and if neither exceeds 100 % the lower factor is taken. The final contract unit price is then reduced by the single lowest percent among all characteristic pay factors (the highest deduction). If lot‑average values such as profile index exceed defined limits (e.g., &gt;15 inches/mile) or thickness deficiencies reach removal thresholds, the lot may be rejected or removed. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 3 (pp. 132–137), App. I (pp. 517–531)</small></p>
+<h2 id="quality-control-and-process-monitoring">Quality control and process monitoring</h2>
+<p>During production and construction the pavement‑payment‑adjustment process must continuously monitor a defined set of quality characteristics that feed the individual pay factors. The required parameters are:</p>
+<ul>
+<li>Concrete strength, verified by flexural‑strength testing of four random specimens per lot; acceptance uses the lower limit <strong>Strength (L) = 0.93 × strength specified in paragraph 501‑3.3</strong>.</li>
+<li>Slab thickness, measured by coring each sublot and compared to the plan thickness reduced by the allowance; the specification states <strong>Thickness (L) = lot plan thickness in inches – 0.50 in.</strong></li>
+<li>Surface smoothness in both directions: transverse smoothness is evaluated with straight‑edge tests (payment factor computed from Table 3.8) and longitudinal smoothness with profilograph measurements (payment factor from Table 3.9). The profile index must stay at or below the lower specification limit (e.g., ≤15 in./mile); excess triggers a reduction.</li>
+<li>Plan grade/elevation, surveyed against the design grade line; <strong>the grade of the finished surface … cannot vary … by more than ½ inch (12 mm) vertically, or 0.1 ft (30 mm) laterally</strong> as an optional requirement.</li>
+</ul>
+<p>Additional pass/fail items such as edge slump and joint‑face deformation are also checked, and repair or diamond‑grinding percentages above the contract limits invoke a 5 % pay reduction. For each lot a separate pay factor is calculated for strength, thickness, plan grade and smoothness; the lowest of these factors is applied to the unit price, ensuring consistent quality across the project. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 3 (pp. 132–137), App. I (pp. 517–531)</small></p>
+<p>The review identified several measurable trends and deviations that automatically require corrective action, payment reduction, or supplemental testing under the Pavement Payment Adjustment Calculation. Any indication that the lot’s quality‑factor (PWL) for strength or thickness drops below the 90 % threshold, that grade measurements exceed the allowable half‑inch vertical (or optional 0.1 ft lateral) deviation on more than a quarter of a sublot, that repairs affect over twenty percent of the slabs, or that diamond grinding is needed on more than twenty‑five percent of a sublot signals non‑conformance and triggers payment reductions, process adjustments, or additional testing to verify quality. Likewise, when core thickness deficiencies exceed the allowable limits (19 mm/0.75 in for pavements ≥200 mm thick, 13 mm/0.50 in for thinner sections) extra cores must be taken; if the averaged four‑core measurement still exceeds those deficits the entire sublot is rejected and must be removed. Straightedge tolerances that are exceeded require immediate removal and replacement of the affected pavement. Smoothness deviations—such as a final profile index greater than fifteen inches per mile or extensive diamond grinding beyond the prescribed limits (e.g., &gt;10 % of a sublot)—also invoke pay reductions and may demand further investigation. Any measured parameter—thickness, plan‑grade deviation, longitudinal or transverse smoothness, edge slump percentage, joint face deformation, or bump height—that exceeds the tolerances set in UFGS 32 13 14.13 is deemed a failure, mandating remedial actions (removal, replacement, or limited grinding). Finally, discrepancies between contractor QC test results and government check tests drive the acceptance method: differences under 2 % allow use of the contractor’s data; gaps of 2‑4 % require averaging both sets; and disparities of 4 % or more trigger a review of sampling procedures, additional duplicate testing, and reliance on the government’s values until agreement falls below four percent. All of these trends, deviations, and test results must be flagged promptly so that the contractor’s QC team can adjust the production process and conduct any required supplemental testing. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 3 (pp. 132–137), App. I (pp. 517–531)</small></p>
+<h2 id="nonconformance-and-corrective-action">Nonconformance and corrective action</h2>
+<p>When inspection or testing shows that a lot’s strength, thickness, smoothness, plan grade, or other quality metric falls below the required lower specification limits, the contract mandates immediate corrective action. The default response is removal and replacement of the non‑conforming portion; only with FAA concurrence may the Owner and Contractor elect to retain the lot, in which case it is paid at a reduced rate and the project payment ceiling is adjusted. After any required grinding or repairs are performed, the pay factor for the lot is calculated using the FAA rules – taking the higher of strength or thickness values when both reach 100 %, multiplying them if only one reaches 100 %, or applying the lower value if neither does. Additional deductions are applied: a five‑percent reduction (capped at 95 %) when repairs affect more than about one‑fifth of the slabs in a sublot, and a similar five‑percent cut when diamond grinding exceeds roughly one‑quarter of the sublot. Thickness deficiencies trigger a core‑testing protocol; for pavements ≥8 in thick a deficiency of 0.75 in (or ≥0.50 in for &lt;8 in) in either of two cores requires two extra cores, and if the average of four cores still exceeds the limit the entire sublot is removed. Any sublot that fails to meet required concrete strength must be removed and replaced at no cost to the Government. The lowest computed percent factor derived from smoothness, plan grade, and thickness (after corrective work) becomes the actual payment percentage for the lot. When inspection or testing reveals a parameter that falls outside its tolerance, the contractor must mobilize its quality‑control personnel—who must be adequately resourced and empowered—to intervene during production and correct the out‑of‑tolerance condition before work proceeds. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 3 (pp. 132–137), App. I (pp. 517–531)</small></p>
+<p>Work must be corrected whenever any measured parameter exceeds its tolerance limits. Correction is achieved by grinding (e.g., diamond grinding limited to ten percent of a sublot and a maximum depth of ¼ in.) or, when the exceedance meets removal‑and‑replacement thresholds—such as a straightedge test over 1/8 in. in an aircraft‑arresting zone or a core thickness deficiency of 0.75 in.—the pavement must be removed and replaced before any payment is made. After correction the lot is retested; if the contractor’s quality‑control (QC) results differ from the Government’s check tests by more than two percent, additional sampling is required, and when the discrepancy reaches four percent or greater a full review of sampling and testing procedures is triggered. Acceptance with adjustment occurs when all thickness, grade, smoothness and flexural‑strength values meet the specified lower tolerances after correction. In that case the appropriate pay factor is computed from the tables (straightedge, profilograph, plan‑grade, thickness) and applied; if production test results differ from Government results by 2–4 %, the average of the two sets is used and payment may be reduced based on the lowest factor. Further investigation is required when other quality indicators—such as edge‑slump or joint‑face deformation readings—are out of tolerance, prompting remedial actions and possibly more extensive testing before a final decision. Rejection is warranted if a lot ultimately fails the specification after corrective actions, if core visual inspections reveal unacceptable durability issues, or if test result differences remain four percent or higher despite additional Government testing; in those cases the pavement is removed and replaced at no cost to the Government. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 3 (pp. 134–137), App. I (pp. 524–531)</small></p>
+<h2 id="documentation-and-reporting">Documentation and reporting</h2>
+<p>The Pavement Payment Adjustment Calculation file must retain a complete set of inspection records and test results that support acceptance of concrete strength, slab thickness, surface grade, and smoothness. For every lot the file shall include straightedge and profilograph smoothness measurements, edge‑slump and joint‑face deformation data, plan‑grade survey results, flexural‑strength evaluations, and core‑thickness records. The sampling plan must be documented – for example, two cores are removed from each sublot for a total of eight cores per lot – together with any additional cores taken when deficiencies exceed the allowable limits. All data sheets, field reports, and laboratory datasheets are entered into a central spreadsheet or database and compared against the lower specification limits (strength at 0.93 × specified value, thickness equal to planned thickness minus 0.50 in., etc.).</p>
+<p>Measurements of grade must be stamped and signed by a licensed surveyor; any sublot where more than 25 % of the area fails grade or requires grinding triggers a corrective action that reduces the lot pay factor by five percent (capped at 95 %). Certification is required to show that contractor QC values are within the allowable variance limits compared with Government check‑test results. When production testing varies by less than 2.0 % of the Government’s test results, production test results will be used for acceptance; if the variance is between 2.0 % and 4.0 %, the average of the two sets is used; and if it exceeds 4.0 % additional duplicate‑sample testing and evaluation of sampling procedures are required.</p>
+<p>Pay‑factor calculations are derived from the appropriate tables: straightedge tests use Table 3.8, profilograph tests use Table 3.9, plan‑grade adjustments use Table 3.10, and thickness adjustments use Table 3.11. The file must also record any corrective actions such as diamond grinding (limited to 10 % of a sublot and a quarter‑inch depth), removal and replacement of deficient pavement, or additional testing performed to resolve variances. The lowest percentage derived from these characteristics is applied to the unit price and measured quantity to determine the final payment adjustment. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 3 (pp. 132–137), App. I (pp. 521–531)</small></p>
+<p>Quality records for pavement payment adjustment are first compiled into a central spreadsheet or database that pulls the contractor’s production test data—strength, thickness, smoothness (straight‑edge and profilograph), and plan‑grade surveys—from datasheets and field reports. “Tools to support acceptance can be developed in a manner that incorporates test results from datasheets and field reports into a central spreadsheet or database, and then using equations to assist in evaluating the data for acceptance per the specifications described below.” The Government reviews these records by comparing the contractor’s numbers with its own check tests. When the variance is less than 2 % the contractor’s values are accepted; larger variances trigger averaging or additional sampling as required. “If production testing varies by less than 2.0% of the Government’s test results, production test results will be used for acceptance.” The Review and Acceptance (RPR) and Quality Assurance Representative (QAR) then verify that each lot meets the lower tolerance limits set in the UFGS tables, including checks such as transverse‑joint testing. “RPR and QAR must ensure that the transverse joint between lots is tested for SS.” After verification, the pay‑factor for each characteristic is calculated; the lowest percent payment across all characteristics is applied to the contract unit price. “The adjusted contract unit price shall be the product of the pay factor for the lot and the contract unit price, for each lot accepted.” These documented calculations provide an immediate basis for acceptance and payment adjustment and create a performance record that can be referenced in future projects for trend analysis, corrective action, and overall contractor quality evaluation. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 3 (pp. 132–135), App. I (pp. 527–531)</small></p>
+<h2 id="relationship-to-long-term-performance">Relationship to long-term performance</h2>
+<p>After concrete paving is completed, the contractor’s quality‑control results are compared to Government check tests. If the two sets of results differ by less than 2 %, the contractor data are accepted; a variance between 2 % and 4 % requires averaging both sets for acceptance, and any discrepancy of 4 % or more triggers a review of the sampling plan, duplicate‑sample testing by Government and QC personnel, and continued periodic check tests until the results agree within less than 4 %. In parallel, the as‑built pavement is re‑measured for smoothness using straightedge (Table 3.8) and profilograph surveys (Table 3.9). All corrective actions such as grinding or removal/replacement are performed before calculating each payment factor. The transverse joint between consecutive lots must be retested with a straightedge to verify surface smoothness, and plan‑grade elevations continue to be surveyed so the Government representative can assess compliance after any grinding. Core sampling is required to determine thickness payment factors: for pavements 200 mm (8 in) or greater, if either of the two cores from a sublot shows a thickness deficiency of 19 mm (0.75 in) or more (or 13 mm/0.50 in for thinner sections), two additional cores are taken and the average of four cores is evaluated; an average exceeding those limits mandates removal of the entire sublot. Although concrete strength does not affect payment, any sublot that fails to meet the required strength for final acceptance will be removed and replaced at no cost to the Government. All collected data must be submitted in accordance with UFGS 32‑13‑14.13. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 3 (pp. 134–137), App. I (pp. 524–531)</small></p>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

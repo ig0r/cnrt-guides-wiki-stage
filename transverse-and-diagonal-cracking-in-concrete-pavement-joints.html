@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transverse and Diagonal Cracking in Concrete Pavement Joints</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html" class="active" aria-current="page">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Transverse and Diagonal Cracking in Concrete Pavement Joints</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=concrete-pavement-joints">concrete-pavement-joints</a><a class="tag" href="index.html?q=transverse-cracking">transverse-cracking</a><a class="tag" href="index.html?q=diagonal-cracking">diagonal-cracking</a><a class="tag" href="index.html?q=fwd-testing">fwd-testing</a><a class="tag" href="index.html?q=load-transfer-characteristics">load-transfer-characteristics</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>Transverse and diagonal cracking in concrete pavement joints is a full‑depth structural distress that appears as working cracks which fault (vertical movement) or propagate across the slab, typically manifesting as mid‑panel fractures running either perpendicular or at an angle to the joint system [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. These cracks develop when tensile stresses generated by early‑age volume changes, thermal curling, moisture warping, inadequate joint sawing, dowel misalignment, poor load transfer, non‑uniform base support, insufficient slab thickness, or repeated traffic loading exceed the concrete’s tensile strength, indicating that the slab–joint system cannot accommodate those stresses [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. When faulting occurs, the cracks fragment slabs, reduce load‑transfer efficiency, compromise ride quality, and permit water and chemicals to infiltrate the pavement, accelerating durability problems and shortening service life; if the cracks remain closed they are generally non‑structural [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-treatment-objectives">Purpose and treatment objectives</a></li><li><a href="#distress-characterization-and-causes">Distress characterization and causes</a></li><li><a href="#applicability-and-treatment-selection">Applicability and treatment selection</a></li><li><a href="#condition-assessment-and-timing">Condition assessment and timing</a></li><li><a href="#materials-and-repair-details">Materials and repair details</a></li><li><a href="#treatment-procedures">Treatment procedures</a></li><li><a href="#quality-and-workmanship">Quality and workmanship</a></li><li><a href="#performance-and-service-life">Performance and service life</a></li><li><a href="#monitoring-and-follow-up">Monitoring and follow-up</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (2)</summary><div class="sources-body"><a href="#ref-1">2019-12_IMCP_manual</a>, <a href="#ref-2">concrete_pvmt_distress_assessments_and_solutions_guide_w_cvr</a></div></details>
+
+<h2 id="purpose-and-treatment-objectives">Purpose and treatment objectives</h2>
+<p>Transverse and diagonal cracking in concrete pavement joints is a full‑depth structural distress manifested as working cracks that fault (vertical movement) or propagate across the slab. These cracks develop when tensile stresses—generated by early‑age volume changes, thermal curling, moisture warping, inadequate joint sawing, dowel misalignment, poor load transfer, non‑uniform base support, insufficient thickness, or repeated traffic loading—exceed the concrete’s tensile strength. The resulting faulted transverse cracks and oblique diagonal cracks fragment slabs, reduce load‑transfer efficiency, shorten service life, compromise ride quality, and permit water and chemicals to infiltrate the pavement, leading to durability problems. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure below illustrates transverse cracking resulting from volumetric changes.</p>
+<p><img alt="Transverse cracking in a concrete pavement slab caused by vo" src="assets/transverse-and-diagonal-cracking-in-concrete-pavement-joints/2ec42fecb88e13f04edee6371953c0152129414a46dd5637f9c716ee27c4c043.jpg" />
+<em>Transverse cracking in a concrete pavement slab caused by volumetric changes.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a concrete road surface featuring a prominent crack that propagates across the width of the lane, intersecting the longitudinal joint lines at an oblique angle.</p>
+<p><small>[1] — Ch. 3 (p. 54), Ch. 6 (p. 181), Ch. 10 (p. 334); [2] — Ch. 4 (pp. 102–154), Ch. 5 (p. 31)</small></p>
+<p>The guides state that the chief aim of providing transverse and diagonal joints in concrete pavement is to prevent deterioration of the slab—both by limiting uncontrolled cracking and by controlling crack location, reducing slab stresses, and ensuring effective load transfer. By anticipating where cracks will form, installing load‑transfer devices and sealing controlled joint cracks, ingress of aggressive fluids is limited, preserving ride quality and durability, which in turn extends the pavement’s service life. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The following figure illustrates the placement of dowels at transverse joints.</p>
+<p><img alt="Dowel bar baskets for a transverse joint and tie bar baskets" src="assets/transverse-and-diagonal-cracking-in-concrete-pavement-joints/84178192df28e08f3ae1017a53ff2ba7cfd5e5f580c80d085205d32932b1879b.jpg" />
+<em>Dowel bar baskets for a transverse joint and tie bar baskets for a longitudinal joint.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays pre-fabricated dowel bar baskets consisting of green-coated steel bars held in alignment by wire ties, positioned on a concrete surface marked with orange layout lines. These assemblies are used to place dowel bars for load transfer between panels parallel to the pavement surface and to the longitudinal joint to enable free, uninhibited opening and closing of the joints.</p>
+<p><small>[1] — Ch. 6 (p. 172); [2] — Ch. 4 (pp. 102–137)</small></p>
+<h2 id="distress-characterization-and-causes">Distress characterization and causes</h2>
+<p>The guides describe transverse and diagonal cracks occurring within jointed plain concrete pavement (JPCP) slabs, typically as mid‑panel fractures that run across the slab width or at an angle inside the joint system. Early‑age cracks can appear within the first 72 hours after placement, while fatigue‑type transverse cracks develop over several years under repeated truck loading. When the cracks remain closed they are not usually detrimental, but if faulting (vertical displacement) occurs the crack becomes a structural distress that produces a rough riding surface, increases dynamic loading and accelerates loss of slab life. The resulting functional impacts include reduced ride quality, ongoing maintenance requirements, and an elevated risk of slab failure. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure below illustrates a diagonal crack in jointed plain concrete pavement.</p>
+<p><img alt="Diagonal crack on JPCP" src="assets/transverse-and-diagonal-cracking-in-concrete-pavement-joints/7e73c9f0a40a6867b97c7629863a93893759e312ba9c79472ddbdb27fcae9171.jpg" />
+<em>Diagonal crack on JPCP</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a concrete pavement surface characterized by longitudinal grooves and visible mid-panel fractures.</p>
+<p><small>[1] — Ch. 3 (p. 54); [2] — Ch. 4 (pp. 103–104)</small></p>
+<p>The underlying mechanisms driving transverse and diagonal cracking at concrete pavement joints are rooted in the inability of the slab–joint system to accommodate tensile stresses that exceed the material’s capacity. The guides note that “Concrete pavements crack whenever critical stresses in the slab exceed the tensile strength of the concrete.” Early‑age volume changes—shrinkage from moisture loss, thermal contraction, and associated curling or warping—generate tensile forces; when these movements are restrained by friction between slab and base, and joint creation is delayed, “If these volume changes and curling/warping responses are restrained (for example, by the frictional forces between the slab and base), and timely efforts are not made to alleviate those responses through effective joint sawing or formation, random cracking can develop in the young concrete if its tensile strength &hellip; is exceeded.” Construction‑related deficiencies such as “excessive early‑age loading,” delayed sawing, misaligned dowels that lock joints, and inadequate load transfer further reduce structural capacity and promote crack initiation. Once a crack forms, traffic loads accelerate propagation: “Traffic loading can cause transverse and diagonal cracking on a concrete pavement either through the application of a single load repetition (in which the stress induced by the traffic load exceeds the strength of the concrete) or, much more commonly, through the repeated applications of traffic loading (in which lower stress levels are induced but repeated many times over an extended time period).” Temperature‑driven joint opening and closing, restrained by friction or dowel/tie bars, concentrates tensile stresses at panel edges, while “random transverse cracks can permit water and chemicals to enter the concrete,” creating moisture‑induced deterioration that further weakens the slab. The combination of these mechanisms—early‑age loading, inadequate joint timing and alignment, restrained curling/warping, repetitive traffic stresses, and ingress of water—accelerates the development and growth of transverse and diagonal cracks in concrete pavement joints. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The following figure illustrates transverse and diagonal cracking in concrete pavements.</p>
+<p><img alt="Transverse and diagonal cracking in concrete pavements" src="assets/transverse-and-diagonal-cracking-in-concrete-pavement-joints/afbf61d4f52f05e67cdef9b61bc2a681836f80c07b76a4b686dff8b445f31a77.jpg" />
+<em>Transverse and diagonal cracking in concrete pavements</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a section of gray concrete pavement featuring a prominent, irregular crack running vertically through the frame. This fracture is oriented laterally across the pavement and perpendicular to the pavement centerline, which defines it as transverse cracking. The crack extends through the entire thickness of the slab, distinguishing it from surficial distresses like map cracking.</p>
+<p><small>[1] — Ch. 3 (p. 54), Ch. 6 (p. 181), Ch. 10 (p. 334); [2] — Ch. 4 (pp. 102–154)</small></p>
+<h2 id="applicability-and-treatment-selection">Applicability and treatment selection</h2>
+<p>Transverse and diagonal cracking in concrete pavement joints should be considered when the slab is subjected to early‑age volume changes caused by moisture loss and temperature fluctuations—particularly within the first 72 hours after placement—and those movements are restrained by friction with the base or delayed joint sawing, allowing curling or warping to generate random cracks. The distress also becomes relevant under traffic conditions that impose either a single overload exceeding concrete strength or, more commonly, repeated lower‑level loads that accumulate as fatigue over the design period. This risk is amplified in site environments where thermal curling, moisture warping, and other climate‑related stresses add to load‑induced tensile stresses, especially when foundation support, subgrade stiffness, and joint spacing do not adequately mitigate these effects. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[2] — Ch. 4 (pp. 103–121)</small></p>
+<p>When transverse or diagonal cracks in a concrete pavement joint do not show faulting—meaning there is no differential vertical movement between the crack faces—they are generally considered non‑structural and repairing them is unnecessary; routine maintenance or preservation can be used instead. Conversely, if faulting is evident, as with the structural transverse crack illustrated in the manual, the cracking indicates a loss of load transfer capacity and warrants a more substantive rehabilitation such as joint resealing, dowel bar realignment, or slab replacement to restore service life. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 3 (p. 54)</small></p>
+<h2 id="condition-assessment-and-timing">Condition assessment and timing</h2>
+<p>Across the guides, transverse and diagonal cracking in concrete pavement joints should be addressed proactively by incorporating a joint system during design and construction—&ldquo;a system of joints (both transverse and longitudinal) are introduced into the pavement to promote the development of the cracks at predetermined locations where they can be controlled, maintained, and furnished with dowel bars for positive load transfer.&rdquo; Treatment is also required as soon as cracking manifests as a structural distress; specifically, when &ldquo;cracks that do not separate and fault (i.e., undergo differential vertical movement or displacement) are not typically detrimental,&rdquo; but once differential movement appears—&ldquo;The transverse cracking shown in Figure 3-6 is considered a structural distress because faulting is evident&rdquo;—the cracks are deemed “working” and must be corrected. The timing for such corrective action includes the earliest sign of cracking, whether &ldquo;early‑age cracking, which is commonly taken as cracking that occurs within the first 72 hours after paving,&rdquo; or later &ldquo;transverse fatigue cracking caused by repeated truck applications.&rdquo; [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[1] — Ch. 3 (p. 54), Ch. 6 (p. 181); [2] — Ch. 4 (pp. 102–104)</small></p>
+<h2 id="materials-and-repair-details">Materials and repair details</h2>
+<p>The guides recommend installing a system of joints—both transverse and longitudinal—at critical locations such as the top or bottom of panels at edges and/or corners. These joints are furnished with mechanical load‑transfer devices, specifically smooth dowels across transverse joints and deformed tie bars across longitudinal joints, to provide positive load transfer and limit slab movement. The installation of dowels across transverse joints (to prevent vertical movement) and tiebars across longitudinal joints (to prevent horizontal movement) keeps joint cracks tight. No specific dimensions are prescribed; the essential components are the joint layout and the dowel‑type load‑transfer devices. Any controlled joint cracks are then sealed with an appropriate sealant to block the ingress of aggressive fluids and incompressible materials. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The following figure illustrates the equipment used to install these critical load-transfer components.</p>
+<p><img alt="Close-up of the dowel bar inserter on a paving machine Hoegh" src="assets/transverse-and-diagonal-cracking-in-concrete-pavement-joints/62a476dcd3e90b489e6a4aea743ca818340e662fedfcefe28ce4811b887d646a.jpg" />
+<em>Close-up of the dowel bar inserter on a paving machine Hoegh and Khazanovich 2009, University of Minnesota</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays the mechanical apparatus of a paving machine&rsquo;s dowel bar inserter, featuring vertical guides holding purple cylindrical bars in position for concrete placement. Properly anchored dowel bar assemblies or incorrectly used BDIs cause misaligned dowels during concrete placement, resulting in concrete spalling. This figure illustrates the specific construction equipment and process that determines whether load-transfer devices are installed correctly to prevent structural distress.</p>
+<p><small>[1] — Ch. 6 (p. 172); [2] — Ch. 4 (pp. 102–137)</small></p>
+<p>The performance of concrete‑pavement joints against transverse and diagonal cracking is governed by three interrelated groups of factors. Material properties include the intrinsic tensile strength of the concrete, which sets the crack‑initiation threshold—“Concrete pavements crack whenever critical stresses in the slab exceed the tensile strength of the concrete.”—as well as mix‑design deficiencies such as inadequate slab thickness, excessive curling or warping, and dowel‑bar quality. Compatibility requirements call for proper joint spacing, alignment and continuity of load‑transfer devices (smooth dowels or deformed tie bars), sufficient load transfer across joints, and avoidance of misalignment that can “locked up joints due to dowel bar misalignment” and cause “poor joint load transfer.” Early‑age considerations such as “excessive early-age loading” and timely joint sawing (to prevent “late joint sawing”) are also critical. Existing pavement conditions encompass uniform base support, slab thickness selected to keep traffic‑induced stresses within acceptable limits, and environmental influences; “thermal curling and moisture warping can produce stresses in the slab that may be additive to load‑induced stresses, thereby contributing to the development of fatigue cracking.” In reinforced pavements, “The reinforcing steel causes cracks to develop within an acceptable spacing and holds the cracks tightly together,” limiting fluid ingress. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The following figure illustrates a longitudinal shear restraint crack of a dowel initiating over dowels at two locations on opposite sides of the joint.</p>
+<p><img alt="Longitudinal shear restraint crack of dowel initiating over" src="assets/transverse-and-diagonal-cracking-in-concrete-pavement-joints/a967aec01f6433d56e087952d195e4fa727d953429c4b2c756106ba14468d503.jpg" />
+<em>Longitudinal shear restraint crack of dowel initiating over dowels at two locations on opposite sides of the joint.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a concrete pavement surface featuring a transverse white painted line and a longitudinal saw cut or joint running perpendicular to it. A distinct, brownish crack initiates at the intersection of these features and propagates longitudinally away from the joint into the mainline pavement slab. This visual evidence illustrates a shear fracture in the mainline pavement that &ldquo;initiates at the transverse joint, often directly over the dowel bar.&rdquo; The crack demonstrates how dowel bars can reduce effective thickness and create a &ldquo;plane of weakness&rdquo; that leads to structural distress.</p>
+<p><small>[1] — Ch. 3 (p. 54), Ch. 6 (p. 181), Ch. 10 (p. 334); [2] — Ch. 4 (pp. 102–154)</small></p>
+<h2 id="treatment-procedures">Treatment procedures</h2>
+<p>The guides stress that successful control of transverse and diagonal cracking hinges on proper sequencing, appropriate equipment, vigilant environmental monitoring, and strict traffic management. Joint sawing must be timed to the early‑age window—typically the first 72 hours after paving—to relieve moisture‑loss‑induced curling and warping; “performing saw cuts too late or allowing traffic to impose excessive early‑age loading can promote transverse cracks that fault under dynamic loading.” Equipment recommended for planning and verification includes analytical tools such as HIPERPAV for early‑age cracking prediction and the AASHTOWare Pavement ME Design software, which “can be used to develop pavement designs that will limit traffic‑induced transverse and diagonal cracking to userdefined acceptable levels, and can directly accommodate critical factors such as foundation support and friction, curling, and joint spacing.” The guides also require monitoring of “rapid drying, temperature gradients through slab thickness, thermal curling, moisture warping, and adequate curing regimes,” because these conditions add stress to the slab. Traffic considerations dictate that “traffic loading can cause transverse and diagonal cracking … either through the application of a single load repetition … or, much more commonly, through the repeated applications of traffic loading.” Accordingly, heavy loads or high‑frequency traffic may require temporary lane closures or imposed load limits while joint work is performed, and early‑age loading should be avoided. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The following figure illustrates an example of slab cracking output generated by the AASHTOWare Pavement ME Design software.</p>
+<p><img alt="Example slab cracking output from AASHTOWare Pavement ME Des" src="assets/transverse-and-diagonal-cracking-in-concrete-pavement-joints/f8c318a98d94a3fa7ae995cfe940cf5731b2f52ebd7831395fff5b0e0cd84369.jpg" />
+<em>Example slab cracking output from AASHTOWare Pavement ME Design software</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>This visualization demonstrates how analytical tools can predict fatigue-based distress, allowing engineers to verify that a design accommodates environmental impacts and loading configurations.</p>
+<p><small>[1] — Ch. 3 (p. 54); [2] — Ch. 4 (pp. 103–121)</small></p>
+<h2 id="quality-and-workmanship">Quality and workmanship</h2>
+<p>The inspection should verify that the concrete mix is free of material deficiencies and provides adequate tensile strength – a property that depends on the specified mix parameters, environmental conditions, and curing regime. The joint system must include a &ldquo;system of joints (both transverse and longitudinal) are introduced into the pavement to promote the development of the cracks at predetermined locations&rdquo; and each joint shall be &ldquo;furnished with dowel bars for positive load transfer&rdquo;; dowel alignment must be checked to avoid &ldquo;locked up joints due to dowel bar misalignment&rdquo; and ensure good load transfer. Joint preparation actions such as saw cutting must be performed at the correct time – the guides stress that &ldquo;joint preparation such as sawing was performed at the correct time&rdquo; and note that early‑age cracking, defined as &ldquo;early‑age cracking, which is commonly taken as cracking that occurs within the first 72 hours after paving,&rdquo; must not be present. Inspectors should monitor the concrete’s post‑placement behavior, recognizing that &ldquo;Shortly after concrete is placed, it undergoes volume changes as the result of moisture losses (hydration and evaporation) and temperature changes&rdquo; and that &ldquo;differences in moisture levels and temperatures between the top and bottom of the slab may exist, which elicit curling (due to temperature differentials) and warping (due to moisture differentials).&rdquo; Installation checks shall assess restraint forces such as friction between slab and base, confirm the adequacy and uniformity of base support, and verify that slab thickness meets fatigue‑design criteria. The completed pavement must be surveyed for signs of &ldquo;excessive early‑age loading,&rdquo; faulted or random cracks caused by restrained volume changes – &ldquo;If these volume changes and curling/warping responses are restrained (for example, by the frictional forces between the slab and base), and timely efforts are not made to alleviate those responses through effective joint sawing or formation, random cracking can develop in the young concrete if its tensile strength (which is dependent upon mix parameters, environmental conditions, and curing regimes) is exceeded&rdquo; – as well as for environmental distress such as thermal curling or moisture‑induced warping that can add to load‑induced stresses. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[1] — Ch. 3 (p. 54); [2] — Ch. 4 (pp. 102–121)</small></p>
+<p>According to the manual, transverse cracks are only deemed problematic when they exhibit faulting—visible differential vertical movement between slab sections; otherwise, cracks that remain closed and do not separate are considered non‑detrimental to structural performance. Consequently, a satisfactory joint condition is indicated by the absence of observable faulting in any transverse or diagonal crack, with no specific dimensional tolerances required. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 3 (p. 54)</small></p>
+<h2 id="performance-and-service-life">Performance and service life</h2>
+<p>The merged assessment concludes that transverse and diagonal cracking within properly designed joint systems has limited adverse impact provided the cracks remain closed and are supported by load‑transfer devices. Cracks that do not separate and fault (i.e., undergo differential vertical movement or displacement) are not typically detrimental to pavement structural performance, so ride quality and functionality can be maintained when joints keep the fissures tight. Conversely, random transverse cracks act as pathways for moisture and aggressive agents; Random transverse cracks can permit water and chemicals to enter the concrete, resulting in long‑term durability problems, which accelerate deterioration and shorten expected service life. When such cracks become “working,” i.e., exhibit detectable vertical movement, they can precipitate structural failure and degrade condition. The underlying cause of all cracking is stress exceeding concrete tensile capacity; Concrete pavements crack whenever critical stresses in the slab exceed the tensile strength of the concrete. By installing a regular pattern of transverse and longitudinal joints equipped with dowel bars for positive load transfer, the guides recommend guiding cracks to predetermined locations, limiting early‑age cracking, preserving load‑bearing function, and thereby extending service life relative to unjointed or poorly jointed sections. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure below illustrates how transverse cracking can result from excessive slab lengths in concrete pavements.</p>
+<p><img alt="Transverse cracking caused by excessive slab lengths (20-foo" src="assets/transverse-and-diagonal-cracking-in-concrete-pavement-joints/aeb002d1746cf94b17073c7361bb5bfa2d76be056c7a4cd977c53dc9d4eeaf60.jpg" />
+<em>Transverse cracking caused by excessive slab lengths (20-foot panel)</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a concrete pavement surface featuring a prominent, jagged crack that runs diagonally across the frame.</p>
+<p><small>[1] — Ch. 3 (p. 54), Ch. 6 (pp. 172–181); [2] — Ch. 4 (pp. 102–121)</small></p>
+<p>&ldquo;Transverse and diagonal cracking is the most common recurring distress in jointed concrete pavements.&rdquo; These full‑depth cracks can intersect, &ldquo;breaking a slab into three or more pieces, producing a shattered or broken slab condition.&rdquo; The guides note that &ldquo;Transverse cracking is a common type of structural distress in concrete pavements&rdquo; and that faulting makes the distress evident: &ldquo;The transverse cracking shown in Figure 3‑6 is considered a structural distress because faulting is evident.&rdquo; &ldquo;Working&rdquo; transverse cracks (that is, cracks in which vertical movement or displacement along the cracks is detectable) can cause structural failure, and &ldquo;random transverse cracks can permit water and chemicals to enter the concrete, resulting in long‑term durability problems.&rdquo; </p>
+<p>The development of these distresses is linked to a suite of influencing factors. Repeated or excessive early‑age traffic, delayed joint sawing, dowel‑bar misalignment that locks joints, poor joint load transfer, inadequate or non‑uniform base support, excessive slab curling or warping, insufficient slab thickness, improper sawing, material deficiencies, and the absence of continuous reinforcement are repeatedly identified. &ldquo;Temperature fluctuations and thermal movements further promote working cracks.&rdquo; </p>
+<p>Cracks originate whenever the tensile stresses in the slab exceed the concrete’s strength—either from a single overload or, far more frequently, from repeated traffic loads that generate fatigue. The likelihood and recurrence of these cracks are amplified by design and construction shortcomings such as insufficient joint spacing, inadequate dowel‑bar load transfer, undersized slab thickness for the expected traffic, and poor curing practices. </p>
+<p>Environmental influences—including temperature swings, moisture loss, thermal curling and warping—add additional tensile stresses, especially when movements are restrained by friction or mechanical connections at joints. In complex urban settings, intersecting roadways and utilities further complicate joint layout, increasing the chance of uncontrolled random cracking that can evolve into full‑depth transverse or diagonal fractures.</p>
+<p>Consequently, the recurring distresses include faulting (working) cracks that produce roughness and dynamic loading, moisture‑induced deterioration through open cracks, loss of load‑transfer capacity when joints become locked or non‑functional, and shattered slab conditions caused by intersecting full‑depth cracks. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[1] — Ch. 3 (p. 54), Ch. 6 (p. 181), Ch. 10 (p. 334); [2] — Ch. 4 (pp. 102–154), Ch. 5 (p. 31)</small></p>
+<h2 id="monitoring-and-follow-up">Monitoring and follow-up</h2>
+<p>The guides agree that maintenance, repair, or rehabilitation is warranted when any of the following conditions or performance trends are observed in concrete pavement joints. Early‑age cracking that occurs within the first 72 hours after paving and is linked to restrained curling, warping, or volume changes – &ldquo;If these volume changes and curling/warping responses are restrained (for example, by the frictional forces between the slab and base), and timely efforts are not made to alleviate those responses through effective joint sawing or formation, random cracking can develop in the young concrete if its tensile strength &hellip; is exceeded&rdquo; – signals that the pavement’s structural and functional performance is compromised. The emergence of such early‑age cracks, especially when they begin to propagate or coalesce, further indicates distress. Later‑stage signs include &ldquo;faulting—visible differential vertical movement of the slab—or become "working" cracks that exhibit measurable displacement,&rdquo; as well as &ldquo;Pronounced deflection of a crack combined with repeated thermal opening and closing, particularly when the crack runs transverse to the pavement centerline near a non‑functioning contraction joint.&rdquo; The appearance of &ldquo;random, uncontrolled full‑depth cracks outside the intended joint locations&rdquo; that allow water or aggressive chemicals to infiltrate – &ldquo;these fissures allow water or aggressive chemicals to infiltrate the slab and degrade durability&rdquo; – also demands corrective action. Long‑term fatigue effects are highlighted by &ldquo;the onset of long‑term transverse fatigue cracking under repeated truck loading indicates a deteriorating load‑transfer condition.&rdquo; In urban settings, the presence of random cracks at intersections – &ldquo;When transverse or diagonal cracks appear in an urban intersection, especially as random cracking that reduces the pavement’s performance&rdquo; – points to inadequate joint layout and the need for intervention. All of these conditions manifest as &ldquo;increased roughness, reduced ride quality, and heightened risk of structural failure,&rdquo; confirming that additional maintenance, repair, or rehabilitation is required to restore performance and extend service life. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The following figure illustrates early-age cracking in concrete pavement joints.</p>
+<p><img alt="Diagram of early-age cracking types in concrete pavement sla" src="assets/transverse-and-diagonal-cracking-in-concrete-pavement-joints/6bc5adb3847961da87691f37cbd3867342716133358844fe5bf8de3022cb0311.jpg" />
+<em>Diagram of early-age cracking types in concrete pavement slabs.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays a schematic of a concrete pavement slab illustrating various distress patterns, including map cracking (crazing), plastic shrinkage cracks, random longitudinal and transverse cracks, corner breaks, and contraction joints. The figure supports this concept by visually categorizing these early-age defects alongside later-stage structural issues like corner breaks and random transverse cracks.</p>
+<p><small>[1] — Ch. 3 (p. 54), Ch. 6 (pp. 172–181), Ch. 10 (p. 334); [2] — Ch. 4 (pp. 103–113)</small></p>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Falling Weight Deflectometer (FWD) Soil Support Assessment</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html" class="active" aria-current="page">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Falling Weight Deflectometer (FWD) Soil Support Assessment</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=pavement-deflection">pavement-deflection</a><a class="tag" href="index.html?q=falling-weight-deflectometer">falling-weight-deflectometer</a><a class="tag" href="index.html?q=soil-support">soil-support</a><a class="tag" href="index.html?q=void-detection">void-detection</a><a class="tag" href="index.html?q=pavement-structural-analysis">pavement-structural-analysis</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>The Falling Weight Deflectometer (FWD) soil‑support assessment is a non‑destructive, impact‑load test used on concrete slab pavements—particularly highway slabs—to evaluate the ability of the underlying subgrade, base or subbase (and any rigid layers) to bear traffic loads and to detect loss‑of‑support conditions such as voids beneath corners, edges or joints. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>] The device releases a calibrated weight onto an 11.8‑in (300 mm) plate at three standard load levels (approximately 9 000, 12 000 and 16 000 lb), producing a deflection basin that is recorded by sensors at prescribed distances; the resulting load‑deflection curves are back‑calculated to quantify subgrade and base stiffness, uniformity, and load‑transfer efficiency. [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>] Characteristic indicators such as peak corner deflections, the proximity of the load‑deflection line to the origin (within ~2 mils), and a corner‑to‑interior support ratio above 0.75 are used to confirm adequate support, while deviations signal stiffness deficiencies or voids that may require remediation. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-investigation-objectives">Purpose and investigation objectives</a></li><li><a href="#scope-and-applicability">Scope and applicability</a></li><li><a href="#existing-information-and-records">Existing information and records</a></li><li><a href="#visual-inspection-and-condition-assessment">Visual inspection and condition assessment</a></li><li><a href="#field-measurements-and-testing">Field measurements and testing</a></li><li><a href="#structural-and-functional-performance">Structural and functional performance</a></li><li><a href="#data-interpretation-and-diagnosis">Data interpretation and diagnosis</a></li><li><a href="#findings-confidence-and-next-actions">Findings, confidence, and next actions</a></li><li><a href="#references">References</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (5)</summary><div class="sources-body"><a href="#ref-1">2019-12_IMCP_manual</a>, <a href="#ref-2">concrete_pvmt_distress_assessments_and_solutions_guide_w_cvr</a>, <a href="#ref-3">concrete_pvmt_preservation_guide_3rd_edition_web</a>, <a href="#ref-4">guide_to_CSS</a>, <a href="#ref-5">preservation_reference_manual</a></div></details>
+
+<h2 id="purpose-and-investigation-objectives">Purpose and investigation objectives</h2>
+<p>The Falling Weight Deflectometer soil‑support assessment evaluates the ability of the underlying subgrade, base or subbase (and any rigid layers) to support a concrete pavement slab. It &ldquo;evaluate the underlying support conditions&rdquo; and &ldquo;detect the presence of voids beneath the slab.&rdquo; The test &ldquo;assess the level of support under the slabs and determines differences in support&rdquo; and, through back‑calculation, determines &ldquo;the stiffness and uniformity of both the subgrade and base support.&rdquo; The assessment also &ldquo;uses measured pavement deflections to evaluate the uniformity of the underlying support—soil and subgrade conditions—along a concrete‑pavement project&rdquo; and specifically &ldquo;evaluates loss of support, or voids, that may exist beneath concrete slab corners and edges where high deflections, excess moisture, or an erodible base/subbase have compromised the foundation.</p>
+<p>The investigation must answer several key questions:
+* Where are the locations of reduced or lost support? (e.g., &ldquo;Identification of Locations with Loss of Support (Voids)&rdquo; and &ldquo;Loss of support can develop beneath slab corners and edges&rdquo;)
+* How much support is missing and does it exceed a void threshold? (e.g., &ldquo;If no void exists, the line will project very near the origin, typically no farther away than about 2 mils, whereas lines projecting more than that distance from the origin suggest the presence of a void.&rdquo;)
+* Are observed deflections caused by foundation erosion or slab deformation such as curling/warping? (e.g., &ldquo;Crovetti (2002) used the ratios of foundation support calculated from center slab, edge, and corner FWD testing to determine if the deflections were from erosion or curling.&rdquo;)
+* Do corner‑to‑interior support ratios indicate non‑uniform support requiring remedial action? (e.g., &ldquo;if the ratio of corner-to-interior foundation support is less than 0.75, nonuniform support is indicated&rdquo;)</p>
+<p>Additional questions derived from other guidance include:
+* Whether the subgrade can sustain traffic loads – &ldquo;The investigation must answer whether the subgrade can sustain traffic loads&rdquo;
+* Where voids or weak zones exist (especially at slab edges and corners) – &ldquo;where voids or weak zones exist (especially at slab edges and corners)&rdquo;
+* If any layer is “weaker” or “thinner” than required – &ldquo;if any layer is "weaker" or "thinner" than required&rdquo;
+* How variable the support is along the alignment – &ldquo;how variable the support is along the alignment&rdquo;
+* Which site factors (moisture, drainage, cut/fill) are contributing to excessive deflection – &ldquo;which site factors (moisture, drainage, cut/fill) are contributing to excessive deflection&rdquo;
+* What remediation (e.g., grouting volume) may be needed to restore full support – &ldquo;what remediation (e.g., grouting volume) may be needed to restore full support.&rdquo;</p>
+<p>The test applies a calibrated load pulse through an 11.8‑in diameter plate (&ldquo;The FWD emits a load pulse to the pavement through a load plate that is 11.8 in. (300 mm) in diameter to create a deflection basin&rdquo;) at three levels (&ldquo;deflection is measured at three different loads: 9,000, 12,000, and 16,000 lb&rdquo;) to generate a deflection basin that &ldquo;quantifies load transfer efficiency, identifies loss of support (voids), and reveals stiffness deficiencies in any structural layer.&rdquo; [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates how deflection is transferred through pavement layers under these applied loads.</p>
+<p><img alt="Schematic comparison of deflection load transfer at a concre" src="assets/falling-weight-deflectometer-fwd-soil-support-assessment/df3d68d85aec594718553fc5d8fdf17c39c53ecee4b64015ae52a2b4c46d3f9f.jpg" />
+<em>Schematic comparison of deflection load transfer at a concrete pavement joint under wheel loading.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure illustrates the concept of deflection load transfer by comparing two scenarios: one with no load transfer and another with perfect load transfer across a joint between an approach slab and a leave slab. In the top scenario, labeled &ldquo;0% load transfer,&rdquo; the wheel load on the approach slab causes deflection only on that side, while the leave slab remains flat; in the bottom scenario, labeled &ldquo;100% load transfer,&rdquo; a dowel bar connects the slabs so both sides deflect equally.</p>
+<p><small>[2] — Ch. 4 (pp. 102–174), Ch. 19 (p. 468); [3] — Ch. 3 (pp. 53–55), Ch. 4 (pp. 82–83); [4] — Ch. 3 (p. 33); [5] — Ch. 3 (pp. 45–53), Ch. 4 (pp. 77–80)</small></p>
+<p>The FWD survey delivers a spatially continuous deflection basin that quantifies subgrade and base stiffness, allowing engineers to locate weak or uneven zones such as settlement, heave, or voids. Deflection testing using the FWD can be performed to evaluate the underlying support conditions, and the resulting data are plotted by station so that peaks can be correlated with observed distress, moisture problems, cut‑fill transitions, or other subgrade anomalies. By comparing load‑deflection curves at three standard loads, planners can identify sections where peak corner deflections exceed acceptable limits; generally speaking, it is desirable that peak corner deflections be less than 25 mils and that the difference in deflections across a loaded joint or crack be limited to 5 mils or less. When the ratio of corner‑to‑interior foundation support falls below 0.75, nonuniform support is indicated, prompting subgrade stabilization, increased layer thickness, or targeted grout injection. FWDs can be used to assess the load transfer characteristics of the cracks, informing decisions on joint treatment, slab reinforcement, or reconstruction. The quantitative insight into loss‑of‑support zones enables planning and design to be based on measured soil support rather than assumptions, directs maintenance crews to problem areas before surface distress propagates, and guides rehabilitation programs to allocate resources toward spot repairs, full‑depth replacement, or other corrective actions that address the identified deficiencies. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates a typical example of such corner deflection profiles.</p>
+<p><img alt="Example profile of corner deflections (Darter, Barenberg, an" src="assets/falling-weight-deflectometer-fwd-soil-support-assessment/b543a6cdfc78fdcf81f0adac5f16406323fb1dac469c88932413bc44b808d320.jpg" />
+<em>Example profile of corner deflections (Darter, Barenberg, and Yrjanson 1985).</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The figure displays the deflection profiles at both the approach and leave corners across multiple joints, illustrating how these values fluctuate along the pavement length. This data supports the assessment of soil support by identifying locations where corner deflections are high or where a significant difference exists between approach and leave corners, which indicates loss-of-support conditions such as voids.</p>
+<p><small>[2] — Ch. 4 (pp. 102–296), Ch. 19 (p. 468); [3] — Ch. 3 (pp. 51–55), Ch. 4 (pp. 82–83); [4] — Ch. 3 (p. 33); [5] — Ch. 3 (pp. 45–53), Ch. 4 (pp. 77–80)</small></p>
+<h2 id="scope-and-applicability">Scope and applicability</h2>
+<p>The guides concur that Falling Weight Deflectometer (FWD) soil‑support assessment is intended for concrete slab pavements—especially highway slabs—where the condition of the underlying base, subbase or subgrade may be compromised. It is employed when loss‑of‑support conditions are suspected, such as voids beneath slab corners, edges or joints that arise from high deflections, excess moisture, settlement, heave, or an erodible base/subbase material. The technique also serves to evaluate the uniformity and structural adequacy of the subbase or subgrade, including situations with variable slab or base thicknesses, subgrade variability, underlying rigid strata, or a poorly bonded concrete‑base interface. Material‑related distresses that increase deflection magnitudes—e.g., transverse, diagonal or early‑stage full‑depth corner cracking, alkali‑silica reactivity (ASR), D‑cracking—as well as vertical pavement displacement and higher deflections near joints, edges or cracks prompt the use of FWD to assess load transfer efficiency and detect voids. Site conditions favoring its application include large, heavy traffic loads that demand an extremely supportive subgrade, ambient temperatures below 70 °F (to ensure reliable temperature‑dependent concrete response), and the need for rapid testing on extensive projects using standard load levels (6 k, 9 k, 14 k lbf or 27, 40, 63 kN). [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The figure below illustrates pavement deflection as a function of dynamic load.</p>
+<p><img alt="Pavement deflection as a function of dynamic load." src="assets/falling-weight-deflectometer-fwd-soil-support-assessment/ad3f0a2f4d4f9b3a44218d1859512d2d7cfdce597311ee1c2447be490cdfd25b.jpg" />
+<em>Pavement deflection as a function of dynamic load.</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The figure plots pavement deflection against applied load, illustrating the nonlinear behavior where higher loads produce disproportionately larger deformations compared to lower loads. This nonlinearity is a critical factor in Falling Weight Deflectometer (FWD) soil-support assessment, as it necessitates using test loads that are representative of actual design traffic loads to accurately evaluate the stiffness and uniformity of the underlying subgrade.</p>
+<p><small>[2] — Ch. 4 (pp. 102–296), Ch. 19 (p. 468); [3] — Ch. 3 (pp. 54–55), Ch. 4 (pp. 82–83); [4] — Ch. 3 (p. 33); [5] — Ch. 3 (pp. 45–53), Ch. 4 (pp. 77–80)</small></p>
+<p>The guides agree that FWD provides rapid, high‑load deflection data for assessing subgrade stiffness, yet its reliability diminishes under several conditions. The method works best while the concrete slab is still largely intact; once full‑depth corner cracking has occurred, “After slab corners crack completely, FWD results become less meaningful and more difficult to interpret,” so alternative or supplementary investigations are required. Temperature also exerts a strong influence: “When utilizing the FWD, it is important to note the temperature and surrounding conditions” and testing should be performed when “deflection testing be conducted when the ambient temperature is below 70°F.” Small deflections introduce measurement error, making accurate load‑transfer efficiency (“LTE”) difficult to establish: “It is important to recognize that accurately establishing the LTE of pavements with very low deflection values can be challenging as error in the measurement may affect the calculated results.”</p>
+<p>Spatial coverage is another limitation. Because traditional FWD records only discrete points, gaps can leave engineers uncertain about condition continuity; “Continuous deflection profiles provide the following advantages over discrete deflection measurements:” and when “full‑length investigations that require detection of spatial variability due to joints, cracks, patches, or subgrade changes… ambiguous FWD plots” are needed, a complementary technique should be employed. Joint, edge, or crack proximity further skews results: “Testing near joints, edges, or cracks can produce higher deflections than testing at interior portions of the slab,” and natural variability often reaches 20‑30 % (“The coefficient of variation for deflection measurements along a project is typically 20 to 30 percent, and sometimes higher”). The rapid dynamic load of an FWD can mask subtle deficiencies: “a slow, static loading condition produces a different response than a rapid, dynamic loading condition.”</p>
+<p>When any of these constraints are present—full‑depth cracking, adverse temperature, very low deflections, high variability, or the need for continuous profiling—the guides recommend complementary or alternative investigations. Continuous‑deflection devices such as traffic speed deflectometers or total pavement acceptance devices “provide uninterrupted profiles and reduce crew exposure to traffic.” For thin pavements or limited access, a lightweight option is advised: “While FWD tests can be run quickly for larger projects, a smaller and more portable alternative that works well for thin pavements is the light weight deflectometer (LWD).” To confirm void presence or locate cavities, nondestructive methods are suggested: “Alternatively, ground penetrating radar (GPR) may also determine voids beneath the slabs,” and other NDT options include infrared thermography (“Other NDT methods have been used for void detection, including ground penetrating radar (GPR) and infrared thermography”). In cases where a static reference is desired, “a slow, static loading condition produces a different response than a rapid, dynamic loading condition” and devices such as the Benkelman Beam can be employed. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates how deflection measurements are obtained using the Falling Weight Deflectometer device.</p>
+<p><img alt="Schematic of a Falling Weight Deflectometer (FWD) device and" src="assets/falling-weight-deflectometer-fwd-soil-support-assessment/cb93dc97bd637ca98bcf4966dadca5acd9732209c1372cd5300551f535bf9fd9.jpg" />
+<em>Schematic of a Falling Weight Deflectometer (FWD) device and the resulting deflection basin on pavement.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays a schematic of a Falling Weight Deflectometer (FWD), showing a weight dropping from a specific height onto a load plate via a buffering system to simulate traffic loads. A series of sensors is positioned at predetermined distances from the load plate to measure the resulting deflection basin in the pavement structure. This setup allows for the assessment of existing concrete pavements by recording how the underlying layers respond to impact loads.</p>
+<p><small>[2] — Ch. 4 (p. 174), Ch. 19 (p. 468); [3] — Ch. 3 (pp. 51–55), Ch. 4 (pp. 82–83); [4] — Ch. 3 (p. 33); [5] — Ch. 3 (pp. 46–48), Ch. 4 (pp. 77–80)</small></p>
+<h2 id="existing-information-and-records">Existing information and records</h2>
+<p>When conducting a Falling Weight Deflectometer soil‑support assessment, the analyst should gather all existing records that can be linked to the measured deflections.  These include distress inventories or maps, drainage surveys and documentation, material specifications or inventories, and subgrade investigation data.  By plotting maximum deflection values by station and overlaying them with these datasets, engineers can pinpoint subsections where moisture problems, cut‑and‑fill activities, or other adverse conditions are compromising pavement support. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The figure below illustrates how deflection values vary along a project section to help identify these compromised areas.</p>
+<p><img alt="Plot of normalized maximum pavement deflection versus distan" src="assets/falling-weight-deflectometer-fwd-soil-support-assessment/b5de60a7200e90ab116645195abece233ce30b1ce97a7bb9ca4a8eedee9d5a34.jpg" />
+<em>Plot of normalized maximum pavement deflection versus distance along the roadway.</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The figure displays a line graph plotting normalized maximum deflection against the distance along the roadway, illustrating how pavement stiffness varies across different sections of a project. This visualization supports the assessment of uniformity in support conditions by allowing engineers to identify subsections where distress or adverse subgrade conditions may be compromising the pavement structure.</p>
+<p><small>[3] — Ch. 3 (p. 53); [5] — Ch. 3 (p. 51)</small></p>
+<p>The guides identify several record gaps that must be resolved by field investigation before FWD soil‑support results can be trusted. First, existing documentation often consists of isolated point measurements; the phrase “no danger of missing critical sections” is questioned because “the spatial variability in deflections due to pavement features such as joints, cracks, patches” means a single test may not be representative of an entire slab. Deflection values are frequently untethered from precise project stations, preventing confirmation that observed distresses (moisture problems, cut/fill) correspond to underlying support conditions.</p>
+<p>Second, key material and structural data are missing or unreliable. Random variations in slab‑and‑base thicknesses, subgrade stiffness, and concrete‑base bond status create a “coefficient of variation of 20–30 % in measured basins,” making it difficult to separate true support loss from normal variability. Material distress (alkali‑silica reactivity, D‑cracking) can also elevate deflections.</p>
+<p>Third, measurement accuracy is limited. Low‑deflection readings are vulnerable because “different LTE values may be obtained depending on which side of the joint is loaded,” and temperature effects can mask true conditions; therefore testing should occur when “the ambient temperature is below 70°F in order to minimize the impact of slab curling.” The standard void‑detection plot “may have difficulties in determining if the void is due to erosion or to curling and/or warping of the slab,” and reliance on a single corner‑deflection threshold (e.g., “a reasonable value might be 0.5 mm”) is problematic because load transfer variations from joint‑to‑joint cause considerable variation.</p>
+<p>Fourth, detection of voids remains uncertain. While GPR can locate air‑filled voids as small as 0.25 in., “the detection of water‑filled voids is more difficult,” and high corner deflections may arise from either erosion‑induced loss of support or slab curling; the guides recommend using a corner‑to‑interior support ratio (“if the ratio of corner-to-interior foundation support is less than 0.75, nonuniform support is indicated”) to discriminate these conditions.</p>
+<p>Consequently, field investigation must provide continuous profiling, station‑specific testing under controlled temperatures, verification of thickness, subgrade properties, bond condition, and supplemental analyses (LTE verification, foundation‑support ratios) to fill spatial, measurement‑accuracy, and interpretation gaps. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[3] — Ch. 3 (pp. 51–55), Ch. 4 (pp. 82–83); [5] — Ch. 3 (pp. 46–47), Ch. 4 (pp. 77–80)</small></p>
+<h2 id="visual-inspection-and-condition-assessment">Visual inspection and condition assessment</h2>
+<p>The guides advise that any observable surface distress that can affect FWD results should be recorded before testing. They state that “surface cracks, joints, edge breaks and other discontinuities should be noted because testing over them tends to generate artificially high readings.” Visible signs of loss of support include “faulting at transverse joints, surface cracking, pumping of water or material, corner breaks and shoulder drop‑off” as well as “High corner deflections—exceeding the recommended 25 mil limit—or differential deflection across a joint greater than about 5 mil often precede pumping, faulting, or corner breaks.” A corner deflection exceeding typical limits – “a reasonable value might be 0.03 in” – signals possible voids beneath slab corners or edges. The presence of settlements, heaves, and “differences in support as is typical for both settlements and heaves” should also be noted. Material‑related distress such as “alkali‑silica reactivity (ASR) and D‑cracking” and any “obvious pavement factors such as presence of cracks, visible material deterioration” are additional cues that can elevate deflection readings. All of these distresses—cracking, faulting, pumping, corner breaks, shoulder drop‑off, voids at edges or corners, settlements/heaves, and material deterioration—trigger more detailed deflection profiling to confirm support loss and guide remedial actions. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates the recommended deflection testing locations for jointed concrete pavements to ensure accurate assessment of these distresses.</p>
+<p><img alt="Recommended deflection testing locations for jointed concret" src="assets/falling-weight-deflectometer-fwd-soil-support-assessment/9ed99745541a6ac899aad566f3365176ca7f52dd21801b34b82134bb20a1ffba.jpg" />
+<em>Recommended deflection testing locations for jointed concrete pavements.</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The figure illustrates a schematic of a jointed concrete pavement showing the recommended spacing and specific placement points for Falling Weight Deflectometer (FWD) testing. It indicates that deflection measurements should be taken at 30- to 150-m intervals, with specific sensor locations designated for basin testing in the slab center and load-transfer testing near transverse joints. The diagram highlights that corner tests should be conducted at both the approach and leave sides of a joint to detect loss-of-support conditions such as voids beneath corners or edges.</p>
+<p><small>[2] — Ch. 4 (pp. 102–296); [3] — Ch. 3 (pp. 54–55), Ch. 4 (pp. 82–83); [5] — Ch. 3 (pp. 46–53), Ch. 4 (pp. 77–80)</small></p>
+<p>The FWD soil‑support assessment classifies distress primarily by evaluating load transfer efficiency (LTE) and corner deflection behavior. LTE is calculated with the standard formula LTE = (8_U / δ) × 100 % and placed into the categories Excellent, Good, Fair, Poor, and Very Poor according to the percentage ranges given in the guide (e.g., Excellent: 90 % to 100 %). Peak corner deflections greater than 25 mils or joint‑to‑joint deflection differences exceeding 5 mils signal a severe support problem. In addition, a corner‑to‑interior support ratio below 0.75 indicates non‑uniform support and the presence of a void that warrants slab stabilization.</p>
+<p>Measurement begins with a series of FWD drops at three standardized load levels (6 k, 9 k, 14 k lbf) on both the approach and leave sides of each transverse joint or slab corner. The unloaded‑side and loaded‑side deflections are recorded, plotted as load‑versus‑deflection curves for each location, and used to compute LTE. The load‑deflection line is extrapolated toward the origin; if the extrapolated line lies more than about 2 mils from the origin a void is inferred.</p>
+<p>Documentation must capture: (1) the type of distress (e.g., loss of support or void), (2) severity, expressed either by the LTE category and/or by exceeding deflection thresholds (≥25 mils, ≥5 mil differential, ratio &lt;0.75), (3) extent, described by the magnitude of deviation across the joint or the profile of corner‑to‑interior deflections, and (4) precise location, identified as approach side, leave side, or specific slab corner. All recorded values, plotted profiles, and threshold comparisons are entered into the field report to provide a complete, auditable record of each observed distress. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p><small>[3] — Ch. 3 (pp. 54–55), Ch. 4 (pp. 82–83)</small></p>
+<h2 id="field-measurements-and-testing">Field measurements and testing</h2>
+<p>The merged guidance indicates that a soil‑support assessment starts with a visual walk‑over to locate obvious signs of loss of support (faulted joints, pumping, corner breakage). Quantitative testing then proceeds with an impulse load test using a Falling Weight Deflectometer (FWD). The FWD releases a known weight from a given height onto a load plate resting on the pavement structure, producing a load on the pavement that is similar in magnitude and duration to that of a moving wheel load, and a series of sensors is located at predetermined distances from the load plate, so that the deflection basin can be measured. Variations in the force applied to the pavement are obtained by varying the weights and the drop heights; force levels from 3,000 to more than 50,000 lbf can be applied, depending on the equipment. Deflection testing using the FWD can be performed to evaluate the underlying support conditions and the shape and magnitude of the basin reveal the combined stiffness of surface, base, subbase and subgrade, and identify localized spikes that indicate voids beneath slab edges or corners. Based on this force, various back calculation methods are used to determine the stiffness and uniformity of both the subgrade and base support, providing an estimate of the level of support under the slabs and differences in support as is typical for both settlements and heaves. The FWD can be used to assess the load transfer characteristics of the transverse or diagonal cracks; load transfer is the ability of a joint or crack to transfer the traffic load from one side of the joint or crack to the next, and an additional use of the FWD includes determining the load transfer efficiency or degree of interlock between slabs that are adjacent to one another. Corner deflections are measured and plotted; if the ratio of corner‑to‑interior foundation support is less than 0.75, nonuniform support is indicated. Void detection is performed by testing at three incremental loads (9,000, 12,000, and 16,000 pounds) – when void detection is performed with the FWD, the deflection is measured at three different loads (9,000, 12,000, and 16,000 pounds) – and plotting load‑versus‑deflection curves; if no void exists, the line will project very near the origin, typically no farther away than about 2 mils, whereas a curve that projects &gt;10 mils away from the origin suggests loss of support. To complement the dynamic response, static‑load measurements are taken with a Benkelman Beam, which applies a slow, quasi‑static load and records larger deflections that reflect overall subgrade support under slowly applied loads; comparing the static and dynamic deflection values helps separate rate effects from true soil stiffness deficiencies. Continuous‑deflection tools extend profiling capability: currently, two devices are available for the continuous collection of deflection data – the traffic speed deflectometer (TSD) and the total pavement acceptance device (TPAD) – and when needed, a Rolling Dynamic Deflectometer can extend the profiling along the pavement length. Additional nondestructive techniques may be employed for independent verification: ground‑penetrating radar (GPR) may also be used to determine the presence of voids beneath the slabs, and infrared thermography highlights thermal anomalies associated with voids. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates how void detection is performed by plotting load-versus-deflection curves from FWD testing to identify loss of support beneath pavement slabs.</p>
+<p><img alt="the figure.11: Void detection plot using FWD data" src="assets/falling-weight-deflectometer-fwd-soil-support-assessment/555db0e9b10fc2d432ee5e374e59755ecd9f1f2a1489a7c023443b6bc65cf170.jpg" />
+<em>the figure.11: Void detection plot using FWD data</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>It plots FWD load in kips against corner deflection in mils for two distinct locations labeled &ldquo;Approach&rdquo; and &ldquo;Leave,&rdquo; representing the sides of a transverse joint.</p>
+<p><small>[2] — Ch. 4 (pp. 102–296), Ch. 19 (p. 468); [3] — Ch. 3 (pp. 51–55), Ch. 4 (pp. 82–83); [4] — Ch. 3 (p. 33); [5] — Ch. 3 (pp. 45–53), Ch. 4 (pp. 77–80)</small></p>
+<p>FWD equipment is used to assess soil support by applying a series of impact loads—commonly 6, 9, and 12 kips—on both the approach and leave sides of a transverse joint and recording the resulting deflections; the load‑deflection data are plotted and extrapolated toward the origin, with lines that deviate more than about 2 mils indicating a void. Testing should be carried out under cool conditions because temperatures markedly influence the measurements, and guidelines advise conducting the tests at ambient temperatures below 70 °F. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The deflection LTE concept illustrated in the following figure demonstrates how these load-deflection measurements are interpreted to identify voids.</p>
+<p><img alt="Schematic comparison of deflection behavior at a pavement jo" src="assets/falling-weight-deflectometer-fwd-soil-support-assessment/e36f3c62479fe851a1500f08939d42646be1e7720ea5d0881325baffe251829e.jpg" />
+<em>Schematic comparison of deflection behavior at a pavement joint under zero versus full load transfer conditions.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure illustrates the concept of deflection load transfer by comparing two scenarios: one where there is no load transfer and another where there is complete load transfer across a transverse joint between an approach slab and a leave slab. In the zero percent load transfer scenario, the wheel load causes significant deflection on the loaded side while the adjacent slab remains flat; conversely, in the 100% load transfer scenario, the presence of a dowel bar allows the load to be shared, resulting in uniform deflection across both slabs.</p>
+<p><small>[3] — Ch. 3 (pp. 54–55)</small></p>
+<h2 id="structural-and-functional-performance">Structural and functional performance</h2>
+<p>The guides agree that a Falling Weight Deflectometer assessment is based on measuring pavement deformation under controlled impact loads. &ldquo;The Falling Weight Deflectometer assessment relies on measuring the pavement’s surface deflection under a known impact load to gauge the underlying soil support&rdquo; and &ldquo;the FWD creates a deflection basin by applying a series of controlled load pulses (typically 9,000, 12,000 and 16,000 lb) to back‑calculate subgrade and base stiffness and uniformity, which represent bearing strength.&rdquo; The test also records the deflection basin produced by an 11.8‑in (300 mm) plate at three specified loads; &ldquo;The FWD assessment relies on measuring pavement deflection under a series of controlled load pulses; the test records the deflection basin produced by an 11.8‑in (300 mm) plate at three specified loads (approximately 9,000 lb, 12,000 lb and 16,000 lb), and these deflection‑versus‑load data are then used to infer subgrade support and detect possible voids.&rdquo; Multiple calibrated impact loads are required: &ldquo;Multiple calibrated impact loads (commonly 6 kips, 9 kips and 12 kips) are applied so that a load‑versus‑deflection curve can be generated; the proximity of this curve to the origin indicates adequate subgrade support, while deviation signals voids or loss of bearing.&rdquo; </p>
+<p>To evaluate structural capacity and functional condition, the following measurements must be obtained:</p>
+<ul>
+<li>Peak corner deflection and differential joint deflection: &ldquo;Engineers must record the loaded‑side and unloaded‑side deflections at joints or cracks to compute load‑transfer efficiency, and they must capture peak corner deflections as well as the differential deflection across each joint.&rdquo; Acceptable limits are defined by the guidance: &ldquo;When these measurements meet established limits (e.g., low differential joint deflection, acceptable peak corner deflection, near‑origin load‑deflection line, and a corner‑to‑interior ratio above 0.75), the pavement is judged to have sufficient structural integrity and functional performance.&rdquo; </li>
+<li>Load‑transfer efficiency or interlock: &ldquo;it evaluates the load‑transfer characteristics across transverse or diagonal cracks to determine how effectively loads are shared&rdquo; and &ldquo;Comparative deflections on adjacent slabs across a joint are recorded to quantify load‑transfer efficiency or interlock.&rdquo; The corner‑to‑interior support ratio further quantifies uniformity: &ldquo;Ratios derived from corner, edge and interior FWD results—particularly the corner‑to‑interior support ratio—are used to quantify non‑uniform support and infer soil bearing capacity.&rdquo; </li>
+<li>Void detection: &ldquo;Void detection is performed by examining the zero‑load intercept of the deflection‑versus‑load plot (values exceeding about 3 mils indicate potential voids).&rdquo; An alternative method uses corner deflections at multiple loads: &ldquo;Another void detection method is based on measuring the magnitude of the corner deflection at three different load levels (Crovetti and Darter 1985). Typically, load levels of 27, 40, and 63 kN (6, 9, and 14 kips) have been used to develop load versus deflection plots for each test location.&rdquo; Agencies also apply a maximum corner‑deflection threshold: &ldquo;Many agencies use a maximum corner deflection criterion to determine if a void is present.&rdquo; </li>
+<li>Supporting observations: temperature and surface conditions are noted because they can affect measured values.</li>
+</ul>
+<p>Collectively, these measurements—deflection basin at varied loads, peak and differential corner/joint deflections, load‑transfer efficiency, corner‑to‑interior support ratios, and zero‑load intercept or multi‑load corner‑deflection analysis—provide the quantitative basis for assessing both structural capacity (bearing strength, uniformity) and functional condition (ability to transfer traffic loads without excessive deformation). [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates the underlying concept of deflection load transfer that supports these assessments.</p>
+<p><img alt="Illustration of deflection load transfer concept." src="assets/falling-weight-deflectometer-fwd-soil-support-assessment/4c72314b01babd3e38dd685b54666599303c067592fc66c90b21ec67dc25f548.jpg" />
+<em>Illustration of deflection load transfer concept.</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The figure illustrates the concept of Load Transfer Efficiency (LTE) by comparing two scenarios: one with &lsquo;0% Load Transfer&rsquo; and another with &lsquo;100% Load Transfer&rsquo;. In the 0% scenario, a wheel load on the approach slab causes deflection only in that slab, leaving the leave slab flat. In the 100% scenario, the same wheel load induces identical deflection in both the approach and leave slabs due to a connecting mechanism at the joint.</p>
+<p><small>[2] — Ch. 4 (pp. 102–174), Ch. 19 (p. 468); [3] — Ch. 3 (pp. 54–55), Ch. 4 (pp. 82–83); [4] — Ch. 3 (p. 33); [5] — Ch. 3 (pp. 45–46), Ch. 4 (pp. 77–80)</small></p>
+<p>The guides indicate that FWD testing is ‘used on large, heavy highway projects where traffic loading conditions warrant an extremely supportive subgrade condition’, and that ‘The falling weight deflectometer (FWD) &hellip; can be used to assess the level of soil support and differences in support at different locations’. Measurements are taken across a range of standard loads – ‘load levels of 6,000, 9,000, and 14,000 lbf have typically been used for each test location’ and also ‘deflection is measured at three different loads: 9,000, 12,000, and 16,000 lb’ – to generate load‑deflection curves that are compared with design‑based thresholds. The guides state that ‘Generally speaking, it is desirable that peak corner deflections be less than 25 mils’ and that ‘a reasonable value might be 0.03 in.’; the ‘The magnitude of the corner deflections should also be considered in addition to the LTE.’ When plotted data remain within these limits and the ‘corner‑to‑interior foundation support ratio’ stays at or above 0.75, the condition aligns with design assumptions and expected traffic loading, supporting a satisfactory remaining service life. Conversely, if ‘if the ratio of corner-to-interior foundation support is less than 0.75, nonuniform support is indicated.’ or peak deflections exceed the quoted limits, the measured support falls short of the anticipated subgrade performance, implying reduced service‑life potential. The presence of subsurface voids is inferred when the load‑deflection line deviates beyond ‘If no void exists, the line will project very near the origin, typically no farther away than about 2 mils’, and after slab stabilization the expectation is that ‘After slab stabilization, both plots intercept the x‑axis near zero.’ [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The following figure illustrates how center slab deflection varies along a project when normalized to a standard 9,000 lbf loading.</p>
+<p><img alt="Center slab deflection variation along a project normalized" src="assets/falling-weight-deflectometer-fwd-soil-support-assessment/b2bc2d59ea7ec17f84f0fb15c2b1ce115449f6e6c48e7505c8e0c0deada6d6d8.jpg" />
+<em>Center slab deflection variation along a project normalized to a 9,000 lbf loading.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays the normalized maximum deflection in mils plotted against distance along the roadway in feet for a concrete pavement section. Deflection information is very helpful in identifying subsections within the project where distress, poor moisture conditions, cut/fill, and other conditions may be adversely affecting the pavement. The data illustrates how deflections vary along a roadway to assess structural condition and subgrade support.</p>
+<p><small>[3] — Ch. 3 (pp. 54–55), Ch. 4 (pp. 82–83); [4] — Ch. 3 (p. 33)</small></p>
+<h2 id="data-interpretation-and-diagnosis">Data interpretation and diagnosis</h2>
+<p>The guides indicate that high deflections recorded by an FWD at slab corners and edges are most often a symptom of loss of support caused by excess moisture and an erodible or weak base/sub‑base, reflecting inadequate drainage and insufficient soil strength. As one source states, &ldquo;Loss of support can develop beneath slab corners and edges as the result of high deflections, excess moisture, and an erodible base or subbase.&rdquo; Voids that form beneath the pavement due to deterioration of the base or sub‑base are confirmed by statements such as &ldquo;locating the areas of voids beneath the slab caused by the base or subbase deterioration&rdquo; and &ldquo;Voids beneath slab edges and corners cause increased deflections.&rdquo; Material‑related distress, for example &ldquo;Material-related distress, such as alkali-silica reactivity (ASR) and D-cracking, can increase the magnitude of slab deflections,&rdquo; also contributes to higher deflection values. A lack of effective bonding at the concrete‑to‑base interface – a construction defect – is highlighted by &ldquo;If the interface is effectively bonded (no slip at the interface), the pavement deflection will be significantly less than if the interface is unbonded.&rdquo; Poor moisture conditions and construction activities such as cut/fill further exacerbate support loss, as noted in &ldquo;This information is very helpful in identifying subsections within the project and also indicating locations where distress, poor moisture conditions, cut/fill, and other conditions may be adversely affecting the pavement.&rdquo; Overload, aging, or other factors are not identified as dominant causes in these observations. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates the approach and leave corner deflection profiles associated with these support conditions.</p>
+<p><img alt="Approach and leave corner deflection profiles along a paveme" src="assets/falling-weight-deflectometer-fwd-soil-support-assessment/b6ddddf8c6ca15b3ed976a5d44f313f17ece5097063ad0399b43a08d6fbe6a9f.jpg" />
+<em>Approach and leave corner deflection profiles along a pavement project.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure plots the magnitude of slab deflections in inches against distance along a project, comparing &lsquo;Leave corner&rsquo; and &lsquo;Approach corner&rsquo; measurements. Measure and plot the profile of both the approach and leave corner deflections to identify areas where stabilization is warranted based on high values. As voids first form under the leave corner, it is normal to find that the approach corner deflection is less than the leave corner deflection.</p>
+<p><small>[3] — Ch. 3 (pp. 54–55), Ch. 4 (pp. 82–83); [5] — Ch. 3 (pp. 46–53)</small></p>
+<h2 id="findings-confidence-and-next-actions">Findings, confidence, and next actions</h2>
+<p>The investigation confirms that Falling Weight Deflectometer (FWD) testing can be employed to evaluate the support provided by subgrade and base layers, to locate voids, and to assess load‑transfer across cracks. The guides agree that &ldquo;Deflection testing using the FWD can be performed to evaluate the underlying support conditions to determine if that may have contributed to the development of the cracking.&rdquo; In addition, &ldquo;the FWD can be used to assess the load transfer characteristics of the transverse or diagonal cracks&rdquo; and &ldquo;to detect the presence of voids beneath the slab.&rdquo; By plotting measured responses, practitioners can visualize spatial variations: &ldquo;The maximum pavement deflection measured at each location can be plotted,&rdquo; and &ldquo;Deflection information is very helpful in identifying subsections within the project where distress, poor moisture conditions, cut/fill, and other conditions may be adversely affecting the pavement.&rdquo; Void identification follows simple extrapolation rules – &ldquo;If no void exists, the line will project very near the origin, typically no farther away than about 2 mils,&rdquo; while a threshold of &ldquo;If the deflection at 0 is larger than 3 mils, then the likelihood that voids are present at that location is high&rdquo; is used. Uniformity criteria such as &ldquo;if the ratio of corner-to-interior foundation support is less than 0.75, nonuniform support is indicated&rdquo; and limits on peak values – &ldquo;generally speaking, it is desirable that peak corner deflections be less than 25 mils and that the difference in deflections across a loaded joint or crack be limited to 5 mils or less&rdquo; – are also supported. The ability to measure load transfer efficiency and identify voids beneath the slab is explicitly noted: &ldquo;The ability to measure load transfer efficiency and identify voids beneath the slab.&rdquo; Moreover, higher measured deflections correlate with reduced service life: &ldquo;greater deflections typically have shorter service lives.</p>
+<p>Nevertheless, several uncertainties constrain interpretation. Once full‑depth corner cracking has progressed, &ldquo;After slab corners crack completely, FWD results become less meaningful and more difficult to interpret,&rdquo; and temperature effects further complicate the signal – testing should be performed when &ldquo;the ambient temperature is below 70°F.&rdquo; Measurement repeatability can be limited; &ldquo;The coefficient of variation for deflection measurements along a project is typically 20 to 30 percent, and sometimes higher,&rdquo; and &ldquo;Testing near joints, edges, or cracks can produce higher deflections than testing at interior portions of the slab.&rdquo; Low‑deflection zones are especially problematic: &ldquo;It is important to recognize that accurately establishing the LTE of pavements with very low deflection values can be challenging as error in the measurement may affect the calculated results.&rdquo; The dynamic nature of the FWD pulse introduces additional uncertainty, because &ldquo;a slow, static loading condition produces a different response than a rapid, dynamic loading condition,&rdquo; and back‑calculation methods rely on limited discrete points, leaving spatial variability potentially uncaptured. Finally, the method cannot always discriminate between loss of support caused by erosion‑related voids versus slab curling or warping induced by temperature gradients. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The figure below illustrates how these thermal effects manifest as variations in the backcalculated subgrade reaction modulus.</p>
+<p><img alt="Variation in backcalculated k-value due to variation in temp" src="assets/falling-weight-deflectometer-fwd-soil-support-assessment/8a24d41d4b7f6891b57a3adcdf14e18e8845789e0ab629ef3015f117e2b1c66d.jpg" />
+<em>Variation in backcalculated k-value due to variation in temperature gradient (Khazanovich and Gotlif 2003).</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The figure plots the backcalculated modulus of subgrade reaction (k-value) against pavement station locations for four distinct times of day, ranging from early morning to late afternoon. Data points collected during midday and afternoon hours show significantly higher k-values compared to those taken in the early morning. Concrete pavement deflections are affected by temperature, as differences between top and bottom slab temperatures cause curling that can result in unsupported slabs and greater deflections.</p>
+<p><small>[2] — Ch. 4 (pp. 102–296), Ch. 19 (p. 468); [3] — Ch. 3 (pp. 53–55), Ch. 4 (pp. 82–83); [4] — Ch. 3 (p. 33); [5] — Ch. 3 (pp. 45–53), Ch. 4 (pp. 77–80)</small></p>
+<p>Because the FWD can reveal insufficient support or voids—evidenced by deflection at zero load exceeding three mils—the next step is to confirm the condition with a complementary investigation such as ground‑penetrating radar and, if needed, repeat the FWD under different temperature conditions to see whether the measured basin changes. The joint performance should also be checked by comparing deflections on loaded versus adjacent unloaded slabs to assess load transfer efficiency, and any identified voids can then be targeted for remediation. When FWD results show excessive corner deflection—typically above about three‑hundredths of an inch—or a corner‑to‑interior support ratio under 0.75, the next steps are to verify the loss of support with complementary methods such as ground‑penetrating radar and visual inspection for joint faulting or pumping, and then apply slab stabilization (undersealing) before voids grow large; this work should be done when ambient temperatures are below 70 °F to avoid curling bias. Load‑deflection plots generated at three standard loads (6,000, 9,000 and 14,000 lbf) help confirm full support if the extrapolated line passes near the origin. If verification reveals extensive or water‑filled voids, more aggressive preservation—such as full‑depth repairs—should be planned. If FWD results reveal inadequate subgrade support or suggest voids, the next step is to verify and locate those voids with a complementary ground‑penetrating radar survey, and to feed the measured deflection basin into back‑calculation procedures that quantify layer stiffnesses for design verification. Repeating FWD at the prescribed load levels (9 000, 12 000 and 16 000 lb) can monitor changes over time, while for thin pavements a lightweight deflectometer may be employed as an additional check. After an FWD survey indicates loss of support beneath a concrete slab, the investigation should be extended with complementary nondestructive methods such as ground‑penetrating radar or infrared thermography to pinpoint void locations, and with load‑level deflection testing at three standard loads to confirm the severity of support loss. If corner deflections approach the threshold identified in practice—about half a millimeter—the results trigger slab stabilization, where the FWD data are used to estimate the grout volume needed to fill the voids; an epoxy injection followed by coring can be employed to verify void presence before grouting. Ongoing monitoring of corner deflections during and after remediation confirms that adequate support has been restored. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates an example of how FWD data is used to detect voids.</p>
+<p><img alt="Example void detection plot using FWD data." src="assets/falling-weight-deflectometer-fwd-soil-support-assessment/172f662c9c5928bf5f5f1c5b993f8ddcd3887db684674741c83f4e3433845960.jpg" />
+<em>Example void detection plot using FWD data.</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The figure displays a load-deflection plot generated from Falling Weight Deflectometer (FWD) testing, featuring two distinct linear trends labeled &ldquo;APPROACH&rdquo; and &ldquo;LEAVE.&rdquo; The green line representing the approach side projects back toward the origin, indicating full support beneath the slab corner. In contrast, the red line representing the leave side extrapolates significantly away from the origin, which is a characteristic indicator of loss-of-support conditions such as voids.</p>
+<p><small>[2] — Ch. 19 (p. 468); [3] — Ch. 4 (pp. 82–83); [4] — Ch. 3 (p. 33); [5] — Ch. 4 (pp. 77–80)</small></p>
+<h2 id="references">References</h2>
+<ol start="2">
+<li><a id="ref-2"></a>Guide for Concrete Pavement Distress Assessments and Solutions:Identification, Causes, Prevention, and Repair · <code>concrete_pvmt_distress_assessments_and_solutions_guide_w_cvr</code></li>
+<li><a id="ref-3"></a>Concrete Pavement Preservation Guide (Third Edition) · <code>concrete_pvmt_preservation_guide_3rd_edition_web</code></li>
+<li><a id="ref-4"></a>Guide to Cement-Stabilized Subgrade Soils · <code>guide_to_CSS</code></li>
+<li><a id="ref-5"></a>Concrete Pavement Preservation Workshop · <code>preservation_reference_manual</code></li>
+</ol>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li><li id="ref-3"></li><li id="ref-4"></li><li id="ref-5"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

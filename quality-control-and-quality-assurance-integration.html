@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quality Control and Quality Assurance Integration</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html" class="active" aria-current="page">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Quality Control and Quality Assurance Integration</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=quality-control">quality-control</a><a class="tag" href="index.html?q=quality-assurance">quality-assurance</a><a class="tag" href="index.html?q=process-control">process-control</a><a class="tag" href="index.html?q=contractor-responsibilities">contractor-responsibilities</a><a class="tag" href="index.html?q=project-specifications">project-specifications</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>Quality Control–Quality Assurance integration is a comprehensive system that evaluates and controls every material, process, workmanship, and performance characteristic of concrete paving—from raw‑material inspection through mixing, placement, and the finished pavement—by continuously monitoring critical mix parameters such as water‑to‑cementitious ratio, air‑void content, and cracking risk [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]. It relies on systematic sampling, testing, calibrated equipment, qualified personnel, and predefined action and suspension limits so that when values approach out‑of‑control conditions the process is adjusted or halted, keeping concrete properties within defined tolerances [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]. The integrated approach is mandatory for all concrete pavement projects, linking design, material selection, testing, and construction activities into a single documented plan that provides real‑time data for corrective action and supports long‑term performance assurance [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-quality-objectives">Purpose and quality objectives</a></li><li><a href="#scope-and-applicability">Scope and applicability</a></li><li><a href="#test-methods-and-procedures">Test methods and procedures</a></li><li><a href="#sampling-and-testing-frequency">Sampling and testing frequency</a></li><li><a href="#acceptance-criteria-and-tolerances">Acceptance criteria and tolerances</a></li><li><a href="#quality-control-and-process-monitoring">Quality control and process monitoring</a></li><li><a href="#nonconformance-and-corrective-action">Nonconformance and corrective action</a></li><li><a href="#documentation-and-reporting">Documentation and reporting</a></li><li><a href="#relationship-to-long-term-performance">Relationship to long-term performance</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (5)</summary><div class="sources-body"><a href="#ref-1">2019-12_IMCP_manual</a>, <a href="#ref-2">ACPTP-2022-4_QC_QA_of_concrete_airfield_pvmt_manual_w_cvr_508</a>, <a href="#ref-3">IADOT_InTrans_RB33_014_Reeder_Implementation_Manual_3D_Engineered_Models_Highway_Const_2015_Final</a>, <a href="#ref-4">QC_for_concrete_paving_web</a>, <a href="#ref-5">hif13059</a></div></details>
+
+<h2 id="purpose-and-quality-objectives">Purpose and quality objectives</h2>
+<p>The integrated QC‑QA system evaluates and controls concrete paving by covering every material, process, workmanship, and performance characteristic from raw‑material inspection through mixing, placement, and the finished pavement. It monitors critical mix parameters—such as water‑to‑cementitious ratio, air‑void content, and cracking risk—and checks constituent materials (aggregates, cement, admixtures) for defects like segregation. Production and placement activities are kept within specification by continuous oversight: &ldquo;QC includes sampling, testing, inspection, and corrective action (where required) to maintain continuous control of a production or placement process&rdquo;; &ldquo;continuous monitoring, sampling, testing, inspection, and corrective actions on production and placement activities so that concrete properties stay within defined tolerances&rdquo;. Contractors use this data to understand and manage their processes: &ldquo;QC includes sampling and testing by contractors so they can understand and control their processes, reduce variability, and improve the quality of their work.&rdquo; When measured values approach out‑of‑control conditions, predefined thresholds trigger response: &ldquo;Provide action limits (not specification limits) that dictate when the process should be adjusted.&rdquo; [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates how these integrated contractor QC and process control activities align with QA and acceptance procedures.</p>
+<p><img alt="Integration of contractor QC and process control activities" src="assets/quality-control-and-quality-assurance-integration/0f10b1a8bf50b004be243f31fec155b93dcc105f927ba6cafa7963d8aa7b54df.jpg" />
+<em>Integration of contractor QC and process control activities with QA and acceptance.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure illustrates a workflow where the Pave stage feeds into Testing &amp; Inspection, which then branches to either Success Evaluation or Deficient rework based on quality parameters. An Analytics Dashboard provides data-driven process control and corrective actions by receiving reports from the inspection phase. QC includes sampling, testing, inspection, and corrective action (when required) to maintain continuous control of a production or placement process.</p>
+<p><small>[1] — Ch. 9 (p. 263), Ch. 10 (p. 326); [2] — Ch. 1 (pp. 34–41), Ch. 2 (p. 67), Ch. 4 (pp. 141–146), Ch. 7 (pp. 336–348), Ch. 8 (pp. 360–361), App. A (p. 365), App. B (pp. 405–406); [4] — Ch. 1 (pp. 13–18), Ch. 2 (pp. 22–26), Ch. 4 (pp. 42–65), App. D (p. 129); [5] — 1. Quality Assurance Concepts (pp. 10–15)</small></p>
+<p>The integrated QC/QA approach is designed to satisfy the fundamental requirement that concrete pavement be built in a controlled, repeatable manner that fully conforms to design specifications and performance criteria. Fragmented responsibilities have historically caused mis‑aligned actions; as one guide notes, “contractors sometimes try to overcome constructability issues associated with a poor concrete mixture by overusing their equipment rather than seeking to correct the mixture.” Because “inspection alone cannot be counted upon to ensure specifications are met,” the system mandates systematic sampling, testing and real‑time monitoring of critical parameters – “monitor and adjust for critical parameters, such as the water/cementitious materials (w/cm) ratio, air‑void system, and risk of cracking,” – so that deviations are caught early. The QC function is required to “QC must monitor production consistency and produce materials/pavement within required tolerances”; when data show drift, “When process parameters drift toward an out‑of‑control condition, the integrated system provides clear authority to adjust or halt production.” This prevents undetected defects, reduces internal and external failure costs, and avoids the costly consequences of non‑conforming work. A comprehensive QC plan therefore “must prescribe explicit action and suspension limits … triggers immediate corrective measures or production stoppage, preventing non‑conforming work…,” while pre‑production checklists, key inspections and documented corrective actions ensure that all critical materials and workmanship are “measured, inspected, and kept ‘in control’ throughout production.” By linking design, material selection, testing and construction activities, the integration fulfills the overarching requirement that “every aspect of concrete production—mix design parameters, material condition, and personnel actions—must be continuously monitored and controlled so that any deviation from contract specifications is identified early and corrected before a defect occurs,” ultimately delivering safe, durable pavements. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[1] — Ch. 1 (pp. 21–22), Ch. 9 (p. 263), Ch. 10 (p. 326); [2] — Ch. 1 (pp. 26–41), Ch. 2 (pp. 53–67), Ch. 4 (pp. 141–158), Ch. 7 (pp. 336–348), Ch. 8 (pp. 360–361), App. A (p. 365), App. B (pp. 397–406); [4] — Ch. 1 (pp. 13–18), Ch. 2 (pp. 22–26), Ch. 4 (pp. 42–65), Ch. 7 (p. 106), App. D (p. 129); [5] — 1. Quality Assurance Concepts (pp. 8–15), 3. Quality Assurance for Concr… (p. 38)</small></p>
+<h2 id="scope-and-applicability">Scope and applicability</h2>
+<p>&ldquo;Quality control‑quality assurance (QC/QA) integration is applicable to all concrete pavement projects in transportation construction.&rdquo; The guides further state that it “covers the constituent materials such as cementitious binders, aggregates, water, and admixtures” and expands this scope to “all concrete mix constituents—cement, aggregates, admixtures—as well as geotechnical fill, sub‑base, base and slab components, and every approved construction material—aggregates, cement, admixtures, and the concrete mix.” The procedure also embraces any supplementary products that become part of the mix.</p>
+<p>The integrated approach must be used for every construction activity. It “applies to all of the constituent materials…as well as every step of the construction process from mixture design and pre‑qualification through field verification, batching, placement behind the paver and finishing.” The scope includes “the full sequence of acquisition, mixing, transport, placement, finishing, curing, post‑placement inspection, and the testing of molded specimens for strength compliance,” together with base‑course installation, surface inspection for voids or grout fills, calibration of batch‑plant metering devices, and joint work. &ldquo;The procedure must be employed wherever a contractor prepares a project‑specific QC plan (or where the prime contractor oversees construction), ensuring that action limits, suspension limits, and corrective actions are defined for the entire concrete paving scope.&rdquo;</p>
+<p>This requirement is mandatory under “all project conditions such as FAA versus DoD ownership, schedule constraints, material availability, or site‑specific factors,” meaning it applies wherever a concrete pavement is constructed, regardless of ownership, schedule pressure, material supply issues, or local site characteristics. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[1] — Ch. 9 (p. 263); [2] — Ch. 1 (pp. 34–41), Ch. 2 (p. 67), Ch. 4 (pp. 141–146), Ch. 7 (pp. 342–348), Ch. 8 (pp. 360–361), App. B (pp. 397–406); [4] — Ch. 1 (pp. 13–19), Ch. 2 (pp. 22–26), Ch. 4 (pp. 42–65), Ch. 7 (p. 106), App. D (p. 129); [5] — 1. Quality Assurance Concepts (pp. 8–15), 3. Quality Assurance for Concr… (p. 38)</small></p>
+<p>Integration of quality control (QC) and quality assurance (QA) is required whenever a public or private agency adopts a formal QA program for the project, because “the agency’s primary responsibility under a QA program is acceptance” and the agency must monitor the contractor’s QC plan while conducting its own acceptance testing. Federal regulation 23 C.F.R. § 637 also makes it mandatory for state highway agencies to have such a QA program, which includes “contractor QC, qualified personnel, laboratory accreditation, and independent assurance.” Likewise, integration becomes compulsory when the contract or specifications explicitly call for a project‑specific Quality Control Plan that contains “action limits (not specification limits) that dictate when the process should be adjusted,” as well as suspension limits and corrective actions. The requirement is reinforced by contracts that demand full‑time, on‑site surveillance (e.g., Title II services) and by specifications that transfer performance risk to the contractor.</p>
+<p>Integration may be optional when no agency mandate exists or when conformance to a guidance publication is not mandatory. In those cases a QC plan “is a beneficial tool” but not required; agencies may allow part‑time surveillance, and an Assistant QC Manager can be employed only on labor‑intensive, highly complex projects – its use on simpler projects would be inappropriate.</p>
+<p>Integration is inappropriate when the agency relies solely on inspection without confirming that the contractor’s QC process control and accredited testing meet standards; “inspection alone is not enough to assure that the contractor’s QC process control is effective.” It is also improper for an agency to direct production or treat contractor QC findings as punitive triggers, because “the agency should respect the contractor’s QC function” and must limit its role to monitoring, sampling, and acceptance testing. A generic, unmodified “one size fits all” QC plan is likewise inappropriate, since “QC plans should be tailored specifically to each project and should not be ‘one size fits all’ or reused from previous projects.”</p>
+<p>Limitations that apply across the required and optional situations include: test laboratories must be certified per ASTM C1077; QA/QC personnel must receive proper training and certifications (e.g., ACI, NICET, or a current Construction Quality Management certificate valid for five years); any change in QC staffing “must be updated … and submitted … for acceptance”; open communication between QC and QA groups is essential to avoid and resolve conflicts; and the agency retains final responsibility for independent verification sampling performed by qualified personnel in accredited laboratories. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[1] — Ch. 9 (p. 263); [2] — Ch. 4 (p. 158), Ch. 7 (pp. 336–337); [4] — Ch. 1 (pp. 16–19), Ch. 2 (pp. 24–25); [5] — 1. Quality Assurance Concepts (pp. 11–15), 3. Quality Assurance for Concr… (p. 38)</small></p>
+<h2 id="test-methods-and-procedures">Test methods and procedures</h2>
+<p>Valid QC/QA results require calibrated test equipment, accredited laboratories, and qualified personnel. Calibration is achieved through &ldquo;oversight of on‑site equipment, calibration of test equipment, and acceptance or rejection of material based on verification and QC and QA testing,&rdquo; with senior leaders providing the tools to track each piece of material testing equipment and metering devices on the batch plant and ensuring that a need for calibration is recognized. All testing staff must receive proper training and hold recognized certifications—&ldquo;Most agencies require technicians to be certified (American Concrete Institute [ACI], National Institute for Certification in Engineering Technologies)&rdquo; and &ldquo;All members of the QC team must have completed the ‘Construction Quality Management (CQM) for Contractors’ course, offered by both the Army Corps of Engineers (USACE) and the Naval Facilities Engineering Systems Command.&rdquo; Laboratories used for testing must be &ldquo;appropriately certified by the agency or American Association of State Highway Transportation Officials (AASHTO) (or equivalent) and meet the requirements of ASTM C1077&rdquo; and be &ldquo;qualified and/or accredited laboratories.&rdquo; The QC plan must include a &ldquo;list of personnel involved in the project … including their certifications and relevant experience,&rdquo; define roles, responsibilities, and decision‑making authority, and assign qualified individuals such as a Quality manager with &ldquo;NRMCA Concrete Technologist certification… ACI Concrete Quality Technical Manager certification – Licensed engineer with several years of experience in specification review and mixture proportioning.&rdquo; Environmental control measures are not detailed in the sources and should be addressed separately in project documentation. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The following figure illustrates the typical organizational structure for QC personnel on smaller Department of Defense projects.</p>
+<p><img alt="Organizational structure of QC personnel and functions for a" src="assets/quality-control-and-quality-assurance-integration/94fde011fee252f343ab1a2a9aca5e75c8ad5fed235ec3ea04fbf6ba3eb44203.jpg" />
+<em>Organizational structure of QC personnel and functions for a construction project.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays an organizational chart detailing the hierarchy of Quality Control (QC) roles, including a central QC Manager overseeing specialized teams such as Inspection, Testing, Reporting, Survey, and Engineering Support. By mapping out these distinct departments, the diagram demonstrates how an integrated system can be structured to manage material inspection and documentation.</p>
+<p><small>[1] — Ch. 9 (p. 263); [2] — Ch. 1 (pp. 37–41), Ch. 2 (p. 67), Ch. 4 (pp. 145–158), Ch. 7 (pp. 346–348), App. B (pp. 397–399); [4] — Ch. 1 (pp. 16–17), Ch. 2 (pp. 25–26), Ch. 4 (p. 65)</small></p>
+<h2 id="sampling-and-testing-frequency">Sampling and testing frequency</h2>
+<p>Integration of QC and QA determines sampling and testing locations by selecting designated control or test strips and by identifying the critical materials or components called out in project specifications. The guides require that &ldquo;The Owner/Sponsor should provide observation of the control/test strip by an individual that is not on the QC or RPR staff&rdquo; and that &ldquo;The tests to be performed and test methods used, a sampling plan, testing frequency, and other relevant information supporting the testing program should be adequately described.&rdquo; Quantities are derived from a blend of random spot checks and systematic daily inspections rather than fixed predetermined counts. As stated, &ldquo;An example is during production activities, on a random basis, the witness should make and record observations&rdquo; and &ldquo;The Owner/Sponsor should practice making observations of the work on a random basis to gain confidence in the judgment of their “qualified” personnel,&rdquo; while &ldquo;There should be daily inspection by the QC of the technician(s) performing acceptance testing with the intent of documenting observations.&rdquo; Agencies further shape quantity expectations by establishing minimum analysis and suspension criteria: &ldquo;Agencies should also establish minimum expectations for the analysis of QC test data and associated actions and suspension limits.&rdquo; Frequencies are set by linking the sampling plan to agency requirements and project specifications. The contractor develops a plan that &ldquo;supports agency requirements&rdquo; and defines how often samples must be taken. Measurements are scheduled at intervals that keep the contractor &ldquo;confidently aware of the status of the process in question and to be alerted to trends indicating that the process should be adjusted so that it remains in control.&rdquo; Acceptance sampling within QA may use fewer or less frequent tests to confirm QC results: &ldquo;Within an agency’s QA program, acceptance sampling and testing&hellip; typically aims to confirm the contractor’s QC test results using fewer or less frequent tests.&rdquo; In sum, sampling locations are chosen from designated control strips and critical items; quantities emerge from random observations combined with daily QC inspections; frequencies are dictated by the documented sampling plan, agency guidance, and interval monitoring to maintain process control. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p><small>[2] — Ch. 7 (pp. 346–348); [4] — Ch. 1 (pp. 17–18), Ch. 2 (pp. 25–26)</small></p>
+<p>Across the guides, samples and measurements are required to be selected in a manner that ensures they truly represent the material, process, lot, or completed work. &ldquo;Samples or measurements should be taken on a random basis by an independent observer who is not part of the QC or RPR staff, such as the Owner/Sponsor’s representative, during production activities,&rdquo; providing confidence that the data reflect overall performance rather than isolated incidents. In addition, &ldquo;Samples and measurements must be chosen according to a documented sampling plan that specifies which quality characteristics will be measured, the test methods to be used, and the frequency or interval of testing so that they reliably represent the material, process, lot, or finished work.&rdquo; The plan should ensure points are taken often enough for the contractor to remain aware of process status and detect trends requiring corrective action. Finally, &ldquo;Acceptance testing based on random samples will accurately reflect the overall quality of the product,&rdquo; confirming conformance without penalizing the contractor while contractor‑performed QC tests use the same random approach to adjust processes during production. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[2] — Ch. 7 (pp. 346–348); [4] — Ch. 2 (pp. 25–26); [5] — 1. Quality Assurance Concepts (p. 11)</small></p>
+<h2 id="acceptance-criteria-and-tolerances">Acceptance criteria and tolerances</h2>
+<p>Under an integrated QC‑QA approach, work is accepted only when test results meet the agency’s minimum specifications and satisfy the statistical acceptance criteria set out in the project‑specific quality control plan. The guides require a percent‑within‑limits (PWL) procedure that uses contractor‑generated sampling and testing data—independently verified—to compare measured values against predefined numerical limits. The QC plan must define quantitative thresholds for both action limits and suspension limits; an action limit triggers corrective measures when results exceed the acceptable range, while a suspension limit obliges the contractor to halt production until control is restored. For example, concrete air‑content measurements that fall below the specified threshold on three consecutive lots would require suspension of placement. Acceptance therefore relies on these numerical thresholds rather than vague visual checks, and the prescribed corrective actions are implemented whenever measurements fall outside the established limits. [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[4] — Ch. 1 (pp. 16–17), Ch. 2 (pp. 25–26); [5] — 1. Quality Assurance Concepts (pp. 14–15)</small></p>
+<p>Integration of quality control (QC) and quality assurance (QA) in concrete paving projects is achieved through a contractor‑run QC program that samples, tests, inspects, and applies corrective action where required to keep the production process within defined limits. For each measurable factor the contractor compares <strong>each individual test result</strong> against the specification’s target value and its upper and lower tolerance limits; any single result outside those limits triggers an immediate corrective response as mandated by agency guidance. All measured values—including <strong>lot averages</strong> and the spread of results—are plotted on <strong>control charts</strong>, which are defined as “a graphical plot of QC measurements or test results used to identify variation in a production or placement process due to either chance causes or assignable causes.” The control‑chart framework also states that “for each measurable factor, control charts include a target value and tolerance limits (upper, lower or both) for which the measurable factors are monitored and/or reported,” allowing visual detection of trends that exceed tolerances.</p>
+<p>A formal data‑evaluation procedure establishes <strong>action limits</strong> (trigger points) that require process adjustments when an individual result or a trend exceeds them, and <strong>suspension limits</strong> that halt work if out‑of‑range results persist across successive lots. Agencies are instructed to “provide guidance on actions that should be taken when an individual test yields failing results, as well as trigger points and suspension points for QC data.” The sampling plan and testing frequency generate the lot‑average and variability information needed for these assessments; the aggregated data may be incorporated into a pavement‑wear‑limit (PWL) analysis where predefined thresholds determine acceptance. Thus, across sources the evaluation of individual results, lot averages, and variability against specifications follows a consistent practice of direct comparison to tolerance limits, chart‑based monitoring, and defined corrective or suspension actions when those limits are breached. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The following figure illustrates how test data from production paving lots are evaluated against allowable limits within a CF and WF parallelogram framework.</p>
+<p><img alt="CF and WF parallelogram, showing the allowable limits box (g" src="assets/quality-control-and-quality-assurance-integration/ff503c19159d772971a9debfe055fc4d991462c5e65f4155fa34a4a86c6e2551.jpg" />
+<em>CF and WF parallelogram, showing the allowable limits box (green) and the data from tests of lots of production paving provided the figure.2.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays a scatter plot with Coarseness Factor on the x-axis and Workability Factor on the y-axis, featuring red lines that define an allowable limits box around a central green rectangle labeled &ldquo;Mixture Design CF/WF&rdquo;. Blue data points representing test batches are clustered within and slightly above the mixture design area, while a red &lsquo;x&rsquo; marks the specific laboratory design value.</p>
+<p><small>[2] — Ch. 1 (pp. 37–41); [4] — Ch. 1 (pp. 17–18), Ch. 2 (pp. 25–26)</small></p>
+<h2 id="quality-control-and-process-monitoring">Quality control and process monitoring</h2>
+<p>The integrated QC/QA effort continuously monitors both material properties and process variables to keep concrete production and placement within the required performance envelope. &ldquo;The integrated QC/QA program must continuously monitor the concrete’s water‑to‑cementitious material ratio, its air‑void system, and any indicators of cracking risk; these parameters are sampled and tested during placement so that any deviation can be corrected before the mix hardens.&rdquo; Key variables include &ldquo;the air‑content of concrete, which is monitored and production is halted if the air‑content results fall below a preset threshold for three consecutive lots; the water‑to‑cement (w/c) ratio; vibrator frequency; dowel alignment; curing conditions that influence surface evaporation; and the chemistry of cement and supplementary cementitious materials.&rdquo; &ldquo;QC watches for defined defects such as aggregate segregation and checks that the mix stays within the required tolerances through plant inspections and ongoing production‑tolerance monitoring&rdquo;. It also verifies raw‑material proportions, inspects the concrete surface for voids, and ensures all testing and metering equipment is calibrated and its readings recorded. &ldquo;Continuously watch equipment performance and process variables, verify that incoming materials meet preliminary test requirements, ensure personnel hold current training and certification, and maintain accurate documentation and control of records.&rdquo; Continuous monitoring of material properties—specifically aggregate gradation, cement and admixture strength, durability, and consistency—as well as the concrete mix design parameters and the workmanship used in placement is required. &ldquo;An integrated QC/QA program must continuously check that each work item conforms to its referenced specifications&rdquo; while also tracking the action limits that signal a need for process adjustment and the suspension limits that require halting work until corrective measures are applied. A defined sampling plan, test methods, and testing frequency provide accurate data to reveal trends, and the limits that trigger corrective action versus work suspension ensure any out‑of‑control condition is addressed promptly. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[1] — Ch. 9 (p. 263); [2] — Ch. 1 (p. 34), Ch. 4 (pp. 145–146), Ch. 7 (pp. 346–348), App. B (pp. 405–406); [4] — Ch. 2 (pp. 25–26), Ch. 4 (pp. 47–49); [5] — 1. Quality Assurance Concepts (pp. 14–15)</small></p>
+<p>The guides concur that any condition indicating the process has moved beyond defined limits must trigger immediate corrective action and often additional testing. Triggers include:
+- Trends identified during routine plant inspections or production‑tolerance monitoring, such as aggregate segregation or drift beyond material tolerances.
+- Control‑chart data showing a trend toward or beyond target values and tolerance limits, or any test result that fails the acceptance criteria.
+- Unplanned events or a measurable trend moving out of control limits, including surface voids observed in spot checks, strength specimens failing because of improper curing or transport, and material‑proportion data falling outside established thresholds.
+- Data analysis that crosses QC‑plan action limits, reaches suspension points, or shows repeated non‑conformities; when such limits are reached the work must be halted, diagnosed, and corrected before production resumes.
+- Field observations of deviations such as improper vibrator frequencies causing mixture segregation and cracking, misaligned dowels, excessive surface evaporation during curing, or early stiffening due to changes in cement or SCM chemistry.
+When any of these triggers occur, contractors are required to stop concrete production if necessary, recalibrate equipment, adjust mix designs or placement procedures, conduct additional sampling, and perform further testing to verify that the corrective measures have restored the process to within tolerance. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates typical control chart limits used in FAA and DOD projects to monitor these process parameters.</p>
+<p><img alt="Typical control chart limits for FAA and DOD projects." src="assets/quality-control-and-quality-assurance-integration/8d236667cdbf5ecd7abb31e82c556fb44ef6732d7b038bc274248b8fb2c99f6a.jpg" />
+<em>Typical control chart limits for FAA and DOD projects.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays a schematic of a quality control chart with horizontal lines representing various thresholds on an axis labeled &lsquo;Measurement&rsquo; versus &lsquo;Tests&rsquo;. It visually distinguishes between the Outer Specification Limits and inner Suspension or Action limits, which are used to monitor process variability.</p>
+<p><small>[2] — Ch. 1 (pp. 34–41), Ch. 4 (pp. 141–142), Ch. 7 (pp. 346–348), App. B (pp. 405–406); [4] — Ch. 1 (pp. 17–18), Ch. 2 (pp. 25–26), Ch. 4 (pp. 47–49); [5] — 1. Quality Assurance Concepts (pp. 11–15)</small></p>
+<h2 id="nonconformance-and-corrective-action">Nonconformance and corrective action</h2>
+<p>When inspection or testing reveals work or material that does not meet the specified quality, the integrated QC/QA system requires “immediate corrective action.” The contractor must “adjust the production or placement processes, re‑sample and retest as needed, and bring the work back within the established tolerances.” The deviation must be documented through sampling and test results, and “all further work that could propagate the defect is halted.” The QC plan is activated and follows a “plan‑do‑check‑act problem‑solving sequence: identify the problem, gather relevant information, commit to action, execute the decision, review the decision and results.” “Corrective actions may include adjusting mix designs, recalibrating equipment, repairing or replacing the deficient portion,” or any other real‑time remedial measure needed. The system employs “pre‑defined trigger and suspension points”; consequently, “the deviation must be documented immediately and reported to the designated authority (e.g., plant foreman, agency inspector).” Where “limits for action, indicating when corrective action should be taken or processes should be adjusted, and limits for suspension, indicating when processes should be stopped and adjusted prior to continuing production,” are reached, the appropriate response is executed: adjust the process, halt work, repair or replace the material, and re‑test until compliance is achieved. If “failing test results are found during construction, agencies should require both additional contractor QC and additional agency acceptance testing” to support timely corrective measures. All corrective steps are performed “according to documented procedures that specify authority, required notifications, and record‑keeping,” and “the issue is communicated promptly to all stakeholders.” The agency’s role is to monitor this activity, ensuring the contractor follows its QC plan “without imposing punitive measures,” while the outcome is reviewed for effectiveness. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates how control charts are used to monitor specification compliance and trigger these corrective actions.</p>
+<p><img alt="Deviation management flowchart illustrating the corrective a" src="assets/quality-control-and-quality-assurance-integration/6b9b874c75bfbbee5f90c6d449a24bf760e426337b7178e27e286a456130d385.jpg" />
+<em>Deviation management flowchart illustrating the corrective action process for non-compliant work.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays a deviation management flowchart that outlines the procedural steps taken when inspection or testing reveals work that does not meet specified quality standards.</p>
+<p><small>[1] — Ch. 9 (p. 263); [2] — Ch. 1 (pp. 26–41), Ch. 4 (pp. 141–142), Ch. 7 (pp. 346–348), Ch. 8 (pp. 360–361), App. B (pp. 405–406); [4] — Ch. 1 (pp. 17–18), Ch. 2 (pp. 22–26), Ch. 4 (p. 65), Ch. 7 (p. 106); [5] — 1. Quality Assurance Concepts (pp. 11–15)</small></p>
+<h2 id="documentation-and-reporting">Documentation and reporting</h2>
+<p>The integrated QC/QA file must retain a complete record of every inspection performed, the corresponding test results, and all sampling information used to evaluate material and placement quality. Across sources the system must also keep a complete set of inspection records that capture all sampling activities and the corresponding test results, together with any laboratory or personnel certifications that support those tests. Integration of QC and QA requires a complete record of every inspection observation—such as random spot checks of control strips by an independent owner representative—and all test results from both routine QC testing and formal acceptance testing. Sampling data, including material samples and equipment calibration status, must be logged together with the certifications of laboratories and technicians performing the tests, and a clearly defined sampling plan that specifies the test methods, frequency and acceptance limits must be documented. It also must list certifications for personnel, laboratories, and equipment, and include a list of personnel involved in the project or portion of work covered in the QC plan, including their certifications and relevant experience. Whenever observations reveal non‑conformances, corrective actions (e.g., immediate RPR involvement, trigger‑point adjustments, equipment recalibration) are recorded and tracked in a centralized tool that links QC data with acceptance data for trend analysis; the file must also document equipment‑monitoring data and the corrective actions taken when results fall outside accepted limits, ensuring that every deviation is recorded in the project’s documentation and record‑keeping files. When any result falls outside the established limits—such as repeated air‑content failures—the plan must record the prescribed corrective actions, ranging from process adjustments to work suspension, and track their implementation until compliance is restored. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p><small>[2] — Ch. 1 (pp. 37–41), Ch. 7 (pp. 346–348), App. B (pp. 405–406); [4] — Ch. 2 (pp. 22–26)</small></p>
+<p>The guides require that all quality records—sampling logs, test results, control charts, corrective‑action reports, and related checklists—be documented in the contractor’s Quality Control Plan, entered into a dedicated tracking system, and captured on prescribed forms. Records are submitted to the owner/agency QA manager on a timely schedule and disseminated to both contractor and agency representatives for review. Review is performed as part of the ‘check’ step of the plan‑do‑check‑act cycle, with daily or regular coordination meetings that compare measured values against predefined acceptance criteria, action limits, and suspension thresholds. Any trend out of control or deviation from empirical trends triggers documented corrective actions and root‑cause investigations; failing tests may require immediate additional QC testing or independent agency acceptance testing, and in some cases production is suspended. The reviewed records constitute the basis for formal acceptance decisions and are retained as a performance baseline that supports final payment, future project forecasting, pre‑qualification, and continuous‑improvement analysis. Archived data serve as a “flashlight” for spotting trends, informing mix‑design or process adjustments, and evaluating future performance. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The following figure illustrates an example of such a daily check sheet used by QC personnel to capture these required records.</p>
+<p><img alt="Example daily check sheet for QC personnel." src="assets/quality-control-and-quality-assurance-integration/791d74e9f6a8cce55c93c96a81a07e28148fa90ed5004c6c5c0e96b2d46c81d8.jpg" />
+<em>Example daily check sheet for QC personnel.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays a &lsquo;Quality Control Daily Summary of Activities&rsquo; form designed to document the operational details of concrete paving projects. It features structured sections for recording weather conditions, batch plant operations, trucking logistics, and specific notes on testing parameters such as slump, air content, and unit weight.</p>
+<p><small>[2] — Ch. 1 (pp. 37–41), Ch. 4 (pp. 141–142), Ch. 7 (pp. 346–348), Ch. 8 (pp. 360–361), App. A (p. 365); [4] — Ch. 1 (pp. 13–18), Ch. 2 (pp. 25–26), Ch. 4 (p. 49), Ch. 7 (p. 106)</small></p>
+<h2 id="relationship-to-long-term-performance">Relationship to long-term performance</h2>
+<p>The guides describe that measured mix properties—such as the water‑to‑cementitious material ratio, air‑void system, aggregate gradation, compressive strength, durability and consistency—are routinely sampled, tested, and inspected under a contractor’s QC program. The resulting findings are compared to the specified tolerances; any deviation is flagged and corrective actions are taken before placement proceeds, &ldquo;identify and address any deviations from the process in as close to real time as the testing and reporting allow.&rdquo; By keeping these &ldquo;critical parameters, such as the water/cementitious materials (w/cm) ratio, air‑void system, and risk of cracking&rdquo; within acceptable ranges, the concrete’s susceptibility to cracking, freeze‑thaw damage and other distress mechanisms is reduced. QA then uses this controlled production data to provide confidence that the finished pavement will perform satisfactorily throughout its intended service period. The guides note that when these criteria are met or exceeded, &ldquo;When implemented it will contribute to the longevity and durability of the airport pavement, reducing the likelihood of quality deficiencies or worse, premature failures,&rdquo; and that conformity signals that the durability properties promised by performance‑engineered mixtures are being realized, thereby extending service life and lowering life‑cycle cost. A robust QC program that minimizes material and construction variability therefore directly supports longer expected service life and greater distress resistance. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p><small>[1] — Ch. 9 (p. 263); [2] — App. B (pp. 405–406); [4] — Ch. 4 (pp. 42–43)</small></p>
+<p>After construction is finished, the agency’s QA staff must continue to monitor the contractor’s QC program by conducting verification sampling and testing of the completed work. After construction is finished, the agency conducts acceptance testing by monitoring the contractor’s QC program and measuring the final product against specifications. This involves reviewing the contractor’s QC records, performing random‑sample inspections, and evaluating whether the results meet the agreed acceptance criteria before releasing final payment. verification sampling is performed by qualified and/or certified personnel in qualified and/or accredited laboratories. statistical acceptance procedures, such as percent within limits (PWL), are used by an agency. Many quality characteristics used for acceptance cannot readily be measured while work is ongoing but can only be measured days or weeks after a particular segment of pavement is constructed. Any non‑conforming findings identified during this post‑construction review trigger corrective actions by the contractor to bring the work into compliance. [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[4] — Ch. 1 (pp. 16–17), Ch. 2 (pp. 25–26); [5] — 1. Quality Assurance Concepts (p. 11)</small></p>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li><li id="ref-3"></li><li id="ref-4"></li><li id="ref-5"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

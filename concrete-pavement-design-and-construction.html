@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concrete Pavement Design and Construction</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html" class="active" aria-current="page">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Concrete Pavement Design and Construction</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=concrete-pavement">concrete-pavement</a><a class="tag" href="index.html?q=construction-design">construction-design</a><a class="tag" href="index.html?q=surface-course">surface-course</a><a class="tag" href="index.html?q=reinforcement">reinforcement</a><a class="tag" href="index.html?q=joint-placement">joint-placement</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>Concrete pavement design and construction is the engineering process aimed at delivering a durable, long‑lasting road surface that meets project specifications while providing reliable load transfer for anticipated traffic loads and resisting harsh environmental conditions [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]. To overcome concrete’s inherent tensile weakness, designers control cracking through adequate joint spacing in jointed plain systems or by incorporating distributed or continuous steel reinforcement that keeps cracks tight and maintains aggregate interlock, with slab thickness, joint spacing, reinforcement, concrete strength, and support conditions identified as the most influential variables [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]. The practice encompasses three pavement families—jointed plain concrete pavement (short‑spaced joints, no reinforcement), jointed reinforced concrete pavement (longer joints with modest steel), and continuously reinforced concrete pavement (no regular transverse joints but longitudinal steel)—allowing selection to suit traffic loads, climate extremes, and service‑life goals of 30–40 years [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-design-objectives">Purpose and design objectives</a></li><li><a href="#scope-and-applicability">Scope and applicability</a></li><li><a href="#design-inputs-and-requirements">Design inputs and requirements</a></li><li><a href="#design-methods-and-criteria">Design methods and criteria</a></li><li><a href="#structural-section-and-dimensions">Structural section and dimensions</a></li><li><a href="#materials-and-mixture-design">Materials and mixture design</a></li><li><a href="#structural-details-and-interfaces">Structural details and interfaces</a></li><li><a href="#drainage-environment-and-accessibility">Drainage, environment, and accessibility</a></li><li><a href="#verification-and-expected-performance">Verification and expected performance</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (5)</summary><div class="sources-body"><a href="#ref-1">2019-12_IMCP_manual</a>, <a href="#ref-2">IPS</a>, <a href="#ref-3">concrete_pvmt_distress_assessments_and_solutions_guide_w_cvr</a>, <a href="#ref-4">concrete_pvmt_preservation_guide_3rd_edition_web</a>, <a href="#ref-5">hif13059</a></div></details>
+
+<h2 id="purpose-and-design-objectives">Purpose and design objectives</h2>
+<p>Concrete pavement design and construction is intended to solve the fundamental engineering problem of delivering a durable, long‑lasting road surface that satisfies project specifications while providing reliable load transfer for anticipated traffic loads and resisting harsh environmental conditions. To achieve this, designers must manage concrete’s inherent tensile weakness by controlling cracking through appropriate joint spacing or continuous reinforcement, ensuring a strong bond when new concrete is placed over existing pavement, and accommodating multi‑directional slab movements. The guides state that the design must address “the most influential design‑related variables for structural performance (at a given level of traffic) are slab thickness, joint spacing, reinforcement, concrete strength, and support conditions.” Jointed plain concrete pavements meet this need by providing enough joints to direct cracking, as described: “JPCPs contain enough joints to control the location of all expected natural cracks.” Continuously reinforced systems rely on steel to keep cracks tight and maintain load transfer, exemplified by the quote: “The continuous steel reinforcement is intended to keep the cracks from opening, thereby providing adequate load transfer through aggregate interlock.” Across sources, the overarching performance need is summarized as a requirement to “provide long‑lasting pavements that meet or exceed specific project requirements.” [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates a common construction defect that compromises these design goals.</p>
+<p><img alt="Longitudinal cracking in a concrete pavement slab caused by" src="assets/concrete-pavement-design-and-construction/3e47410dca9eec1ac7be40d7340d3579aaeac0cbdfcafdba8bc68acd4ebddf02.jpg" />
+<em>Longitudinal cracking in a concrete pavement slab caused by inadequate saw cut depths of the quarter-point longitudinal joints.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The image displays a concrete road surface with a prominent, irregular crack running longitudinally down the center of the lane. This failure illustrates the consequence when weakened-plane joints are not created deep enough to control cracking at less desirable locations within the slab.</p>
+<p><small>[1] — Ch. 3 (pp. 51–104), Ch. 10 (pp. 316–322); [2] — Description (pp. 20–22); [3] — Ch. 1 (pp. 28–30), Ch. 4 (pp. 322–334); [4] — Ch. 1 (p. 22); [5] — 2. Factors Influencing Long-Li… (p. 18), 4. Pre-Paving (p. 54)</small></p>
+<p>The guides require that concrete pavement design meet several key objectives. <strong>Functionally it must provide sufficient load‑carrying capacity and retain the intended surface texture, limiting distresses such as loss of texture or excessive roughness.</strong> Structural performance depends on the variables identified as most influential: <strong>The most influential design-related variables for structural performance (at a given level of traffic) are slab thickness, joint spacing, reinforcement, concrete strength, and support conditions.</strong> To achieve durability the design must <strong>limit overall distress over the pavement’s design life, keeping transverse crack widths under 0.02 in – &ldquo;The transverse crack width is generally less than 0.02 inches wide at the top of the slab for well‑performing CRCP&rdquo;</strong> and provide proper cover, subgrade preparation, vibration, curing, and restraint control. Safety is addressed by <strong>preventing random fatigue‑induced longitudinal or transverse cracks, punchouts, and uncontrolled spalling through appropriate thickness, reinforcement, joint design, and timely saw cutting.</strong> Serviceability is ensured by maintaining a smooth riding surface throughout the pavement’s life and by preserving continuity across joints with dowel bars or tie bars that keep cracks tightly closed. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates an example of slab cracking output generated by the AASHTOWare Pavement ME Design software.</p>
+<p><img alt="Example slab cracking output from AASHTOWare Pavement ME Des" src="assets/concrete-pavement-design-and-construction/f8c318a98d94a3fa7ae995cfe940cf5731b2f52ebd7831395fff5b0e0cd84369.jpg" />
+<em>Example slab cracking output from AASHTOWare Pavement ME Design software</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays a time-series plot of the percentage of cracked concrete pavement slabs over a projected service life. It compares two reliability-based prediction models against a fixed threshold value, showing that cracking increases gradually with pavement age but remains below the limit. This output demonstrates how competent structural designs can be developed to prevent fatigue-induced transverse and diagonal cracks over a design period.</p>
+<p><small>[1] — Ch. 3 (pp. 51–104); [2] — Description (pp. 20–22); [3] — Ch. 1 (p. 28), Ch. 4 (pp. 322–334); [5] — 2. Factors Influencing Long-Li… (p. 18), 4. Pre-Paving (p. 54)</small></p>
+<h2 id="scope-and-applicability">Scope and applicability</h2>
+<p>The guides identify three concrete pavement families that are appropriate for a wide range of projects. Jointed plain concrete pavement (JPCP) – slabs 7–12 in thick with transverse joints spaced 15 to 20 ft and no distributed reinforcement – is the cost‑effective, reliable choice for new construction, reconstruction or unbonded overlay work on standard traffic routes. Jointed reinforced concrete pavement (JRCP) uses longer joint spacing of about 30 to 40 ft and incorporates welded‑wire fabric or deformed bars comprising roughly 0.10 %–0.20 % of the slab cross‑section, providing additional crack control where higher loads are expected. Continuously reinforced concrete pavement (CRCP) eliminates regular transverse joints, relies on continuous longitudinal steel reinforcement of about 0.6 %–0.8 % (or 0.70 %–0.80 %) of the slab cross‑section and may include transverse bars every three feet; it is selected for heavily trafficked, high‑volume urban corridors or other applications that demand long service lives (30–40 years) and superior durability despite higher steel cost. All three systems can be applied in new road construction, reconstruction of existing alignments, or overlay (resurfacing) projects, and they perform across climate extremes from severe freezing winters to extreme desert heat. Thin‑section concrete pavements are emerging for commercial applications where reduced thickness is advantageous. Proper design requires appropriate concrete mix properties (flexural strength, elastic modulus), adequate slab thickness, suitable joint spacing, reinforcement detailing, and sound construction practices. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates a typical installation of jointed plain concrete pavement before paving.</p>
+<p><img alt="Preparation of a Jointed Plain Concrete Pavement (JPCP) site" src="assets/concrete-pavement-design-and-construction/b9f59429d22ad7acfc467d48a4f9b8b40c458f91cbb92ccdd539f8feb8978e30.jpg" />
+<em>Preparation of a Jointed Plain Concrete Pavement (JPCP) site with dowel bar assemblies and water curing.</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The image displays the construction phase for jointed plain concrete pavement, showing rows of metal dowel bar assemblies installed on the prepared subgrade to facilitate load transfer across future transverse joints. A water truck is actively spraying moisture onto the ground near a dump truck, illustrating the construction practices required for this pavement family which relies on adequate joint spacing and load transfer mechanisms rather than distributed reinforcement.</p>
+<p><small>[1] — Ch. 3 (pp. 51–104), Ch. 10 (pp. 318–322); [2] — Description (pp. 20–22); [3] — Ch. 1 (pp. 28–30), Ch. 4 (pp. 322–333); [4] — Ch. 1 (p. 22); [5] — 2. Factors Influencing Long-Li… (p. 18), 4. Pre-Paving (p. 54)</small></p>
+<p>The guides note that “A pavement joint that allows relative movement in three directions” is required to isolate structures such as bridges, making a continuous slab unsuitable. They also point out that “CRCP designs generally cost more than JPCP designs initially due to increased quantities of steel,” and that when slabs are thin, traffic volumes are low, or support conditions are poor, the added reinforcement does not provide sufficient benefit. Consequently, “JPCP is the most most common type of concrete pavement constructed,” and it is preferred in these limiting situations. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The following figure illustrates jointed plain concrete pavement (JPCP), which is identified as the most common type of concrete pavement constructed.</p>
+<p><img alt="Schematic of Jointed Plain Concrete Pavement (JPCP) showing" src="assets/concrete-pavement-design-and-construction/ccab78c982514724dab2e9a9da62b350c9c70f85f04e4e2b0b34d2fdf2b22571.jpg" />
+<em>Schematic of Jointed Plain Concrete Pavement (JPCP) showing transverse joint spacing and optional dowel bars.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays a top view of concrete slabs separated by transverse joints with an average spacing labeled as 15–20 ft, alongside a side view illustrating the placement of green dowel bars embedded across these joints. This visual representation illustrates Jointed Plain Concrete Pavement (JPCP), which is defined as containing enough joints to control cracking and typically lacking steel reinforcement, though it may include load transfer devices like dowel bars. By depicting these specific design elements, the figure provides a concrete example of how engineers manage tensile weakness in concrete pavement through adequate joint spacing.</p>
+<p><small>[1] — Ch. 10 (p. 322); [3] — Ch. 1 (pp. 29–30), Ch. 4 (pp. 329–334); [4] — Ch. 1 (p. 22)</small></p>
+<h2 id="design-inputs-and-requirements">Design inputs and requirements</h2>
+<p>The design and construction of concrete pavements are governed by agency specifications such as &ldquo;some agencies reinforce oddshaped panels to hold expected cracks tight (ACPA 2008)&rdquo; and the broader allowance that &ldquo;Reinforcement may be used in concrete pavements to improve the ability of concrete to carry tensile stresses.&rdquo; Across sources, agencies have adopted &ldquo;standard values for the geometric characteristics of pavements as well as for the materials’ specifications so that designs become more practical,&rdquo; while recognizing that &ldquo;The most influential design‑related variables for structural performance (at a given level of traffic) are slab thickness, joint spacing, reinforcement, concrete strength, and support conditions.&rdquo; Serviceability criteria also require attention to &ldquo;Functional performance of the pavement is often related to features like smoothness, texture, and noise.&rdquo;</p>
+<p>For jointed plain concrete pavements (JPCP), specifications mandate that they &ldquo;do not contain reinforcement&rdquo; and must be unreinforced, with &ldquo;JPCPs contain enough joints to control the location of all expected natural cracks.&rdquo; Joint spacing is limited to &ldquo;transverse joints spaced less than 15 to 20 ft apart&rdquo; and, for typical slab thicknesses, &ldquo;The spacing between transverse joints is typically between 15 and 20 feet for slabs 7–12 inches thick.&rdquo; Load transfer may be provided by &ldquo;may contain dowel bars across the transverse joints,&rdquo; and longitudinal tie bars are permitted as described in &ldquo;JPCP does not contain any steel reinforcement. However, there may be load transfer devices (e.g., dowel bars) at transverse joints and deformed steel bars (e.g., tie bars) at longitudinal joints.&rdquo; Subgrade requirements state that &ldquo;The strength and deformation characteristics of the subgrade and unstabilized bases are based on achieving a target density as determined by laboratory testing prior to construction.&rdquo;</p>
+<p>Continuously reinforced concrete pavements (CRCP) are governed by separate specifications that require &ldquo;Continuously reinforced concrete pavements use steel reinforcing bars throughout the length of the pavement.&rdquo; The reinforcement design follows that &ldquo;The bar size and spacing is determined through the design process, bars should be placed within the specified tolerances,&rdquo; and practices such as tube‑feeders for longitudinal steel are prohibited: &ldquo;In the past, some CRCPs have been constructed using tube feeders for the longitudinal steel; this practice is no longer recommended or allowed in most states because the steel was not maintained at mid-slab depth.&rdquo; Finally, pavement thickness must satisfy that it is &ldquo;The thickness design is based on anticipated traffic loading (weights, configuration, and number), stiffness of the support, and the concrete properties (flexural strength, elastic modulus, and Poisson’s ratio).&rdquo; [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates a continuously reinforced concrete pavement.</p>
+<p><img alt="Diagram of a continuously reinforced concrete pavement (CRCP" src="assets/concrete-pavement-design-and-construction/594e15f393aea0741e3e19d181853683cbb5e34ba29b720ca769ad5c610654bd.jpg" />
+<em>Diagram of a continuously reinforced concrete pavement (CRCP) showing top and side views.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays the structural layout of a continuously reinforced concrete pavement, featuring a Top View with transverse cracks spaced at intervals and a Side View revealing embedded longitudinal reinforcing steel. The diagram visually confirms that transverse cracks are expected in the slab at intervals, a key feature of this specific pavement family.</p>
+<p><small>[1] — Ch. 3 (p. 104); [2] — Description (pp. 20–22); [3] — Ch. 1 (p. 28), Ch. 4 (pp. 329–333); [5] — 2. Factors Influencing Long-Li… (p. 18), 4. Pre-Paving (p. 54)</small></p>
+<h2 id="design-methods-and-criteria">Design methods and criteria</h2>
+<p>Concrete pavement design proceeds through a sequence of empirically based procedures rather than a single closed‑form equation. The strength and deformation characteristics of the subgrade and unstabilized bases are based on achieving a target density as determined by laboratory testing prior to construction; stabilized bases are evaluated with unconfined compressive strength or dynamic modulus as appropriate. Reinforcement is placed near the slab mid‑depth—“high steel” being within roughly two inches of the surface—and longitudinal reinforcement follows the guideline “continuous longitudinal reinforcement, which ranges from approximately 0.70 to 0.80 percent of the cross‑sectional area of the pavement slab.” Transverse bars are typically spaced on a 3‑ft (0.9 m) center‑to‑center pattern. The design thickness is governed by traffic demands and material stiffness; “The thickness design is based on anticipated traffic loading (weights, configuration, and number), stiffness of the support, and the concrete properties (flexural strength, elastic modulus, and Poisson’s ratio).” Longitudinal steel content is treated as a variable because it controls transverse crack spacing, load transfer, and crack width. Expected random hairline cracks develop at 2–8 ft intervals, with “The transverse crack width is generally less than 0.02 inches wide at the top of the slab for well‑performing CRCP.” Where necessary, expansion or isolation joints are added to limit compressive stresses. Construction timing of longitudinal saw cuts follows a window that depends on ambient conditions, concrete mix characteristics, base friction, and overall geometry; proper vibration consolidation and prompt curing ensure uniform strength development. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The following figure illustrates the consequences of omitting this critical reinforcement by showing longitudinal cracking in pavement.</p>
+<p><img alt="Longitudinal cracking in pavement due to the lack of a longi" src="assets/concrete-pavement-design-and-construction/3b3e587cd1ffc69e5741b6f43769f19cd2278ccc242e18b4e20157c7428ec123.jpg" />
+<em>Longitudinal cracking in pavement due to the lack of a longitudinal joint</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The image displays a concrete pavement surface featuring a prominent, irregular crack running longitudinally along the lane. This visual evidence illustrates how panels that are too wide may develop longitudinal cracks when the formation or sawing of a system of joints is not performed to control stress locations. The figure demonstrates that the layout and spacing of longitudinal joints in concrete pavements can influence the development of longitudinal cracking.</p>
+<p><small>[3] — Ch. 4 (pp. 322–333)</small></p>
+<p>Concrete pavement designs must satisfy performance‑based reliability criteria that ensure a typical design service life of 30 to 40 years under cumulative traffic on the order of tens of millions of equivalent load repetitions. For Jointed Plain Concrete Pavement (JPCP) the slabs are unreinforced (“the slabs do not contain distributed reinforcement between the transverse joints”; “They do not contain reinforcement.”) and must include sufficient joint density so that every anticipated natural crack terminates at a joint (“JPCPs contain enough joints to control the location of all expected natural cracks.”). Transverse joint spacing is limited to roughly 15–20 ft for slabs 7–12 in thick (“which are generally spaced 15 to 20 ft apart”; “The spacing between transverse joints is typically between 15 and 20 feet for slabs 7–12 inches thick”; “Jointed plain concrete pavement (JPCP) consists of short‑jointed pavements (with transverse joints generally spaced 15 ft apart)”). Load transfer across these joints may be provided by dowel bars (“may contain dowel bars across the transverse joints to transfer heavy (e.g., trucks and buses) traffic loads across slabs”; “They may contain dowel bars across the transverse joints to transfer traffic loads across slabs”) and tie‑bars in longitudinal contraction joints (“may contain tiebars across longitudinal joints to promote aggregate interlock between slabs”; “may contain tiebars across longitudinal contraction joints”).</p>
+<p>Jointed Reinforced Concrete Pavement (JRCP) employs longer joint spacings of about 30–40 ft and incorporates welded‑wire fabric or deformed bars amounting to roughly 0.10–0.20 % of the slab cross‑sectional area (“Jointed reinforced concrete pavement (JRCP) employs longer joint spacing (typically about 30 to 40 ft) and contains steel reinforcement (welded wire fabric or deformed steel bars comprising about 0.10% to 0.20% of the cross‑sectional area)”).</p>
+<p>Continuously Reinforced Concrete Pavement (CRCP) eliminates regular transverse joints (“CRCP designs have no transverse joints”; “CRCP has no regularly spaced transverse joints”) and must contain longitudinal reinforcement equal to approximately 0.6–0.8 % of the slab cross‑section (“continuous longitudinal reinforcement, which ranges from approximately 0.70 to 0.80 percent of the cross‑sectional area of the pavement slab”; “Continuously reinforced concrete pavements (CRCP) have … typically 0.6% to 0.8% of the cross‑sectional area”). Transverse steel is placed at about 3 ft on‑center spacing (“individual bars placed approximately 3 feet apart”; “the transverse steel is routinely placed on 3‑foot (0.9 m), center‑to‑center spacing”) to control random hairline cracks to a spacing of 2–8 ft and a maximum width of less than 0.02 in (“expected to develop hairline random cracks at anywhere from 2 to 8 feet (0.6 to 2.4 m) spacing”; “The transverse crack width is generally less than 0.02 inches wide at the top of the slab for well‑performing CRCP”). Longitudinal steel should be positioned near mid‑depth (“the depth of steel is typically at mid-depth of the slab or slightly higher”) and run the full length of the pavement with bar size and spacing determined through design tolerances (“Continuously reinforced concrete pavements use steel reinforcing bars throughout the length of the pavement”; “The bar size and spacing is determined through the design process, bars should be placed within the specified tolerances”).</p>
+<p>Slab thickness must be selected based on anticipated traffic loading (weights, configuration, repetitions), support stiffness, and concrete material properties (flexural strength, elastic modulus, Poisson’s ratio) (“The thickness design is based on anticipated traffic loading (weights, configuration, and number), stiffness of the support, and the concrete properties (flexural strength, elastic modulus, and Poisson’s ratio).”). Small reductions in thickness markedly reduce load‑carrying capacity and can precipitate fatigue cracking, random cracks, and premature punchouts (“The load carrying capacity is strongly influenced by relatively small changes in slab thickness”; “If the slab is designed to be thin, random cracks (both longitudinal and transverse) are likely to develop due to fatigue damage”; “Eventually, punchouts are also likely to occur, well before the end of the pavement design life”).</p>
+<p>Construction practices required for reliability include uniform subgrade and base support meeting target density and strength, internal vibration for concrete consolidation (“Consolidation of the concrete is accomplished through internal vibration.”), prompt curing, and saw‑cutting of longitudinal joints within the prescribed cutting window (“Saw cutting of the longitudinal joints must take place within a specific timeframe, termed the saw cutting window.”). When a stabilized base is used, excess frictional restraint at the slab/base interface must be accounted for to prevent closely spaced cracks. Collectively these criteria, thresholds, assumptions, and reliability requirements constitute the design and construction framework that concrete pavements must satisfy to achieve their intended service life and structural performance. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates why subgrade and subbase failures must be repaired to achieve the uniform support required by this framework.</p>
+<p><img alt="Excavated section of failed pavement revealing subgrade and" src="assets/concrete-pavement-design-and-construction/4bdc20d21131632cc40b786948e242c628c8371c47720f13fcf6ce2dfb078ad2.jpg" />
+<em>Excavated section of failed pavement revealing subgrade and base material.</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The image displays a rectangular excavation in an asphalt road surface, exposing the underlying layers of soil and aggregate base material.</p>
+<p><small>[1] — Ch. 3 (p. 51); [3] — Ch. 1 (pp. 28–30), Ch. 4 (pp. 322–334); [4] — Ch. 1 (p. 22); [5] — 2. Factors Influencing Long-Li… (p. 18), 4. Pre-Paving (p. 54)</small></p>
+<h2 id="structural-section-and-dimensions">Structural section and dimensions</h2>
+<p>The guides concur that for Jointed Plain Concrete Pavement (JPCP) the transverse joints are “generally spaced 15 to 20 ft apart” and “spacing between transverse joints is typically between 15 and 20 feet for slabs 7–12 inches thick.” The joint spacing may be described as “less than 15 to 20 ft apart.” No reinforcement is placed in the slab itself – the guides state that “the slabs do not contain distributed reinforcement between the transverse joints,” “JPCP does not contain any steel reinforcement,” and “They do not contain reinforcement.” Load‑transfer devices such as dowel bars or tie‑bars may be used across joints (“may contain dowel bars across the transverse joints”, “may contain tiebars across longitudinal contraction joints”).</p>
+<p>For Jointed Reinforced Concrete Pavement (JRCP) the joint spacing is longer, described as “longer joint spacing (typically about 30 to 40 ft).” Reinforcement in JRCP is limited to roughly “steel reinforcement &hellip; comprising about 0.10% to 0.20% of the crosssectional area.” Continuously placed longitudinal steel for reinforced or continuously reinforced pavements is specified at “approximately 0.70 to 0.80 percent of the cross‑sectional area of the pavement slab” (or “0.6 to 0.8 percent of the cross‑sectional area”). Transverse reinforcement bars are installed on a spacing of about “individual bars placed approximately 3 feet apart.” and “the transverse steel is routinely placed on 3‑foot (0.9 m), center‑to‑center spacing.” The cover depth for this steel is governed by the support chairs and is “typically at mid‑depth of the slab or slightly higher,” while high‑steel near the surface may be within “generally 2 inches (50 mm) or less.”</p>
+<p>Slab thickness is not fixed across the guides; one source links joint spacing to slabs “7–12 inches thick,” while another notes that “The thickness design is based on anticipated traffic loading (weights, configuration, and number), stiffness of the support, and the concrete properties.” Consequently, no universal slab‑thickness value is prescribed.</p>
+<p>Base, subbase, treated‑soil layer, shoulder width, and edge‑support dimensions are not given explicit values in any of the guides; they are left to be determined from traffic loading, support stiffness, and engineering judgment. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[1] — Ch. 3 (p. 51); [3] — Ch. 1 (p. 28), Ch. 4 (pp. 322–333); [4] — Ch. 1 (p. 22); [5] — 2. Factors Influencing Long-Li… (p. 18)</small></p>
+<h2 id="materials-and-mixture-design">Materials and mixture design</h2>
+<p>The design must define the concrete surface course by specifying its required compressive strength and the fundamental mechanical properties “flexural strength, elastic modulus, and Poisson’s ratio”. Reinforcement is a mandatory material: “Reinforcement may be used in concrete pavements to improve the ability of concrete to carry tensile stresses and to hold tightly together any random transverse cracks that develop in the slab.” Conventional steel reinforcement is described as “Conventional reinforcement is generally in the form of welded‑wire fabric or deformed bars that are placed at specific locations in the pavement”, with quantity limits that differ by pavement type. For jointed reinforced pavements the guides require “welded wire fabric or deformed steel bars comprising about 0.10% to 0.20% of the cross‑sectional area”, whereas continuously reinforced concrete pavements call for “continuous longitudinal reinforcement, which ranges from approximately 0.70 to 0.80 percent of the cross‑sectional area of the pavement slab” (also expressed as “typically 0.6 to 0.8 percent of the cross‑sectional area”). Transverse steel is also prescribed: bars are “individual bars placed approximately 3 feet apart” and may be provided at “acceptable spacing (3 to 8 ft apart)” to control cracking.</p>
+<p>When synthetic fibers replace or supplement steel, the design must state “Fibers are available in a variety of chemistries, lengths, and shapes, and they can be used at various dosages to reach desired performance levels within the pavement or overlay.” The dosage, chemistry, length, and shape are therefore explicit material specifications.</p>
+<p>Load‑transfer devices such as dowel or tie bars must be detailed for joint locations. Supporting layers are required to be prepared either as “an unstabilized aggregate base” or as a stabilized layer such as “a cement treated base (CTB) or an asphalt treated base (ATB).” For stabilized bases the design must target “unconfined compressive strength for portland cement, fly ash, or lime‑treated materials and dynamic modulus for asphalt stabilized materials,” while unstabilized bases are governed by a target density established through laboratory testing.</p>
+<p>Finally, concrete production quality is mandated: “A properly calibrated concrete plant, good aggregate stockpile management, and the ability to make adjustments to the concrete as a function of ambient conditions are important factors in maintaining uniform properties.” Together with the structural variables identified—slab thickness, joint spacing, reinforcement, concrete strength, and support conditions—the specified materials, their properties, and mixture proportions ensure long‑term pavement performance. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates how proper plant set-up and maintenance are critical to providing uniform concrete.</p>
+<p><img alt="A large concrete batch plant with a mixer and conveyor syste" src="assets/concrete-pavement-design-and-construction/286f61d3da98dfa92e01f3eae8e5f97cb60b9ffc8b0c66617b14223c83e83fd3.jpg" />
+<em>A large concrete batch plant with a mixer and conveyor system.</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The image displays a heavy-duty industrial concrete batching plant, featuring a large horizontal mixer drum mounted on a steel framework alongside a chute for discharging material. Proper plant set-up occurs far before the plant is mobilized on site and maintenance should conform to manufacturer recommendations, which are critical factors in maintaining uniform properties of the concrete produced for pavement construction. This equipment represents the production phase of concrete pavement design and construction, where ensuring uniformity through correct calibration and maintenance directly impacts the quality of the final road surface.</p>
+<p><small>[1] — Ch. 3 (p. 104); [2] — Description (pp. 20–22); [3] — Ch. 4 (pp. 322–333); [4] — Ch. 1 (p. 22); [5] — 2. Factors Influencing Long-Li… (p. 18), 4. Pre-Paving (p. 54)</small></p>
+<p>The selection and proportioning of materials in concrete pavement design follows a hierarchical process that first guarantees uniform support from the subgrade and base, then defines slab geometry, and finally tailors reinforcement according to the chosen pavement type. In designing a concrete pavement the engineer first ensures that the subgrade and base will provide uniform support by choosing either an unstabilized aggregate base or a stabilized base (cement‑treated or asphalt‑treated) whose laboratory‑determined target density can be achieved in the field. For stabilized bases the mix is proportioned to meet required structural values, while the slab thickness is sized so that “The thickness design is based on anticipated traffic loading (weights, configuration, and number), stiffness of the support, and the concrete properties (flexural strength, elastic modulus, and Poisson’s ratio).” Reinforcement content is then matched to the pavement type: continuously reinforced sections rely on high longitudinal steel, as described by “Continuously reinforced concrete pavements (CRCP) have no regularly spaced transverse joints but contain a significant amount of longitudinal steel reinforcement (typically 0.6% to 0.8% of the cross‑sectional area).” Jointed reinforced pavements use longer joint spacing and moderate distributed steel, as noted by “Jointed reinforced concrete pavement (JRCP) employs longer joint spacing (typically about 30 to 40 ft) and contains steel reinforcement (welded wire fabric or deformed steel bars comprising about 0.10% to 0.20% of the cross‑sectional area) distributed throughout the slab.” This integrated approach ensures that each material proportion contributes to structural capacity, durability under traffic, constructability in the field, and long‑term performance. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates how load distribution differs between unstabilized and stabilized bases.</p>
+<p><img alt="Load Distribution of Unstabilized and Stabilized Bases" src="assets/concrete-pavement-design-and-construction/e0e880b8ffb4060bd811353fd03d89f99f1779572274efab43f5beb7c06f60bd.jpg" />
+<em>Load Distribution of Unstabilized and Stabilized Bases</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The figure illustrates the difference in load distribution between an unstabilized granular base and a cement-treated base under a vertical load P. In the unstabilized configuration, stress vectors penetrate deeply into the subgrade, whereas in the stabilized configuration, they are distributed more broadly across the surface.</p>
+<p><small>[3] — Ch. 4 (pp. 322–333); [4] — Ch. 1 (p. 22); [5] — 2. Factors Influencing Long-Li… (p. 18)</small></p>
+<h2 id="structural-details-and-interfaces">Structural details and interfaces</h2>
+<p>The design of concrete pavements requires a network of joints and reinforcement that control cracking, transfer loads, and accommodate movement. For jointed plain concrete pavement (JPCP) the guides specify short transverse joints “generally spaced 15 to 20 ft apart” (also described as “spaced less than 15 to 20 ft apart”) and may include “dow​el bars across the transverse joints” together with “tie‑bars … at longitudinal contraction joints” to provide load transfer and aggregate interlock; JPCP “does not contain reinforcement.” When jointed reinforced concrete pavement is used, the guides call for longer joint spacing of “roughly 30–40 ft” and the inclusion of “welded wire fabric or deformed bars amounting to about 0.10‑0.20 % of the cross‑sectional area” distributed throughout each slab; dowel and tie bars are retained at all joints. Continuously reinforced concrete pavement (CRCP) eliminates intermediate transverse contraction joints, as stated: “no intermediate transverse expansion or contraction joints” and “no regularly spaced transverse joints.” Instead it provides continuous longitudinal reinforcement “typically 0.6 to 0.8 percent of the cross‑sectional area” (or “approximately 0.70 to 0.80 %”) placed near mid‑depth or as high steel within 2 in of the surface, and “transverse reinforcement … placed approximately 3 feet apart” to keep cracks within an acceptable spacing of “3 to 8 ft apart.” CRCP retains transverse and longitudinal construction joints for changes in geometry, and where differential movement is expected (e.g., bridge abutments) an “isolation joint … a pavement joint that allows relative movement in three directions” is provided. All pavement types require load‑transfer devices at joints: the guides note “there may be load transfer devices (e.g., dowel bars) at transverse joints” and “deformed steel bars (e.g., tie bars)” at longitudinal joints. Longitudinal construction joints are tied together with tie bars, lane‑to‑lane ties are limited to three or four lanes, and saw cuts for longitudinal joints must be placed within the prescribed “saw‑cutting window.” [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates the concrete reinforcement details for continuously reinforced concrete pavement.</p>
+<p><img alt="Preparation of continuously reinforced concrete pavement (CR" src="assets/concrete-pavement-design-and-construction/603319eab8a85c252b8b2516b006da295ffee32acc352bbe8b4f97c7aadc362b.jpg" />
+<em>Preparation of continuously reinforced concrete pavement (CRCP) with longitudinal and transverse steel reinforcement.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The image displays a roadway section prepared for paving, featuring a dense grid of continuous longitudinal steel bars supported by chairs to maintain their position within the slab depth. This setup illustrates the construction phase of continuously reinforced concrete pavement (CRCP), which is designed without intermediate transverse contraction joints and relies on continuous steel reinforcement to control cracking.</p>
+<p><small>[1] — Ch. 3 (pp. 51–104), Ch. 10 (pp. 318–327); [2] — Description (pp. 20–22); [3] — Ch. 1 (p. 28), Ch. 4 (pp. 322–334); [4] — Ch. 1 (p. 22); [5] — 2. Factors Influencing Long-Li… (p. 18), 4. Pre-Paving (p. 54)</small></p>
+<p>The design of every interface in a concrete pavement—between slabs, between successive placements, and between the pavement and adjacent structures—is treated as a purpose‑designed joint. Across sources the most influential variables for structural performance are identified as slab thickness, joint spacing, reinforcement, concrete strength, and support conditions. For jointed plain concrete pavements (JPCP) the guides require regularly spaced transverse contraction joints &ldquo;generally spaced 15 to 20 ft apart&rdquo; (or &ldquo;typically between 15 and 20 feet for slabs 7–12 inch thick&rdquo;) that &ldquo;may contain dowel bars across the transverse joints to transfer heavy (e.g., trucks and buses) traffic loads across slabs.&rdquo; Longitudinal construction joints are tied together with steel tie bars, described as &ldquo;tie bars that lock aggregate between adjacent slabs&rdquo; or &ldquo;steel tie bars across longitudinal joints,&rdquo; to maintain alignment. The joint layout is intended so that &ldquo;all necessary cracking occurs at joints and not elsewhere in the slabs,&rdquo; and &ldquo;JPCPs contain enough joints to control the location of all expected natural cracks.&rdquo; For reinforced jointed slabs, longer joint spacings of &ldquo;typically about 30 to 40 ft&rdquo; are permitted, still using dowel bars and tie bars for load transfer and crack control. </p>
+<p>Continuously reinforced concrete pavement (CRCP) eliminates regular transverse contraction joints; instead it is &ldquo;designed without sawed transverse contraction joints,&rdquo; relying on &ldquo;steel reinforcing bars throughout the length of the pavement&rdquo; to keep cracks tightly closed. Where compressive stress buildup could occur, &ldquo;transverse expansion and isolation joints are provided where necessary to prevent compressive stress build‑up … or also to isolate the pavement from adjacent structures.&rdquo; Isolation joints &ldquo;allow relative movement in three directions&rdquo; and &ldquo;interrupt all or part of the bonded reinforcement,&rdquo; preventing crack propagation into adjoining structures. </p>
+<p>When a new concrete layer is placed over existing pavement, a bonding agent must be applied: it is defined as &ldquo;a substance applied to an existing surface to create a bond between it and a succeeding layer, as between a bonded overlay and existing concrete pavement.&rdquo; The termination of one placement and the start of the next are marked by a construction joint, described as &ldquo;the junction of two successive placements of concrete, typically with a keyway or reinforcement across the joint.&rdquo; If paving is halted for a day, a header joint—&ldquo;a transverse construction joint installed at the end of a paving operation or other placement interruptions&rdquo;—provides a defined restart location. </p>
+<p>The interface between the surface slab and its supporting layers is addressed through proper subgrade preparation and base selection. The guides require &ldquo;proper preparation of the subgrade soil and placement of either an unstabilized aggregate base or a stabilized aggregate base, such as a cement treated base (CTB) or an asphalt treated base (ATB).&rdquo; Stabilized bases are evaluated by &ldquo;unconfined compressive strength for portland cement, fly ash, or lime‑treated materials and dynamic modulus for asphalt stabilized materials,&rdquo; ensuring consistent support and acting as a water barrier. </p>
+<p>Reinforcement is placed at a depth governed by the height of support chairs; &ldquo;high steel … refers to the steel placement very near the surface, generally 2 inches (50 mm) or less,&rdquo; which is avoided to prevent spalling. Curing compounds or alternative methods are applied promptly after finishing to achieve early‑age strength and limit moisture‑induced distress. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates properly supported reinforcing steel.</p>
+<p><img alt="Properly Supported Reinforcing Steel Grid for Concrete Pavem" src="assets/concrete-pavement-design-and-construction/9ecd1bb6183d8aa137f210f213e9c98673df36d1fbf031834d7c393b02062331.jpg" />
+<em>Properly Supported Reinforcing Steel Grid for Concrete Pavement Construction</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The image displays a grid of longitudinal steel reinforcing bars laid out on the ground, supported by small chairs to maintain their elevation. Bars should be placed on supports which hold the steel at the correct height for continuously reinforced concrete pavements (CRCPs). This reinforcement is designed to control cracking by holding cracks tight and promoting aggregate interlock across the crack.</p>
+<p><small>[1] — Ch. 3 (p. 51), Ch. 10 (pp. 316–322); [2] — Description (pp. 20–22); [3] — Ch. 1 (p. 28), Ch. 4 (pp. 322–331); [4] — Ch. 1 (p. 22); [5] — 2. Factors Influencing Long-Li… (p. 18), 4. Pre-Paving (p. 54)</small></p>
+<h2 id="drainage-environment-and-accessibility">Drainage, environment, and accessibility</h2>
+<p>The guides agree that concrete pavement design must be tailored to local climate extremes—whether freezing winters or intense heat—to achieve long‑term durability, relying on suitable materials, an adequate design, and sound construction practices. To manage moisture and drainage, the subgrade is prepared and a base layer of unstabilized aggregate or a stabilized material such as cement‑treated or asphalt‑treated base is placed, which &ldquo;it also serves as a barrier to surface water intrusion.&rdquo; Reinforcement is positioned away from the slab face (&ldquo;generally 2 inches (50 mm) or less&rdquo;) to protect against cracking. Joint cutting schedules are tied to ambient temperature, humidity, wind, and mix characteristics—&ldquo;Longitudinal saw cuts are scheduled within a specific window that depends on ambient temperature, humidity, wind, and concrete mix characteristics to ensure proper crack formation.&rdquo; Finally, &ldquo;adequate and timely curing is necessary to promote strength development in the concrete, minimize moisture and temperature differentials within the slab during early age strength development, and minimize plastic shrinkage cracking,&rdquo; with curing methods selected for the prevailing climate. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The following figure illustrates how inadequate moisture management can lead to micro-cracking at concrete pavement joints.</p>
+<p><img alt="Cross-section of a concrete pavement joint showing trapped w" src="assets/concrete-pavement-design-and-construction/6fe99b1b124890a587bc00f3c9ff88a7f029747a2cdc4d6f19fd017ad07ecc38.jpg" />
+<em>Cross-section of a concrete pavement joint showing trapped water and micro-cracking caused by failed sealant, non-draining subbase, and backer rod placement.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays a vertical cross-section of a saw-cut joint in concrete pavement containing a black circular backer rod surrounded by lighter gray material representing the joint space. Blue shading indicates trapped water and saturated concrete with micro-cracks extending outward from the joint into the surrounding slab, illustrating moisture accumulation within the pavement structure. Water can be present in a pavement system because of inadequate surface or subsurface drainage, or high water table, or no crack to drain the water, which results in water being trapped in the bottom of the saw cut and under the backer rod. This mechanism directly impacts concrete pavement design by demonstrating how environmental conditions like freeze-thaw cycles can degrade joint integrity when drainage is compromised.</p>
+<p><small>[2] — Description (pp. 20–22); [3] — Ch. 4 (pp. 329–331)</small></p>
+<p>Concrete pavement designs must satisfy geometric, safety, accessibility, and user‑performance criteria. Across the guides transverse joints are required to be spaced less than 15 to 20 ft apart (generally spaced 15 to 20 ft apart; the spacing between transverse joints is typically between 15 and 20 feet for slabs 7–12 inches thick; short‑jointed pavements have transverse joints generally spaced 15 ft apart). Joint layout must provide enough joints to control the location of all expected natural cracks. Where load transfer is needed, dowel bars may be placed across the transverse joints to transfer heavy truck and bus loads and maintain surface continuity (may contain dowel bars across the transverse joints; there may be load transfer devices (e.g., dowel bars) at transverse joints). Longitudinal contraction joints may include tie bars or deformed steel tie bars to promote aggregate interlock between adjacent slabs (may contain tiebars across longitudinal joints; may contain tiebars across longitudinal contraction joints; there may be … tie bars at longitudinal joints). Reinforcement requirements vary by pavement type: jointed reinforced concrete pavements employ longer joint spacing of about 30 to 40 ft and contain steel reinforcement equal to roughly 0.10%–0.20% of the slab cross‑section (contains steel reinforcement … comprising about 0.10% to 0.20% of the cross‑sectional area); continuously reinforced concrete pavements omit regular transverse joints but incorporate longitudinal steel amounting to about 0.6%–0.8% of the cross‑section, producing transverse crack spacing of approximately 3 to 8 ft (This high steel content both influences the development of transverse cracks within an acceptable spacing (about 3 to 8 ft)). Bars must be placed on supports that hold the steel at the correct height and positioned with sufficient offset from the pavement edge to avoid damage from spreading equipment (Bars should be placed on supports which hold the steel at the correct height; Attention should be paid to the offset between the outside bars and the edge of pavement, spreading and concrete equipment can hit bars which are placed too close to the edge of pavement). The guides also require that geometric characteristics such as slab thickness, joint spacing, and reinforcement layout follow standard values for the geometric characteristics of pavements, while functional performance is linked to smoothness, surface texture, and acceptable noise levels (Functional performance of the pavement is often related to features like smoothness, texture, and noise). Collectively these requirements ensure compliance with accessibility standards, provide safe vehicle operation, and deliver consistent performance for users. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates the transverse cracking that can result from using excessive slab lengths in concrete pavement design.</p>
+<p><img alt="Transverse cracking caused by excessive slab lengths (20-foo" src="assets/concrete-pavement-design-and-construction/aeb002d1746cf94b17073c7361bb5bfa2d76be056c7a4cd977c53dc9d4eeaf60.jpg" />
+<em>Transverse cracking caused by excessive slab lengths (20-foot panel)</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The image displays a concrete pavement surface featuring a prominent, jagged transverse crack that extends across the width of the lane. This visual evidence illustrates how inadequate joint spacing can lead to uncontrolled cracking in concrete pavements. Such failures highlight the importance of controlling slab length to ensure a durable road surface.</p>
+<p><small>[1] — Ch. 3 (p. 51); [2] — Description (pp. 20–22); [3] — Ch. 1 (p. 28); [4] — Ch. 1 (p. 22); [5] — 2. Factors Influencing Long-Li… (p. 18), 4. Pre-Paving (p. 54)</small></p>
+<h2 id="verification-and-expected-performance">Verification and expected performance</h2>
+<p>The designs target a long‑term performance horizon, with typical design service lives of 30 to 40 years and durability gauged by the cumulative traffic it endures – traffic over the service life of the pavement can be on the order of tens of millions of equivalent load repetitions. Performance is expected to be reflected in limited distress: transverse cracks should appear in a random hairline pattern spaced roughly every 2 to 8 feet, and an acceptable spacing of three to eight feet apart is also cited. The transverse crack width is generally less than 0.02 inches wide at the top of the slab for well‑performing CRCP. Distress resistance is verified by field measurement of crack spacing after construction and by ongoing visual inspection – performance is evaluated by inspecting crack spacing and width and by observing functional distresses such as loss of surface texture or roughness, which together indicate ride quality and functional integrity over the intended service life. The designs incorporate a significant amount of longitudinal reinforcement, typically 0.6 to 0.8 percent of the cross‑sectional area, and where used, transverse reinforcement; this high content of reinforcement both influences the development of transverse cracks within an acceptable spacing (3 to 8 ft apart) and serves to hold cracks tightly together. Some agencies use CRCP designs for high‑traffic, urban routes because of their suitability for high‑traffic loads. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates the closely spaced transverse cracks characteristic of well-performing continuous reinforced concrete pavement.</p>
+<p><img alt="Closely spaced transverse cracks in a 25-year-old continuous" src="assets/concrete-pavement-design-and-construction/5324f4feb51c76c406afb3ebb9123d76875f902af76235c1d85b0d3ad3735c1f.jpg" />
+<em>Closely spaced transverse cracks in a 25-year-old continuously reinforced concrete pavement (CRCP)</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The image displays the surface of a concrete highway lane characterized by numerous fine, closely spaced vertical lines running across the width of the slab. This visual evidence illustrates a key design characteristic of continuously reinforced concrete pavement, where continuous steel reinforcement is used to control cracking.</p>
+<p><small>[3] — Ch. 1 (pp. 29–30), Ch. 4 (pp. 322–334); [5] — 2. Factors Influencing Long-Li… (p. 18)</small></p>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li><li id="ref-3"></li><li id="ref-4"></li><li id="ref-5"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

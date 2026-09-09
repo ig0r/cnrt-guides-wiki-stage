@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sealant Application and Performance</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html" class="active" aria-current="page">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Sealant Application and Performance</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=sealant-materials">sealant-materials</a><a class="tag" href="index.html?q=pavement-construction">pavement-construction</a><a class="tag" href="index.html?q=material-selection">material-selection</a><a class="tag" href="index.html?q=sealing-procedures">sealing-procedures</a><a class="tag" href="index.html?q=long-term-performance">long-term-performance</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>Sealant application and performance is the practice of filling concrete pavement joints and cracks with a liquid or pre‑formed material so that water and incompressible debris cannot infiltrate, thereby mitigating moisture‑related distresses such as pumping, base erosion, faulting, spalling and blow‑ups[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]. The process demands a sealant selected for durability, extensibility and adhesion that matches the joint’s geometry, climate and traffic conditions; the reservoir must be meticulously cleaned, sand‑blasted, air‑blown and fitted with a properly sized closed‑cell backer rod before the material is placed flush (or recessed) to achieve the required shape factor—width/depth = 1 for hot‑poured asphalt sealants or 0.5 for silicone/cold‑poured products[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]. Ongoing curing, protection and scheduled resealing—generally every one to four years unless modern formulations extend service life—preserve joint integrity across varying climates and traffic speeds, especially on low‑speed roadways where water can become trapped[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-applicability">Purpose and applicability</a></li><li><a href="#required-inputs">Required inputs</a></li><li><a href="#work-sequence">Work sequence</a></li><li><a href="#staging-and-logistics">Staging and logistics</a></li><li><a href="#quality-control-and-acceptance">Quality control and acceptance</a></li><li><a href="#curing-protection-and-handoff">Curing, protection, and handoff</a></li><li><a href="#expected-performance-and-maintenance">Expected performance and maintenance</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (7)</summary><div class="sources-body"><a href="#ref-1">2019-12_IMCP_manual</a>, <a href="#ref-2">IPS</a>, <a href="#ref-3">PDR_guide_Apr2012</a>, <a href="#ref-4">concrete_overlay_repair_strategies_guide_web</a>, <a href="#ref-5">concrete_pvmt_preservation_guide_3rd_edition_web</a>, <a href="#ref-6">guide_to_concrete_overlays_4th_Ed_web</a>, <a href="#ref-7">preservation_reference_manual</a></div></details>
+
+<h2 id="purpose-and-applicability">Purpose and applicability</h2>
+<p>The seals address the pervasive problem of water and incompressible‑material intrusion into concrete pavement joints and cracks, which otherwise triggers moisture‑related distresses (pumping, base erosion, settlement, faulting) and pressure‑induced failures (spalling, blow‑ups, buckling). The guides state that &ldquo;Joints are filled with sealant to prevent ingress of deleterious materials.&rdquo; By doing so the method &ldquo;reduce the amount of moisture that can infiltrate a pavement structure, thereby reducing moisture-related distresses such as pumping, joint faulting, base and subbase erosion, and corner breaks.&rdquo; When existing joints have deteriorated, &ldquo;Joint resealing consists of placing a sealing material in an existing joint or crack to reduce moisture infiltration and minimize intrusion of incompressibles,&rdquo; followed by proper preparation—cleaning, backer‑rod installation, and flush‑filling—to restore long‑term joint integrity across climates. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates typical joint sealant configurations used to achieve these performance goals.</p>
+<p><img alt="Joint sealant configurations." src="assets/sealant-application-and-performance/5d54aba28619f6bd048a5a2c84af6ed945345d3a09522352c72e48605254302d.jpg" />
+<em>Joint sealant configurations.</em> [<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The figure displays three cross-sectional diagrams of concrete pavement joints labeled Recessed, Flush-Filled, and Overbanded to illustrate different sealant placement geometries. In the recessed configuration, a backer rod is visible within the joint reservoir beneath the black sealant material.</p>
+<p><small>[1] — Ch. 8 (pp. 257–259); [2] — Joint Resealing (p. 76); [4] — Joint Resealing (p. 36); [5] — Ch. 9 (pp. 240–250); [6] — Ch. 6 (p. 64); [7] — Ch. 10 (pp. 194–196)</small></p>
+<p>Sealant application is appropriate when a joint must be protected from water infiltration and incompressible objects and the design criteria—pavement use, environment, cost, performance, joint type and spacing—call for sealing. The guides also require that the reservoir be meticulously prepared by washing away saw slurry, sand‑blasting the top inch of each face to provide a clean, textured surface, and blowing oil‑free air (minimum 120 ft³/min at 90 lb/in²) before placing a sealant whose shape factor matches its type (width/depth ratio of 1 for hot‑poured asphalt‑based sealants or 0.5 for silicone and cold‑poured sealants, with compression seals limited to 20–50% compression).</p>
+<p>Sealant filling is appropriate when the overlay was originally constructed with sealed or filled joints, when inspection reveals joint distress such as migration, spalling, tenting or buckling, and in environments prone to moisture or freeze‑thaw cycles or on low‑speed roadways (45 mph or less) where water can be trapped; in those cases the reservoir should be flush‑filled with a hot‑poured material. Sealant application is appropriate for existing concrete joints or cracks that have already been sealed and require periodic resealing to keep moisture out and prevent pressure‑related distress. The practice should follow the sealant’s service life—historically one to four years, but extendable with modern materials and proper preparation.</p>
+<p>Sealant application is chosen when the overlay’s climate, the governing state agency specifications, or the slab geometry indicate that a joint sealant is needed—typically for longer joints or where water entering the joint cannot be allowed to exit the pavement. Sealant application is appropriate for joint resealing and crack sealing when &ldquo;hot‑applied asphalt sealant materials or cold‑applied silicone sealant materials&rdquo; can be placed. When sealants or fillers are used, the contractor may select hot‑poured rubberized material meeting ASTM D6690 or AASHTO M 301, silicone material per state spec, or preformed compression seals conforming to ASTM D2628 or AASHTO M 220.</p>
+<p>Conversely, when an overlay was designed without sealed joints and is performing adequately without filled or sealed joints, a secondary application is considered unnecessary; removing existing sealant from a joint that was originally sealed can be detrimental, so another preservation method should be used instead. If the design permits drainage of water and the joints are short, a joint filler is preferred. Another method—leaving the joint unsealed—should be used when agency policy or design guidance indicates sealing is not required. When a pavement has not been sealed originally—or when design and construction measures are preferred over sealing in new construction—alternative methods should be employed.</p>
+<p>Pre‑formed sealant types … see greater use in new pavement construction, particularly where longterm performance is sought. However, when joints exhibit uneven widths, minor spalling, or overall non‑uniformity, their use is precluded and another method—such as adjustable hot‑applied or silicone sealants—should be selected. For cases where simplicity is desired, an appropriately sized pre‑formed compression seal may replace the filler‑and‑sealant system. Preformed neoprene compression seals belong to that alternative category; they are installed as factory‑produced components during new pavements and are not suited for resealing work. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates candidate distresses relevant to these sealant application scenarios.</p>
+<p><img alt="Severe longitudinal cracking and spalling along a concrete p" src="assets/sealant-application-and-performance/74318a2913a11d1f2da07c33759ca1c53e72cc6f9ba58d4242120448f60b5884.jpg" />
+<em>Severe longitudinal cracking and spalling along a concrete pavement joint.</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The image displays two views of a concrete highway surface featuring a prominent, jagged crack running longitudinally down the center of the lane.</p>
+<p><small>[1] — Ch. 8 (pp. 257–259); [4] — Joint Resealing (p. 36); [5] — Ch. 9 (pp. 240–250); [6] — Ch. 6 (p. 64); [7] — Ch. 10 (pp. 194–195)</small></p>
+<h2 id="required-inputs">Required inputs</h2>
+<p>Sealant application for concrete pavements requires selecting a material that meets performance and environmental demands. The guides agree that the sealing material may be a liquid—applied hot or cold—or a pre‑formed expansion‑joint filler, with &ldquo;Sealing material is typically a liquid (hot or cold) but can also be an expansion joint filler (preformed).&rdquo; Materials cited include hot‑poured rubberized sealants (ASTM D6690/AASHTO M 301), cold‑applied silicone sealants per state specifications, bitumen‑based thermoplastic sealants that &ldquo;soften upon heating and harden upon cooling,&rdquo; and low‑modulus rubberized asphalt sealants favored in colder climates for their &ldquo;increased extensibility.&rdquo; Preformed compression seals (ASTM D2628/AASHTO M 220) are noted as having greater use in new construction.</p>
+<p>The required mixture properties focus on durability, extensibility, and adhesion. The guides state that &ldquo;the desired properties of the sealant are durability to traffic and environment, extensibility that allows joint/crack movement without rupture, and adhesiveness that permits adherence to the crack or joint walls.&rdquo; Adequate cured strength of any surrounding patch material is essential before cutting compressible inserts: &ldquo;The compressible inserts are sawed out to the dimensions specified in the contract documents when the patch material has attained sufficient strength to support concrete saws.&rdquo; Proper shape factor is achieved by filling the joint reservoir flush with the overlay surface, as recommended: &ldquo;It is recommended to fill the reservoir flush with the overlay surface when applying a hot‑poured sealant material,&rdquo; which keeps the sealant pliable under tire impacts.</p>
+<p>Site conditions governing selection include joint geometry, climate, traffic speed, and agency requirements. Uniform joints free of significant spalling are required; uneven widths or minor spalling can preclude certain sealants. Climate considerations are highlighted: &ldquo;In wet or freezing climates, joint filling/sealing is also recommended…&rdquo; and low‑speed roadways (≤45 mph) should be designed with filled joints: &ldquo;According to ACPA (2018), concrete overlays on roadways serving low-speed traffic (45 mph or less) should be designed with filled joints.&rdquo; The decision &ldquo;depends on the climate in which the overlay is built, the state agency overseeing the project, and the overlay’s slab geometry.&rdquo; Proper joint preparation—cleaning, restoring reservoir shape, installing a backer rod that is flexible, non‑absorbent, sized about 25 % larger than the joint width, and with a melting point at least 25 °F above sealant temperature—is required: &ldquo;Closed‑cell products … are recommended because of their nonabsorbent nature,&rdquo; &ldquo;The melting temperature of the backer rod material should be at least 25°F higher…,&rdquo; and &ldquo;The backer rod material should be about 25% larger in diameter than the joint width.&rdquo; For expansion joints, a preformed filler is placed 0.75–1 in. below the slab surface and capped with a hot‑applied sealant: &ldquo;preformed filler material … placed 0.75 to 1 in. below the slab surface&rdquo; and &ldquo;hot‑applied joint sealant is then applied as a “cap” to seal the expansion joint.&rdquo; [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates the specific dimensional requirements for overlay joints relative to existing slab cracks and faulting conditions.</p>
+<p><img alt="the figure.7 COC–B joint detail showing the widths of the ov" src="assets/sealant-application-and-performance/b9d36a183b7812403ca48f5159a1293c2316f299bb4cb942c24a4f1d32c8d4d7.jpg" />
+<em>the figure.7 COC–B joint detail showing the widths of the overlay joint, sawcut, and underlying crack.</em> [<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p>The figure illustrates a cross-section of a bonded concrete overlay on existing pavement, highlighting the alignment between the new transverse overlay joint (X), the sawcut in the existing slab (Y), and an underlying crack (Z). This detail demonstrates the application of sealant concepts in pavement rehabilitation by showing how joint preparation and sealing are critical for ensuring bond integrity and preventing distresses like faulting.</p>
+<p><small>[2] — Joint Resealing (p. 76); [3] — Verify the following: (p. 34); [4] — Joint Resealing (p. 36); [5] — Ch. 9 (pp. 240–250); [6] — Ch. 6 (p. 64); [7] — Ch. 10 (p. 196)</small></p>
+<p>Sealant joint design across the guides requires a reservoir shape factor that matches sealant type—“a width‑to‑depth ratio of 1 for hot‑poured asphalt sealants” and “0.5 for silicone or two‑component cold‑poured products.” Compression seals must be capable of compressing between about 20 % and 50 % over the anticipated temperature range. Saw cuts are required to be uniform and cut to a depth of one‑quarter to one‑third of slab thickness (T/4–T/3); they may be single or double as permitted by the manufacturer. Prior to sealant placement, joint faces must be water‑washed, sandblasted on the top inch of each face, and air‑blown with oil‑free compressed air delivering at least 120 ft³/min flow and 90 lb/in² nozzle pressure.</p>
+<p>The guides also stipulate that any compressible inserts be cut to the exact dimensions shown in contract drawings, and cutting may only proceed once the repaired concrete has attained sufficient strength to support a concrete saw without damage—“the strength of the patch material therefore serves as a pre‑construction test.” After cuts, all joints must be thoroughly cleaned and resealed in accordance with contract specifications.</p>
+<p>For overlay applications, the joint reservoir must sit flush with the pavement surface when a hot‑poured sealant is placed, following the dimensions illustrated in ACPA Figure 25 for flush‑filled joints. On roadways with design speeds of 45 mph or less—including urban arterials and sections with curb and gutter—the overlay should be designed with filled joints to prevent water and incompressible intrusion, and existing overlays that were originally constructed with sealed or filled joints must be resealed or refilled rather than having the original sealant removed.</p>
+<p>Backer‑rod requirements include a flexible, non‑absorbent (closed‑cell preferred) material whose melting point exceeds the sealant temperature by at least 25 °F. New joint reservoirs are typically 1–2 in. wide with a preformed filler set 0.75–1 in. below the slab surface; for resealing, the joint is sawed slightly wider and deep enough to receive a backer rod sized about 25 % larger in diameter than the joint width so it fits tightly without movement. The rod is inserted immediately after media blasting, seated to the proper depth with no gaps at intersections while minimizing stretch. Sealant is placed from the bottom up and recessed at the surface to avoid extrusion as the joint closes.</p>
+<p>Finally, sealant selection for resealing must conform to ASTM D 6690, which defines material properties, performance testing, and acceptance criteria for high‑quality rubberized asphalt sealants. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p><small>[1] — Ch. 8 (pp. 257–259); [3] — Verify the following: (p. 34); [4] — Joint Resealing (p. 36); [5] — Ch. 9 (pp. 247–250); [7] — Ch. 10 (p. 196)</small></p>
+<h2 id="work-sequence">Work sequence</h2>
+<p>The guides agree that before any sealant work can start, two preparatory domains must be satisfied. First, a proper sealant material must be selected; when planning a joint resealing project, one of the primary design activities is the selection of an appropriate sealant material. Second, the joint itself must be fully prepared. The joint preparation sequence begins with removal of any existing sealant and refacing of the joint surface, followed by cleaning of the reservoir and installation of a backer rod to restore proper shape and support. Immediately after wet sawing, a water wash removes the slurry from the sawing operation, and an air‑blowing operation removes sand, dirt, and dust from the joint and pavement surface. Only after these steps are completed can sealant placement commence. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The figure below illustrates the air blasting process used to remove loose debris from the joint.</p>
+<p><img alt="Air blasting to remove loose debris from a concrete pavement" src="assets/sealant-application-and-performance/6cc73e1cc7be91afd7e4fc63453a67cef4547ce988865a3fa73f03d978b32f8f.jpg" />
+<em>Air blasting to remove loose debris from a concrete pavement crack.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>A construction worker wearing safety gear operates a high-pressure hose to clean the interior of a longitudinal crack in a concrete road surface.</p>
+<p><small>[1] — Ch. 8 (pp. 257–259); [2] — Joint Resealing (p. 76); [3] — Verify the following: (p. 34); [4] — Joint Resealing (p. 36); [5] — Ch. 6 (p. 160), Ch. 8 (p. 208), Ch. 9 (pp. 247–250); [6] — Ch. 6 (p. 64); [7] — Ch. 10 (pp. 194–201)</small></p>
+<ol>
+<li>Remove any existing sealant from the joint.</li>
+<li>Verify that the concrete adjacent to the joint has attained sufficient strength to support sawing.</li>
+<li>Saw the joint or crack to the required depth/width—typically one‑quarter to one‑third of slab thickness, a single or double cut as called for by the sealant system, and, when specified, create a slightly wider and deeper reservoir using a crack‑chasing saw to achieve the proper shape factor.</li>
+<li>Immediately after wet sawing, flush the joint with clean water in the direction of cutting to remove slurry.</li>
+<li>Reface the joint faces to restore proper geometry.</li>
+<li>Clean and profile the exposed surfaces: sandblast or abrasive‑blast the top inch of each reservoir face at an angle to eliminate residue and provide texture for adhesion.</li>
+<li>Remove all dust and debris with a final air‑blowing (or vacuum sweep) using a compressor that delivers at least 120 ft³/min at 90 lb/in² nozzle pressure.</li>
+<li>Install a backer rod to set the correct depth and shape factor; replace any deteriorated preformed filler along the joint length if required.</li>
+<li>Place fresh sealant—hot or cold liquid, or a preformed filler—in accordance with the joint design and manufacturer’s instructions, installing from the bottom upward and leaving it recessed at the surface so traffic‑induced closure will not force extrusion. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</li>
+</ol>
+<p>The figure below illustrates an expansion joint detail with a backer rod installed to ensure proper joint shape factor.</p>
+<p><img alt="Cross-section of an expansion joint detail showing the place" src="assets/sealant-application-and-performance/120b5ac62b71a7d79a237f6c3ee9a7f1d8f7848e8184cf6cdc580d7462db10d4.jpg" />
+<em>Cross-section of an expansion joint detail showing the placement of a backer rod and formed-in-place sealant.</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The figure displays a cross-sectional view of a concrete pavement joint where preformed isolation filler has been removed to create a reservoir for new materials. A backer rod is installed within the lower portion of this gap, and a formed-in-place sealant fills the upper section above it. This assembly demonstrates the installation process where a reservoir is fitted with a backer rod before material is placed flush or recessed to achieve the required shape factor for joint sealing.</p>
+<p><small>[1] — Ch. 8 (pp. 257–259); [2] — Joint Resealing (p. 76); [3] — Verify the following: (p. 34); [5] — Ch. 8 (p. 208), Ch. 9 (pp. 249–250); [7] — Ch. 10 (p. 201)</small></p>
+<p>The guides require that “Immediately after wet sawing, a water wash removes the slurry from the sawing operation.” After the joint has sufficiently dried, “a sandblasting operation removes any remaining residue.” An air‑blowing step must occur “just prior to sealant pumping” to provide an extremely clean reservoir. Following air‑blasting, the backer rod must be placed “as soon as possible after the joints are air blasted,” using a properly fitted insertion tool: “The backer rod should be installed in the joint with a properly fitted backer rod insertion tool.” [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates these critical cleaning steps, showing media blasting to remove residue on the left and air blasting immediately prior to dowel placement on the right.</p>
+<p><img alt="Close-up of a concrete pavement joint showing the reservoir" src="assets/sealant-application-and-performance/2c37759bc0b7990b281f05b69a57671a773a25caa1a101fe8476aa4194daecf1.jpg" />
+<em>Close-up of a concrete pavement joint showing the reservoir prepared for sealant installation.</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The image displays a vertical gap in a concrete surface, revealing the internal structure and aggregate composition of the material.</p>
+<p><small>[1] — Ch. 8 (pp. 257–259); [5] — Ch. 9 (pp. 247–248)</small></p>
+<h2 id="staging-and-logistics">Staging and logistics</h2>
+<p>The guides note that &ldquo;Sealant material selection considerations include the environment, cost, performance, joint type, and joint spacing.&rdquo; Joint geometry is further limited by the aggregate composition; &ldquo;Concrete containing harder coarse aggregates, such as gravel or granite, will expand and contract more with a given temperature change than a concrete containing limestone.&rdquo; Because of seasonal temperature swings, compression seals must stay within defined limits: &ldquo;Compression sealants are selected such that the maximum compression of the seal is 50 percent and the minimum is 20 percent through the anticipated ambient temperature cycles in the area.&rdquo; Proper site access for joint preparation also requires adequate air supply – &ldquo;The compressor should deliver air at a minimum 120 ft3/ min and develop at least 90 lb/in2 nozzle pressure.&rdquo;</p>
+<p>Weather and climate impose additional constraints. In colder or wet periods, &ldquo;In wet or freezing climates, joint filling/sealing is also recommended for transverse and longitudinal joints in COA–B overlays (ACPA 2018).&rdquo; Low‑speed sections with curbs demand extra care because &ldquo;Sealing joints on sections with curb and gutter is advised because curbs can readily trap incompressibles and slower traffic is not as capable as faster traffic of generating sufficient air movement to blow the incompressibles off the pavement surface.&rdquo; When hot‑poured materials are used, &ldquo;It is recommended to fill the reservoir flush with the overlay surface when applying a hot-poured sealant material.&rdquo;</p>
+<p>Backer‑rod handling is temperature sensitive: &ldquo;The melting temperature of the backer rod material should be at least 25°F higher than the sealant application temperature to prevent damage during sealant placement&rdquo; and it must be placed promptly – &ldquo;The backer rod should be installed in the joint &hellip; as soon as possible after the joints are air blasted.&rdquo;</p>
+<p>Overall climate dictates whether a filler or a sealant is appropriate: &ldquo;depends on the climate in which the overlay is built,&rdquo; and the decision also hinges on drainage design – &ldquo;The need for joint material depends on whether the design allows for water entering the joint to leave the pavement.&rdquo; Long‑term performance is governed by &ldquo;Climate conditions (at time of installation and during the life of the sealant).&rdquo; Exposure to weathering can degrade materials – &ldquo;are affected by weathering to some degree,&rdquo; leading many northern jurisdictions to specify flexible options – &ldquo;low modulus rubberized asphalt sealants &hellip; are used for sealing operations in many northern states because of their increased extensibility.&rdquo; [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p><small>[1] — Ch. 8 (pp. 257–259); [4] — Joint Resealing (p. 36); [5] — Ch. 9 (pp. 247–248); [6] — Ch. 6 (p. 64); [7] — Ch. 10 (pp. 195–196)</small></p>
+<h2 id="quality-control-and-acceptance">Quality control and acceptance</h2>
+<p>Inspectors must verify that joints are cleaned of slurry, sandblast residue, oil, and any debris before sealant placement. The joint reservoir must be prepared with the correct shape factor; hot‑poured asphalt‑based sealants typically need a reservoir shape factor (width/depth ratio) of 1, while silicone and two‑component, cold‑poured sealants typically need a reservoir shape factor of 0.5. The saw cut that creates the reservoir must be uniform in width across the joint, and its depth must allow placement of a backer rod to achieve the required shape factor.</p>
+<p>Backer rods must be flexible, nonabsorbent, compatible with the sealant, preferably closed‑cell, about 25 % larger in diameter than the joint width, and have a melting temperature at least 25 °F higher than the sealant application temperature. They are positioned to the proper depth without gaps or excessive stretch.</p>
+<p>The installed sealant must be capable of compressing between roughly 20 % and 50 % over the anticipated temperature cycle, providing sufficient low‑temperature extensibility and resistance to high‑temperature softening and tracking, and maintaining elastic and thermal behavior as required by ASTM D 6690. It must also demonstrate durability to traffic loads and environmental exposure, and possess adhesiveness that permits firm bonding to joint walls.</p>
+<p>Inspection includes confirming that the correct joint type was selected, that the sealing material matches design specifications, and that any compressible inserts are sawed to contract‑specified dimensions after the surrounding concrete has attained sufficient strength. For expansion joints, the geometry (1–2 in. wide with pre‑formed filler set 0.75–1 in. below the slab) is checked, and existing filler is replaced if deteriorated.</p>
+<p>Performance signs such as joint migration, spalling, or tenting/buckling are examined. When a hot‑poured sealant is used on an overlay, it should be placed flush with the overlay surface (or recessed from the surface to avoid extrusion) to ensure long‑term durability, especially on low‑speed roadways (45 mph or less) where filled joints are required.</p>
+<p>All work must conform to contract documents and applicable standards. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p><small>[1] — Ch. 8 (pp. 257–259); [2] — Joint Resealing (p. 76); [3] — Verify the following: (p. 34); [4] — Joint Resealing (p. 36); [5] — Ch. 6 (p. 160), Ch. 9 (pp. 247–250); [7] — Ch. 10 (p. 196)</small></p>
+<h2 id="curing-protection-and-handoff">Curing, protection, and handoff</h2>
+<p>The completed sealant work is protected and allowed to cure through a series of steps described across the guides. After the sealant patch has cured enough to bear the load of concrete saws, the compressible inserts are cut out to the dimensions required by the contract documents, ensuring that the underlying material is not damaged. Once the insert removal is complete, all joints are thoroughly cleaned and then resealed in accordance with the contract specifications, providing a protective seal over the finished work. The joint is protected by installing a flexible, non‑absorbent closed‑cell backer rod immediately after air blasting. The rod is placed with a fitted insertion tool (or handheld roller) so that its diameter is roughly 25 % larger than the joint width, ensuring a snug fit without gaps and minimal stretch to avoid shrinkage. Its melting point must be at least 25 °F above the sealant application temperature, preventing damage during placement. Proper depth and continuous coverage at intersections complete the protection before the sealant cures. Once a hot‑applied thermoplastic sealant has been placed on the concrete pavement, it solidifies as it cools; the curing action is simply the material’s transition from a softened state back to ambient temperature where it hardens without any chemical change. No special protective coverings are specified—only the need to keep traffic and contaminants away until the sealant has cooled sufficiently. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The proper installation of this backer rod is illustrated in the following figure.</p>
+<p><img alt="Worker inserting a closed-cell backer rod into a concrete pa" src="assets/sealant-application-and-performance/ccf05ce159ce175ffe381aa7fe41574129e266141fb59e572afdddd4daea62d0.jpg" />
+<em>Worker inserting a closed-cell backer rod into a concrete pavement joint using a handheld insertion tool.</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The image shows a worker standing on a concrete surface, holding a long metal wand connected to a hose, which is being used to insert a black compressible rod into a narrow vertical slot in the pavement.</p>
+<p><small>[3] — Verify the following: (p. 34); [5] — Ch. 9 (pp. 247–248); [7] — Ch. 10 (p. 196)</small></p>
+<p>Work can be opened to construction traffic or users after the patched section reaches sufficient strength to support concrete saw cutting, as required by the contract; at that point the compressible inserts are removed to their specified dimensions and all joints are cleaned and resealed according to the contract documents before traffic is permitted. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p><small>[3] — Verify the following: (p. 34)</small></p>
+<h2 id="expected-performance-and-maintenance">Expected performance and maintenance</h2>
+<p>The guides note that when sealants fail, water readily penetrates joints and cracks, allowing excess moisture to soften or erode the subgrade or base and to pump fines upward. Excess water can contribute to subgrade or base softening, erosion, and pumping of subgrade or base fines over time. This degradation results in a loss of structural support, pavement settlement, and/or faulting. In addition, incompressible debris that enters an unsealed joint can generate pressure‑induced failures; sealing prevents incompressible objects from entering joint reservoirs. Incompressibles contribute to spalling and, in extreme cases, may induce blow‑ups. Joint movement and closure over the service life push sealant out of the joint, creating exposed shoulders that traffic pulls off, which leads to material loss and surface damage; Over time, expansion joints start to close, possibly resulting in extrusion of the sealant and subsequent loss of material as traffic pulls at the exposed material above the pavement surface. Improper backer‑rod selection or placement can leave voids that become pathways for water and debris, further compromising joint integrity. The combined effect of these mechanisms manifests as spalling, tenting/buckling, joint migration, pumping, faulting, base erosion, corner breaks, and premature sealant loss. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates common failure modes such as concrete pavement joint spalling and blowups that result from these degradation mechanisms.</p>
+<p><img alt="Examples of concrete pavement joint sealant failures showing" src="assets/sealant-application-and-performance/e1e876b25ea721c04256914c75e49e9afc854c4cab30cff5fa672d158b22e4a8.jpg" />
+<em>Examples of concrete pavement joint sealant failures showing missing material and incompressible debris.</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The figure displays two views of a longitudinal concrete pavement joint, illustrating the consequences of failed or absent sealant application.</p>
+<p><small>[1] — Ch. 8 (pp. 257–259); [2] — Joint Resealing (p. 76); [4] — Joint Resealing (p. 36); [5] — Ch. 9 (pp. 247–250); [7] — Ch. 10 (p. 194)</small></p>
+<p>Across the guides, preventive maintenance for sealants begins with a systematic verification that joints have been properly cleaned and sealed according to contract requirements. Routine inspections look for signs of moisture ingress, joint faulting, or degradation of the sealant material; when deterioration is observed—or at intervals suggested by performance experience—resealing is scheduled. The preparation sequence starts with immediate removal of saw slurry, as noted in one guide: “Immediately after wet sawing, a water wash removes the slurry from the sawing operation.” After the joint faces are cleaned and dried, the standard resealing workflow is applied: “A joint resealing procedure follows five basic steps: old sealant removal, joint refacing, joint reservoir cleaning, backer rod installation, and new sealant installation.” Prior to any repair, crews confirm that the joint meets design shape‑factor and compression criteria, and they verify compliance with contract documents: “Verify that joints are cleaned and sealed according to contract documents.” Because sealant effectiveness can decline within a few years—“sealant materials became ineffective anywhere from 1 to 4 years after placement”—the monitoring program includes periodic reassessment and timely resealing to sustain joint integrity and pavement durability. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p><small>[1] — Ch. 8 (pp. 257–259); [2] — Joint Resealing (p. 76); [3] — Verify the following: (p. 34); [4] — Joint Resealing (p. 36); [5] — Ch. 6 (p. 160), Ch. 8 (p. 208), Ch. 9 (pp. 249–250); [7] — Ch. 10 (pp. 194–201)</small></p>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li><li id="ref-3"></li><li id="ref-4"></li><li id="ref-5"></li><li id="ref-6"></li><li id="ref-7"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

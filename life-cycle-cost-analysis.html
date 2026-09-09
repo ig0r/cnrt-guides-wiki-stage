@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Life-Cycle Cost Analysis</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html" class="active" aria-current="page">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Life-Cycle Cost Analysis</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=economic-analysis">economic-analysis</a><a class="tag" href="index.html?q=life-cycle-cost-analysis">life-cycle-cost-analysis</a><a class="tag" href="index.html?q=pavement-projects">pavement-projects</a><a class="tag" href="index.html?q=initial-construction-costs">initial-construction-costs</a><a class="tag" href="index.html?q=total-cost-of-investment">total-cost-of-investment</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>Life‑Cycle Cost Analysis (LCCA) is a decision‑support process used to evaluate the total economic worth of competing pavement alternatives by accounting for all monetary outlays—from initial construction through discounted future maintenance, rehabilitation, replacement and user‑costs—over a defined analysis period【2](#ref-2)][<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]]. By converting every cost stream to present‑value terms using an appropriate discount rate, LCCA yields a single dollar figure that enables agencies to compare options on an equivalent basis and select the treatment that meets performance requirements at the lowest life‑cycle expense【2](#ref-2)][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]]. The method is applied whenever alternatives such as new construction, preservation, overlay repair or full reconstruction are being considered, provided the alternatives have comparable structures, service lives and design loads, and it is typically performed early in the project using tools like FHWA RealCost software【1](#ref-1)][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-decision-context">Purpose and decision context</a></li><li><a href="#scope-and-applicability">Scope and applicability</a></li><li><a href="#information-needs">Information needs</a></li><li><a href="#alternatives">Alternatives</a></li><li><a href="#decision-criteria">Decision criteria</a></li><li><a href="#analysis-methods-and-tools">Analysis methods and tools</a></li><li><a href="#stakeholders-and-constraints">Stakeholders and constraints</a></li><li><a href="#timing-and-implementation">Timing and implementation</a></li><li><a href="#outcomes-and-follow-up">Outcomes and follow-up</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (9)</summary><div class="sources-body"><a href="#ref-1">2019-12_IMCP_manual</a>, <a href="#ref-2">IADOT_InTrans_RB33_014_Reeder_Implementation_Manual_3D_Engineered_Models_Highway_Const_2015_Final</a>, <a href="#ref-3">RCA_practioner_guide_w_cvr</a>, <a href="#ref-4">Sustainable_Concrete_Pavement_508</a>, <a href="#ref-5">concrete_overlay_repair_strategies_guide_web</a>, <a href="#ref-6">concrete_pvmt_preservation_guide_3rd_edition_web</a>, <a href="#ref-7">guide_to_concrete_overlays_4th_Ed_web</a>, <a href="#ref-8">preservation_reference_manual</a>, <a href="#ref-9">smooth_concrete_pvmt_guidelines_w_cvr</a></div></details>
+
+<h2 id="purpose-and-decision-context">Purpose and decision context</h2>
+<p>Life‑Cycle Cost Analysis (LCCA) is used to decide whether a particular construction practice, material choice, or pavement design should be adopted. It is employed as a decision‑support tool to choose among competing pavement alternatives by comparing the total economic worth of each option over an analysis period. The method can be applied to evaluate whether an existing overlay should be repaired and kept in service or removed and replaced entirely, combining repair costs, projected lifespan, replacement cost, future maintenance, traffic disruption impacts, and environmental effects for an objective comparison. LCCA also supports the selection of the optimal pavement treatment strategy—such as low‑cost preservation, rehabilitation, or reconstruction—by providing a common present‑worth basis for all associated expenditures. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p><small>[1] — Ch. 2 (p. 41), Ch. 10 (p. 323); [3] — Ch. 2 (p. 24); [4] — Ch. 6 (p. 96); [5] — Economic Feasibility Analysis … (p. 21); [6] — Ch. 12 (pp. 272–274); [7] — App. B (pp. 121–124); [8] — Ch. 11 (pp. 220–222)</small></p>
+<p>Life‑Cycle Cost Analysis addresses the fundamental problem of selecting pavement treatments based solely on initial construction outlays by providing a comprehensive, whole‑life accounting framework. It is defined as “a process for evaluating the total economic worth of a usable project segment by analyzing initial costs and discounted future costs, such as maintenance, user costs, reconstruction, rehabilitation, restoring, and resurfacing costs over the life of the project segment.” By converting all expenditures to present‑value terms—“accounts for the time value of money”—the analysis yields a single dollar figure: “An LCCA is performed in units of dollars and is equal to the construction cost plus the present value of future maintenance, repair, rehabilitation, and replacement costs over the life of the pavement.” This unified cost metric enables agencies to compare alternatives and choose the option that meets performance requirements while minimizing total economic cost throughout the service life. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p>The following figure illustrates how these comparative cost analyses vary across different pavement condition ratings.</p>
+<p><img alt="Comparison of treatment costs at different pavement conditio" src="assets/life-cycle-cost-analysis/21fe4b54dd712a5d1837738ba68b1cea130ad286d7a3341955218629a3a90a57.jpg" />
+<em>Comparison of treatment costs at different pavement condition ratings (PCRs)</em> [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The figure plots a downward-sloping curve representing the relationship between pavement age and PCR, overlaid with horizontal bands that categorize cost multipliers for treatments applied within specific rating ranges.</p>
+<p><small>[1] — Ch. 2 (p. 41), Ch. 10 (p. 323); [3] — Ch. 2 (p. 24); [4] — Ch. 6 (p. 96); [5] — Economic Feasibility Analysis … (p. 21); [6] — Ch. 12 (pp. 272–274); [7] — App. B (pp. 121–124); [8] — Ch. 11 (pp. 220–222)</small></p>
+<h2 id="scope-and-applicability">Scope and applicability</h2>
+<p>Life‑Cycle Cost Analysis is appropriate whenever an agency must compare alternatives that involve new construction, major rehabilitation, or reconstruction—&ldquo;each state highway agency is required to do some type of LCCA when using federal funds to support large rehabilitation or reconstruction projects&rdquo;—or overlay repair versus replacement—&ldquo;A life-cycle cost analysis may be a useful tool to combine all of these factors for an objective comparison of continued overlay repair versus replacement over the expected lifespan of the options.&rdquo; It also applies to preservation treatments and thin overlays—&ldquo;where LCCA results do become important is when the concrete pavement preservation treatments and strategies are being considered along with more extensive rehabilitation techniques (i.e., overlays) or reconstruction&rdquo;—and to selecting between CRCP and JPCP overlay types—&ldquo;Life-cycle cost analysis (LCCA) can be a helpful tool in deciding whether to pursue a concrete overlay strategy and in choosing the appropriate overlay type for a given project.&rdquo; The analysis is warranted when the pavement has reached an end‑of‑life condition or when multiple viable treatment alternatives exist—&ldquo;The economic analysis for determining end of life is analogous to the determination used by insurance companies to decide whether to repair or “total” a damaged automobile.&rdquo; It must compare &ldquo;equivalent pavement structures…the same service life and design load.&rdquo; LCCA is employed during early decision‑making phases such as strategy‑selection, treatment‑selection, feasibility after structural capacity and roughness assessments, and the planning/design stage—&ldquo;An LCCA provides an objective method of comparing the costs associated with different treatments.&rdquo; The analysis period must be long enough to capture future maintenance and at least one rehabilitation event—&ldquo;The FHWA recommends an analysis period of at least 35 years for all pavement projects, including new or rehabilitation (Walls and Smith 1998).&rdquo; and &ldquo;Analysis periods typically range around 40 years,&rdquo; ensuring that lower maintenance requirements can outweigh higher initial costs when the horizon exceeds the design life and includes a rehabilitation cycle—&ldquo;lower maintenance requirements over its service life generally make it a better choice when the agency’s analysis period is greater than the design life of the roadway and includes at least one rehabilitation cycle.&rdquo; [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p><small>[4] — Ch. 6 (p. 96); [5] — Economic Feasibility Analysis … (p. 21); [6] — Ch. 12 (pp. 272–274); [7] — App. B (p. 121); [8] — Ch. 11 (pp. 220–222)</small></p>
+<p>When the analysis must capture benefits that cannot be expressed in monetary terms—such as environmental or societal advantages of recycled concrete—LCCA is not appropriate because it only handles costs that can be accurately quantified financially. The guides note that “LCCA is not generally used to quantify or assess the potential environmental or societal benefits associated with the use of recycled concrete,” and that this limitation “has resulted in an increased emphasis on use of other assessment tools (described in subsequent sections), in addition to LCCA.” Likewise, LCCA loses relevance when the alternatives are not truly comparable; it is relevant only for equivalent pavement structures. As stated, “An LCCA is relevant only if equivalent pavement structures are being compared (for example, the same service life and design load),” and “the design life of the pavement alternatives should be stated and applied consistently during an LCCA.” The method also becomes unnecessary when a concrete‑pavement preservation segment has a single clear treatment that addresses its specific deficiency. One source explains that “Because the various individual concrete pavement preservation treatments for the most part address different pavement deficiencies, cost‑effectiveness analysis techniques are not typically needed to help select appropriate treatment strategies.” A similar observation appears in another guide: “Because the concrete pavement preservation treatments address different pavement deficiencies, lifecycle costing techniques are not typically needed to help select appropriate strategies.” In addition, LCCA is unsuitable when user‑cost components—traffic delays, vehicle operating costs, crash costs, freight damage—cannot be reliably quantified or are not borne by the agency. The guides point out that “The inclusion of user costs as part of a LCC analysis is a controversial issue,” and that “the actual costs are difficult to quantify, particularly or road roughness,” while “user costs are not borne by the agency, and agencies have difficult giving them the same weight in a decision process as thei own actual costs.” When deterministic inputs dominate an analysis despite high uncertainty—e.g., service lives or unit costs differing markedly from assumptions—a probabilistic or multi‑criteria evaluation is preferred. As noted, “recognition of the shortcomings of a deterministic approach, a probabilistic approach may be conducted,” and “The lowest life-cycle cost option may not be implemented when other considerations such as risk, available budgets, and political and environmental concerns are taken into account.” In these situations, alternative decision‑making tools—benefit‑cost ratio, dollars‑per‑lane‑mile‑year optimization, remaining service interval planning, or life‑cycle planning—are recommended. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p><small>[3] — Ch. 2 (p. 24); [4] — Ch. 6 (p. 96); [6] — Ch. 12 (pp. 272–274); [8] — Ch. 11 (pp. 220–222)</small></p>
+<h2 id="information-needs">Information needs</h2>
+<p>An LCCA begins by defining an explicit analysis period and applying a discount rate to bring all future outlays to present value. The input package must contain the full monetary cost profile of the pavement project—from initial engineering, contract administration and construction expenditures through discounted future costs for routine maintenance, repairs, rehabilitation, reconstruction, resurfacing, and user‑cost components over the life of the segment. Quantifiable savings such as lower material prices, reduced haul distances, or avoided landfill fees are included when they can be expressed in dollars; broader environmental or societal impacts that cannot be monetized are excluded.</p>
+<p>Condition data are required to establish the pavement’s starting state and to predict performance. Structural capacity and roughness assessments (including overall condition indicators, distress parameters, and friction measurements) provide the baseline for estimating the expected service life of an overlay or repair treatment and for building deterioration curves tied to traffic loading.</p>
+<p>Traffic information must capture both the operating environment that drives deterioration and the user‑cost effects of construction. Vehicle‑operation costs under normal and work‑zone conditions, delay costs, crash risk, freight damage, and the impact of construction activities on traffic flow and safety are quantified for each alternative. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p>The following figure illustrates the traffic delays resulting from such construction activities.</p>
+<p><img alt="Traffic delays caused by construction (photo courtesy of Jim" src="assets/life-cycle-cost-analysis/36ff885b50987c944a83e0d52f5635360f17493186bc2b5156cebb31bc8653ea.jpg" />
+<em>Traffic delays caused by construction (photo courtesy of Jim Cable, FHWA)</em> [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The image displays a line of vehicles stopped on a rural highway while roadwork is performed.</p>
+<p><small>[3] — Ch. 2 (p. 24); [4] — Ch. 6 (p. 96); [5] — Economic Feasibility Analysis … (p. 21); [6] — Ch. 12 (pp. 272–274); [7] — App. B (pp. 121–124); [8] — Ch. 11 (pp. 220–222)</small></p>
+<h2 id="alternatives">Alternatives</h2>
+<p>The feasible alternatives that should be compared in a life‑cycle cost analysis span the full spectrum of preservation, rehabilitation, and new construction. The guides note that analysts typically evaluate “different pavement project options—most commonly a conventional concrete design versus designs that incorporate recycled concrete materials.” They also stress comparing “alternative pavement designs or material types that deliver the same service level and design life, such as a low‑first‑cost asphalt structure versus a higher‑initial‑cost but longer‑lasting concrete structure.” For aging overlays, the options are “continued repair of the existing overlay using appropriate techniques and full replacement of the overlay (or other end‑of‑life strategies such as reconstruction).” Preservation‑focused alternatives include “preservation treatments such as partial‑depth repair, full‑depth repair, diamond grinding, and joint resealing; an overlay option like a thin concrete overlay; full reconstruction of the slab; and optionally a ‘do nothing’ alternative.” When evaluating concrete overlays specifically, analysts compare “an unbonded CRCP overlay versus an unbonded conventional jointed plain concrete (JPCP) overlay applied to the existing concrete slab.” Finally, the broader set of alternatives comprises “low‑cost preservation and routine maintenance treatments,” “more extensive rehabilitation alternatives such as concrete pavement overlays, partial or full reconstruction,” and “new‑construction alternatives.” All these options are modeled over a common analysis period with discounted cost streams to identify the alternative that yields the lowest life‑cycle cost while meeting performance requirements. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p>The following figure illustrates how to determine an appropriate concrete overlay solution based on existing pavement conditions and the necessary preliminary repairs.</p>
+<p><img alt="Decision flowchart for selecting concrete overlay treatments" src="assets/life-cycle-cost-analysis/fa6d72fb7887b6ae3066d0dbc4a0e6cc451a73af4997f89339d16bda0be42d63.jpg" />
+<em>Decision flowchart for selecting concrete overlay treatments based on existing pavement condition.</em> [<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p>The figure presents a decision matrix that categorizes pavement into Good, Fair, Poor, and Deteriorated conditions to determine the appropriate repair strategy. It guides engineers through preliminary steps such as spot repairs or milling to decide between a bonded overlay, an unbonded overlay, or full reconstruction.</p>
+<p><small>[3] — Ch. 2 (p. 24); [4] — Ch. 6 (p. 96); [5] — Economic Feasibility Analysis … (p. 21); [6] — Ch. 12 (pp. 272–274); [7] — App. B (pp. 121–124); [8] — Ch. 11 (pp. 220–222)</small></p>
+<p>Under a life‑cycle cost analysis the repair option requires estimating the full repair cost—including the necessary materials, labor, equipment and overhead—while judging its projected lifespan based on material quality and technique effectiveness; it generally involves less extensive work up front but carries the risk that frequent future maintenance could make it more costly over time. The replacement (or end‑of‑life) option requires a separate cost estimate for a new overlay or reconstruction, which entails substantially larger material quantities and longer upfront construction, leading to extended road closures and greater traffic disruption; although its initial outlay is higher, the risk of recurring maintenance is lower because the new structure is expected to last longer. [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates a decision tree for determining the optimal end-of-life strategy for replacing a concrete overlay.</p>
+<p><img alt="Cross-sections of three concrete overlay replacement strateg" src="assets/life-cycle-cost-analysis/68bf3e06fce994fc96691abe1a69e3542f1453c28fc12af6c00a28b7637451a2.jpg" />
+<em>Cross-sections of three concrete overlay replacement strategies: New Overlay, Partial Inlay, and Full Inlay.</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The figure displays cross-sectional diagrams comparing a new overlay over an existing milled surface with partial and full inlays that remove the original pavement to match the subgrade elevation. It illustrates how different end-of-life replacement strategies impact grade adjustments, noting that a new overlay requires raising the grade while an inlay allows for no grade change or minor adjustment.</p>
+<p><small>[5] — Economic Feasibility Analysis … (p. 21)</small></p>
+<h2 id="decision-criteria">Decision criteria</h2>
+<p>The guides concur that cost is the dominant control for life‑cycle cost analysis decisions. They state that “The primary driver for a life‑cycle cost analysis is the economic impact of the project—both the upfront construction expense and the projected long‑term maintenance outlays,” and that “the decision for a pavement project using life‑cycle cost analysis should be driven by economic factors—specifically the total monetary costs over the project&rsquo;s lifespan.” Cost expressed as present value is described as “cost expressed as the present value of all expenditures is the controlling criterion for the analysis.” Durability or service life appears as a supporting factor: decisions are “anchored on cost, with durability (i.e., selecting a concrete pavement that lasts the design life with minimal upkeep) serving as a supporting factor,” and “The decision in a Life‑Cycle Cost Analysis should be driven primarily by cost considerations—specifically the total life‑cycle expense …—and by durability.” Some guides broaden the scope to include safety, environmental sustainability, and user impacts, noting that “The decision should be governed chiefly by cost (both repair and replacement expenses), the projected lifespan or durability of the overlay, safety considerations reflected in traffic disruption impacts, and environmental sustainability factors.” However, they qualify these as secondary: “other criteria like schedule or public impact are secondary,” and “cost is the primary controlling criterion, while other considerations like safety or environmental benefits must be addressed by separate tools.” One source adds that while cost dominates, “the lowest‑cost option may be set aside if other considerations such as risk exposure, available budget, or political and environmental concerns are deemed more important.” [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p><small>[1] — Ch. 2 (p. 41); [3] — Ch. 2 (p. 24); [4] — Ch. 6 (p. 96); [5] — Economic Feasibility Analysis … (p. 21); [6] — Ch. 12 (pp. 272–274); [7] — App. B (pp. 121–124); [8] — Ch. 11 (pp. 220–222)</small></p>
+<p>Competing criteria in a life‑cycle cost analysis are weighted by first converting all costs—initial construction, maintenance, rehabilitation and salvage—to a common present‑worth basis using an appropriate discount rate. The guides note that &ldquo;Initial construction costs are often the factor given the greatest consideration in the treatment selection procss,&rdquo; yet &ldquo;expected future costs that occur at different times over the life of the treatment must also be considered, but in order to do so they must first be converted to a common basis for comparison purposes.&rdquo; Agencies should apply the current real discount rate (&ldquo;Agencies should consider applying the current real discount rate currently reported in Appendix C of OMB Circular A‑94 (OMB 2020) as opposed to historical discount rates&rdquo;), because it strongly influences the present value of future preservation costs.</p>
+<p>Benefits are quantified over the analysis period and combined with costs through a benefit‑cost ratio (BCR). As stated, &ldquo;The BCR analysis method combines the results of individual evaluations of treatment strategy benefits (B) and treatment strategy costs (C) to generate a BCR,&rdquo; and &ldquo;the treatment strategy with the highest ratio is deemed the most cost-effective.&rdquo; This BCR serves as the primary weighting mechanism for balancing benefit versus cost.</p>
+<p>Beyond the BCR, the relative importance of criteria shifts with the analysis horizon and structural design. The outcome &ldquo;depends on the structural design of a particular roadway section and the analysis period selected,&rdquo; so that &ldquo;lower maintenance requirements over its service life generally make it a better choice when the agency’s analysis period is greater than the design life of the roadway and includes at least one rehabilitation cycle, despite the higher initial costs.&rdquo; Conversely, for short horizons &ldquo;initial construction cost becomes more dominant.&rdquo;</p>
+<p>Traffic intensity also influences weighting. The manuals advise that &ldquo;Changes in construction practices that enhance the sustainability of the project &hellip; often incur increased costs, which must be considered and weighed against expected benefits over the life cycle of the pavement to determine their effective impacts,&rdquo; and that &ldquo;For this reason, it is advantageous for heavily trafficked pavements to construct long‑lasting concrete pavements that require minimal maintenance or rehabilitation over their design life.&rdquo; Thus durability and user‑delay cost reductions receive greater weight on high‑traffic routes, even if they raise upfront expense.</p>
+<p>Material price variations adjust break‑even points. For example, &ldquo;With the same slab thickness for both the JPCP and CRCP overlay designs, CRCP overlays begin to have lower life‑cycle costs between 25 and 30 years for discount rates around 3% or less,&rdquo; and &ldquo;When the price of steel per ton is $200 (0% in Figure B.6), a CRCP overlay is the preferred option for analysis periods greater than 25 years,&rdquo; with higher steel prices pushing the advantage to longer periods (&ldquo;greater than 32 and 45 years&rdquo; for 25 % and 50 % increases).</p>
+<p>In summary, weighting proceeds from (1) establishing a common present‑worth cost base using the current real discount rate, (2) calculating a benefit‑cost ratio to rank alternatives, and (3) adjusting the relative emphasis on initial cost, durability, maintenance savings, traffic impacts, and material prices according to the analysis period, structural design, and traffic level. Options that raise upfront costs must &ldquo;demonstrate sufficient long‑term economic advantage; otherwise they are deemed unacceptable despite environmental or societal gains.&rdquo; [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p><small>[1] — Ch. 2 (p. 41); [6] — Ch. 12 (pp. 272–274); [7] — App. B (pp. 121–124); [8] — Ch. 11 (p. 220)</small></p>
+<h2 id="analysis-methods-and-tools">Analysis methods and tools</h2>
+<p>Across the guides, Life‑Cycle Cost Analysis is presented as the core decision‑support framework for pavement projects, using FHWA RealCost software to calculate discounted cash flows and net present value of agency and user costs over a selected analysis period. The approach begins with a comprehensive accounting of all monetary items—construction, maintenance, rehabilitation, resurfacing, and user impacts—and then applies discounting to bring future expenditures to a common base date. As defined, “Life‑Cycle Cost Analysis … a process for evaluating the total economic worth of a usable project segment by analyzing initial costs and discounted future costs, such as maintenance, user costs, reconstruction, rehabilitation, restoring, and resurfacing costs over the life of the project segment.” Evaluation tools include deterministic modeling (fixed inputs) and probabilistic modeling that captures uncertainty; “In recognition of the shortcomings of a deterministic approach, a probabilistic approach may be conducted that allows an agency to incorporate risk and uncertainty (Walls and Smith 1998).” Sensitivity testing is standard practice: “a sensitivity analysis should be conducted using a range of discount rates to determine how sensitive the outcome is to the choice of this value.” In addition to pure cost accounting, many guides employ a benefit‑cost ratio framework that links discounted costs with performance benefits derived from condition‑based curves; “The BCR analysis method considers the performance benefits of one or more treatment strategies and the associated costs of applying these treatment strategies.” Together, these tools enable analysts to compare alternative preservation or overlay strategies and select the option with the lowest life‑cycle cost while accounting for risk and benefit considerations. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p><small>[3] — Ch. 2 (p. 24); [4] — Ch. 6 (p. 96); [6] — Ch. 12 (pp. 272–274); [7] — App. B (p. 123); [8] — Ch. 11 (p. 222)</small></p>
+<p>Life‑cycle cost analysis rests on a set of core assumptions that shape the present‑worth or uniform annual cost results. The guides agree that the analysis assumes &ldquo;all relevant expenses—initial construction, discounted future maintenance, user, reconstruction and resurfacing costs—can be expressed in monetary terms&rdquo; and that &ldquo;a suitable discount rate can be applied to project them over the analysis period.&rdquo; A common discount rate is typically assumed (often 4 percent) but may vary with funding uncertainty, and inflation assumptions are used to convert all costs to a common date. The analysis also assumes that the compared pavements have equivalent structures, service lives (often about 40 years), design loads, and correctly identified agency and user cost categories.</p>
+<p>Additional structural and temporal assumptions include &ldquo;a common analysis period for all alternatives,&rdquo; the inclusion of at least one rehabilitation cycle when the period exceeds the roadway’s design life, and that &ldquo;the structural design of the overlay combined with the length of the analysis period&rdquo; drives cost outcomes. Assumptions about maintenance are made, such as expected future maintenance frequency and associated costs, and in some cases lower upkeep requirements for specific designs (e.g., CRCP). Cost inputs are often based on regional data, with an implicit assumption that &ldquo;preservation schedules derived from northern Illinois climate and material experience&rdquo; apply elsewhere, and cost equivalence for shoulders and traffic‑maintenance is sometimes assumed.</p>
+<p>Salvage value is treated as a single benefit, avoiding double‑counting of recycling benefits: &ldquo;salvage value &hellip; accounted for only once, avoiding double‑counting of recycling benefits.&rdquo; User costs are presumed estimable, though the guides note that they are difficult to quantify, especially components such as road roughness.</p>
+<p>Uncertainties arise from many sources. Future maintenance and user costs are inherently unpredictable, and &ldquo;performance curves are derived—whether from limited historical condition data, traffic records, or expert judgment&rdquo; introducing variability. The projected timing of preservation and rehabilitation treatments, the lower condition threshold that triggers major rehab, and the accuracy of estimated repair cost (materials, labor, equipment) and projected post‑repair lifespan based on material quality, technique effectiveness, and anticipated traffic loads are all uncertain. Indirect costs such as traffic disruption and environmental impacts add further uncertainty.</p>
+<p>Financial uncertainties stem from the choice of discount rate; a range of 0.4 % to 5 % is often examined, and &ldquo;selecting a higher discount rate without justification reduces the present value of later preservation treatments,&rdquo; potentially biasing results toward options with more frequent maintenance. Future steel price fluctuations also affect break‑even periods for certain overlay types.</p>
+<p>Finally, deterministic LCCA treats inputs as fixed, but in practice &ldquo;variations in design life and unit cost estimates require probabilistic approaches to capture risk.&rdquo; The analysis period must be long enough to include major rehabilitation, yet &ldquo;actual service life often deviates from the assumed design life,&rdquo; creating additional uncertainty in horizon selection. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p><small>[3] — Ch. 2 (p. 24); [4] — Ch. 6 (p. 96); [5] — Economic Feasibility Analysis … (p. 21); [6] — Ch. 12 (pp. 272–274); [7] — App. B (pp. 121–124); [8] — Ch. 11 (pp. 220–222)</small></p>
+<h2 id="stakeholders-and-constraints">Stakeholders and constraints</h2>
+<p>The transportation authority—namely the state highway agency that is using federal funds—is responsible for providing the cost inputs (construction, maintenance, repair, rehabilitation and user‑cost data) into the FHWA life‑cycle cost software, conducting the LCCA, and using its results to select or approve the pavement alternative. [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p><small>[4] — Ch. 6 (p. 96)</small></p>
+<p>Federal funding rules require state highway agencies to perform an LCCA for any large rehabilitation or reconstruction project that receives federal money. National pavement design standards demand that alternatives be compared on an equivalent structural basis and that the analysis use a stated design life—generally about forty years—and apply it consistently across all alternatives. State transportation departments must follow their own standardized LCCA procedures, incorporate life‑cycle planning into risk‑based asset‑management plans, and adhere to performance thresholds set by those policies. The analytical framework is prescribed by FHWA guidance; the RealCost software (current version) provides the required methodology for discounting future costs. Discount rates are limited to values published in OMB Circular A‑94 (currently a 30‑year real rate around 0.4 % or, where historical rates are used, between three and five percent). Analysis periods must fall within AASHTO ranges (20–50 years for high‑volume roads, 15–25 years for low‑volume) and cannot be shorter than the FHWA minimum of 35 years, with the same period applied to every alternative. Structural design of the roadway segment and the selected analysis horizon dictate which overlay types can be justified, often requiring inclusion of at least one rehabilitation cycle. Funding constraints are expressed through optimization criteria such as dollars‑per‑lane‑mile‑year, which forces any LCCA‑derived treatment strategy to fit within available budget limits. Preservation timing must follow schedules recommended by the relevant authority (e.g., Illinois State Toll Highway Authority for JPCP and CRCP overlays). Together these permits, standards, policies, funding rules, and design requirements constrain the set of alternatives that can be evaluated in an LCCA and shape the ultimate pavement selection. [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p><small>[4] — Ch. 6 (p. 96); [6] — Ch. 12 (pp. 272–274); [7] — App. B (pp. 121–124); [8] — Ch. 11 (p. 220)</small></p>
+<h2 id="timing-and-implementation">Timing and implementation</h2>
+<p>The decision to conduct a life‑cycle cost analysis should be made early in the project, as part of the pavement type and material selection process before construction begins, and also when concrete preservation treatments are being evaluated alongside more extensive rehabilitation options such as overlays or reconstruction. Making the decision at these points provides an objective basis for comparing total costs over the service life of each alternative. [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p><small>[4] — Ch. 6 (p. 96); [8] — Ch. 11 (p. 220)</small></p>
+<p>Action to conduct a Life‑Cycle Cost Analysis is triggered whenever a project relies on federal funding for a large rehabilitation or reconstruction effort; state highway agencies must perform an LCCA in those cases. Action to perform a life‑cycle cost analysis is also triggered when the pavement’s predicted condition falls to the lower condition threshold that an agency has set as requiring major rehabilitation or reconstruction; reaching this threshold signals that the timing of future preservation and rehabilitation treatments must be evaluated over the chosen analysis period. Additional triggers arise when &ldquo;the agency’s analysis period is greater than the design life of the roadway and includes at least one rehabilitation cycle,&rdquo; prompting agencies to compare overlay alternatives. The decision point occurs once the projected service period reaches the crossover where a continuously reinforced concrete pavement (CRCP) overlay becomes cheaper than a jointed plain concrete pavement (JPCP) overlay—&ldquo;CRCP overlays begin to have lower life‑cycle costs between 25 and 30 years for discount rates around 3% or less,&rdquo; with higher discount rates pushing the crossover to roughly 33 years. Steel‑price thresholds further shift the trigger: at a base steel cost of $200 per ton CRCP is preferred after more than 25 years; a 25 % increase moves the advantage to more than 32 years and a 50 % increase to more than 45 years. Agencies should therefore monitor analysis‑period length, prevailing discount rates, and current steel prices to determine when an LCCA must be performed. [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p><small>[4] — Ch. 6 (p. 96); [6] — Ch. 12 (pp. 272–274); [7] — App. B (pp. 121–124)</small></p>
+<p>The selected LCCA option is executed with FHWA RealCost software—both a generic reference and a specific version are cited: “The life-cycle cost software available from the FHWA (RealCost 2011) provides economic analysis of agency and user costs during a pavement’s service life.” and “The LCCA analysis followed the principles of the Federal Highway Administration’s (FHWA’s) RealCost software (version 2.5).” Detailed cost inputs must cover construction, maintenance, repair, rehabilitation, replacement, and user‑related expenses, as expressed in “An LCCA is performed in units of dollars and is equal to the construction cost plus the present value of future maintenance, repair, rehabilitation, and replacement costs over the life of the pavement.” Regional cost estimates for concrete pavement and preservation schedules are required; the guides note that “The preservation schedules for JPCP and CRCP were based on a schedule recommended by the Illinois State Toll Highway Authority and found in Ferrebee and Roesler (2018).” Discounting is applied to all cash flows: “Costs at any given time are discounted to a fixed date, based on assumed rates of inflation and the time‑value of money, using a discount rate. The most common discount rate used in recent years is 4 percent” and a range of rates may be examined, as shown by “discount rates of 0.4% (current), 1.5%, 3.0%, and 5.0% were used to compute the NPV.” The analysis horizon spans multi‑year periods; one source cites a typical span of about 40 years—“Analysis periods typically range around 40 years”—while another expands the possible window to “analysis periods ranging from 20 to 55 years.” Sensitivity testing across alternative discount rates is therefore incorporated to capture uncertainty. [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p><small>[4] — Ch. 6 (p. 96); [7] — App. B (p. 123)</small></p>
+<h2 id="outcomes-and-follow-up">Outcomes and follow-up</h2>
+<p>Across the guides, success for a life‑cycle cost analysis is defined by several consistent criteria. Success for an LCCA is achieved when the analysis demonstrates that a pavement alternative delivers the required service life and design load at the lowest discounted total cost—including construction, maintenance, rehabilitation, replacement, agency, and user costs—over the chosen analysis period (typically about 40 years). It is also reached when it produces an objective comparison that selects the repair or replacement alternative that maximizes the pavement’s service life while keeping total costs—including construction, maintenance, traffic disruption and environmental impacts—at their lowest feasible level. Additionally, success is attained when the LCCA, performed over a consistent analysis period with the same timing of preservation and rehabilitation treatments as used for benefit calculation, produces the lowest net present value of all agency costs and, when combined with benefits measured by the area under the pavement performance curve, yields the highest benefit‑cost ratio among competing strategies; that BCR becomes the metric by which cost‑effectiveness is judged and the optimal treatment strategy is selected. Finally, success is confirmed when the analysis clearly shows that one pavement alternative yields a lower net present value than its competitor over the realistic service horizon, using current discount rates and material price assumptions. Measurement of success therefore relies on calculating present‑value cash flows for all cost components, conducting sensitivity testing to verify robustness, comparing net present values across alternatives, and selecting the option with either the lowest life‑cycle cost or the highest benefit‑cost ratio as indicated by the analysis. [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p><small>[4] — Ch. 6 (p. 96); [5] — Economic Feasibility Analysis … (p. 21); [6] — Ch. 12 (pp. 272–274); [7] — App. B (p. 124)</small></p>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li><li id="ref-3"></li><li id="ref-4"></li><li id="ref-5"></li><li id="ref-6"></li><li id="ref-7"></li><li id="ref-8"></li><li id="ref-9"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

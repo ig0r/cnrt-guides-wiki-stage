@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trail Surface Design and Maintenance</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html" class="active" aria-current="page">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Trail Surface Design and Maintenance</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=trail-construction">trail-construction</a><a class="tag" href="index.html?q=maintenance-practices">maintenance-practices</a><a class="tag" href="index.html?q=pavement-design">pavement-design</a><a class="tag" href="index.html?q=retaining-walls">retaining-walls</a><a class="tag" href="index.html?q=federal-funding">federal-funding</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>Trail Surface Design and Maintenance is the systematic process of creating and preserving a trail’s functional integrity by addressing environmental stresses, subgrade conditions, water accumulation, hazardous crossings, steep or unstable terrain, and limited construction corridors. It delivers a comfortable, safe, and accessible surface—typically a durable concrete slab with appropriate mix design, cross‑slope, drainage, reinforcement over shallow culverts, and full‑width detectable warnings—while respecting site constraints such as right‑of‑way width and intersection geometry. Ongoing performance is ensured through uniform subgrade preparation, strict dimensional tolerances, and a long‑term management plan that includes annual pavement reviews and dedicated maintenance budgeting. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-applicability">Purpose and applicability</a></li><li><a href="#required-inputs">Required inputs</a></li><li><a href="#work-sequence">Work sequence</a></li><li><a href="#staging-and-logistics">Staging and logistics</a></li><li><a href="#quality-control-and-acceptance">Quality control and acceptance</a></li><li><a href="#safety-and-environmental-controls">Safety and environmental controls</a></li><li><a href="#curing-protection-and-handoff">Curing, protection, and handoff</a></li><li><a href="#expected-performance-and-maintenance">Expected performance and maintenance</a></li><li><a href="#references">References</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (2)</summary><div class="sources-body"><a href="#ref-1">2019-12_IMCP_manual</a>, <a href="#ref-2">concrete_trails_guide</a></div></details>
+
+<h2 id="purpose-and-applicability">Purpose and applicability</h2>
+<p>Trail Surface Design and Maintenance addresses the fundamental risk that a trail will lose its functional integrity and safety over time because of environmental stresses, inadequate subgrade, water accumulation, hazardous crossings, steep or unstable terrain, and constrained construction corridors. By doing so it also ensures the delivery of a trail that is simultaneously comfortable, safe, and functional for all users while integrating existing site constraints. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure below illustrates how water can accumulate within the drainable subbase when adequate drainage is not provided.</p>
+<p><img alt="Cross-section of a trail pavement showing water trapped in t" src="assets/trail-surface-design-and-maintenance/24cf99725adbbc3a1e0dc6f1efaa0650c10e2e08612123f7a290ef33a86930c0.jpg" />
+<em>Cross-section of a trail pavement showing water trapped in the drainable subbase due to lack of drainage.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>A layer labeled &ldquo;Water trapped in drainable subbase&rdquo; is shown accumulating at the bottom of the aggregate base layer. The source context explains that without a drainage outlet, the subbase layer can trap water and freeze-thaw cycles can create faulting and pavement cracking. This figure illustrates a specific failure mode related to inadequate drainage that Trail Surface Design and Maintenance aims to prevent.</p>
+<p><small>[2] — Choosing Concrete for Trail Pa… (p. 13), Cross Slope (pp. 16–17), Maintenance (p. 12), Narrow Corridors (p. 21), Retaining Walls (p. 21), Shallow Culverts (p. 20), Smoothness Requirements (p. 24), Subgrade Support (p. 13), Trail Crossings of Roadways (p. 18), Truncated Domes and ADA Ramps (pp. 27–28), Utility Access Castings (p. 27)</small></p>
+<p>Concrete surface design and maintenance—especially thickened slabs—is appropriate in three key situations: (1) at gravel‑road or field‑entrance crossings where a change of material could cause accidents and the crossing must support farm equipment or other heavy loads; (2) over shallow culverts (less than two feet of cover) where reinforcement is needed to prevent flexural cracking and low‑load paving equipment can protect the underlying base; and (3) within narrow right‑of‑ways that still provide planned staging zones and allow bridge‑first sequencing, enabling turnarounds for concrete deliveries. In all other contexts a different method should be used: when heavy loading is not expected at a crossing, signage or flexible barriers can replace thickened pavement; if the culvert has more than two feet of cover or poses no collapse risk, conventional paving methods suffice; and where the corridor cannot accommodate the required equipment, lacks adequate turn‑around space, or the bridge cannot bear the loads, an alternative surface treatment should be selected. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure below illustrates a thickened and widened concrete section at a field entrance crossing, demonstrating one of the specific applications where this design is appropriate.</p>
+<p><img alt="Thickened/widened section on field entrance crossings" src="assets/trail-surface-design-and-maintenance/ef85a903c8bfd44063826cc1bae4f2a927d3885ddc74aa55ff31ec3a81b98920.jpg" />
+<em>Thickened/widened section on field entrance crossings</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a concrete trail extending through an agricultural landscape, featuring a distinct thickened and widened slab at the point where it intersects with a gravel road.</p>
+<p><small>[2] — Narrow Corridors (p. 21), Shallow Culverts (p. 20), Trail Crossings of Roadways (p. 18)</small></p>
+<h2 id="required-inputs">Required inputs</h2>
+<p>Trail surfaces are most commonly constructed from concrete, requiring a durable mix that can resist freeze‑thaw cycles and provide long‑term performance with minimal maintenance. The mix should be capable of being placed as a thickened slab—typically six inches or more where the trail meets residential driveways and thicker where it intersects commercial roads, farm entrances, or field crossings—to accommodate heavier vehicle loads. Where the alignment encounters retaining walls or shallow culverts, a structural concrete mix with reinforcement is specified to resist flexural cracking and to serve both deck and wall functions.</p>
+<p>Successful installation depends on a uniformly supportive subgrade. Subgrade preparation generally involves scarifying and recompacting existing soils to achieve consistent bearing capacity; moisture and density control may be incorporated as needed. Non‑permeable support materials are preferred, and a drainable rock subbase is usually unnecessary. Site conditions such as intersection geometry must be evaluated to preserve sight distance for trail users and oncoming traffic, and crossing sections should be oriented perpendicular when possible. In narrow corridors, construction staging, turn‑around areas for concrete delivery, and periodic stockpiling of shoulder material are required to protect freshly placed pavement. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The following figure illustrates a typical concrete trail cross section.</p>
+<p><img alt="Concrete trail cross section" src="assets/trail-surface-design-and-maintenance/544e785fde1081620d9176c4e90993349f5baa46ceceaa40da79ff3bff6471a4.jpg" />
+<em>Concrete trail cross section</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays a vertical cross-section of a paved path consisting of two distinct layers: an upper layer labeled &ldquo;Concrete&rdquo; and a lower support layer labeled &ldquo;Subgrade.&rdquo; This visual representation illustrates the structural composition required for trail surface design, specifically highlighting the relationship between the durable concrete slab and the underlying soil.</p>
+<p><small>[2] — Choosing Concrete for Trail Pa… (p. 13), Narrow Corridors (p. 21), Retaining Walls (p. 21), Shallow Culverts (p. 20), Subgrade Support (p. 13), Trail Crossings of Roadways (p. 18), Truncated Domes and ADA Ramps (pp. 27–28)</small></p>
+<p>Trail surface design must satisfy drainage, accessibility, structural integrity at crossings and over shallow structures, and tactile‑warning requirements while adhering to strict dimensional tolerances. A cross‑slope of at least 1 % is required for drainage and accessibility; shared‑use paths are limited to 2 % and designers typically adopt a 1.5 % slope to accommodate construction tolerance. When the cross‑slope changes, AASHTO mandates a transition length of at least five feet for each one‑percent change to ensure a smooth grade shift. At road crossings the alignment should be perpendicular to provide adequate sight distance, and the pavement slab thickness must follow local roadway standards—commonly six inches for residential driveways or matching the existing road thickness for commercial/industrial accesses, with optional widening to clearly define the slab area. Shallow culverts are identified as those having less than two feet of cover; they require thickened concrete sections and reinforcement, and paving should be performed with low‑load equipment (fixed‑form, extension, or truss screeds) while heavy loading is avoided to prevent collapse. Detectable warnings must extend across the full width of a trail opening, excluding only the sloped flare areas, and be installed at the back of the curb line in urban settings or at the shoulder edge in rural sections; any concrete border used for placement may not exceed two inches from any joint or edge per the Public Right‑of‑Way Accessibility Guidelines. No additional preconstruction testing is prescribed beyond meeting these dimensional tolerances. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The following figure illustrates paved crossings of gravel roads.</p>
+<p><img alt="Paved crossings of gravel roads" src="assets/trail-surface-design-and-maintenance/81ea9bacd4550689b6b31df109f3756c76b7ac2f6862ac5bc598d9d484f9a5b1.jpg" />
+<em>Paved crossings of gravel roads</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a concrete trail crossing that extends across an unpaved gravel road, featuring red tactile warning surfaces at the transition points.</p>
+<p><small>[2] — Cross Slope (pp. 16–17), Shallow Culverts (p. 20), Trail Crossings of Roadways (p. 18), Truncated Domes and ADA Ramps (pp. 27–28)</small></p>
+<h2 id="work-sequence">Work sequence</h2>
+<p>Before any trail surface design or maintenance work can start, a long‑term management plan must be established. This planning is achieved through annual pavement reviews and the allocation of a dedicated maintenance budget. The subgrade must be prepared to provide adequate and uniform support; scarifying the existing ground, recompacting it to the required density, and applying moisture or density control when necessary creates a stable base. Construction planning and project design should include consideration for stockpiling of shoulder material along the edge of the corridor in regular intervals prior to paving, with staging areas identified for concrete delivery turnarounds. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure below illustrates how buggies facilitate this process by providing efficient concrete delivery.</p>
+<p><img alt="A tracked concrete buggy navigating a prepared subgrade at a" src="assets/trail-surface-design-and-maintenance/9b797f824dd2c77093b35307a598cc16e9b01bbff2562512429d6e0eb1f30b58.jpg" />
+<em>A tracked concrete buggy navigating a prepared subgrade at a trail construction site.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a tracked utility vehicle, known as a buggy, positioned on a dirt path bordered by wooden forms and green fields in the background. This equipment is used for concrete delivery to navigate efficiently along the proposed trail alignment without disrupting the compacted subgrade. The use of such machinery addresses the challenge of delivering materials to restrictive corridors where standard trucks cannot operate.</p>
+<p><small>[2] — Maintenance (p. 12), Narrow Corridors (p. 21), Subgrade Support (p. 13)</small></p>
+<p>First, planners identify the narrow right‑of‑way limits and establish staging zones that keep the construction footprint minimal; these zones will later serve as material stockpiles and vehicle turnarounds. Next, shoulder fill is stockpiled in regular intervals along the corridor edge before any pavement is placed so that material does not have to be hauled over fresh concrete. Then concrete paving is initiated at bridge structures and progressed outward, which provides better control of loading and curing than working toward the bridges. Finally, the pre‑positioned staging areas are used as turnarounds for concrete trucks, allowing deliveries without crossing newly laid pavement. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure below illustrates the slipform paving technique employed during the construction of the Legacy Trail.</p>
+<p><img alt="Slipform paving of the Legacy Trail surface." src="assets/trail-surface-design-and-maintenance/6aab8a799b55baeff86c33cf0b9cacb7f7f38afd2752ec9479cf2c3ed1104cfd.jpg" />
+<em>Slipform paving of the Legacy Trail surface.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a wide, freshly poured concrete slab being finished by workers in high-visibility gear along a cleared corridor bordered by dirt and trees.</p>
+<p><small>[2] — Narrow Corridors (p. 21)</small></p>
+<p>Long‑term trail management requires that maintenance activities be scheduled on a regular basis, with the guide recommending an annual pavement review followed by allocation of a maintenance budget. This yearly interval serves as the timing limit between completing surface design and initiating the next cycle of inspection and upkeep. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The following figure illustrates a key component of this routine upkeep by showing ditch maintenance.</p>
+<p><img alt="Maintenance equipment operating on a trail corridor." src="assets/trail-surface-design-and-maintenance/ce54eb154c60e04833ad32c89dcf97542a4ed9a08bc402270cd105642b9b99c5.jpg" />
+<em>Maintenance equipment operating on a trail corridor.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a yellow excavator and a worker in high-visibility gear positioned next to a paved concrete path, illustrating the use of heavy machinery for site upkeep. This visual evidence supports the requirement that trail surfaces be designed with sufficient thickness to withstand loading from maintenance vehicles and construction traffic.</p>
+<p><small>[2] — Maintenance (p. 12)</small></p>
+<h2 id="staging-and-logistics">Staging and logistics</h2>
+<p>In narrow trail corridors the work zone is confined by planning construction limits and locating staging areas that keep the footprint as small as possible. Concrete paving should begin at bridge structures and progress outward, unless the bridge can accommodate loading from both directions. Shoulder material is stockpiled along the corridor edge at regular intervals before paving so it never has to be hauled over freshly placed pavement. The same staged zones double as turn‑around points for concrete trucks, allowing controlled delivery and movement of equipment within the limited access route. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[2] — Narrow Corridors (p. 21)</small></p>
+<p>The review of concrete‑paved trail design highlights a tightly interwoven set of space, site‑access, weather and environmental constraints. Weather is dominated by freeze‑thaw cycling, which can erode durability unless the subgrade is uniformly prepared and joints are correctly placed; the guide notes that “Concrete offers long-term durability even in harsh freeze/thaw environments.” Adequate drainage – a minimum 1 % cross‑slope within the 2 % maximum allowed by public right‑of‑way standards – mitigates standing water and slick surfaces during cold months. Snow removal further influences material choice, as some warning devices are vulnerable to damage.</p>
+<p>Space constraints arise at intersections where sight distance must be preserved; “Intersection geometry is critical to review for assessment of sight distance for both the trail users and oncoming traffic, while considering the terrain on approach to the intersection,” and perpendicular crossings are preferred to limit exposure. The width of the right‑of‑way often limits the construction footprint: “Trail rights of way can be narrow and are constructed to create a path suitable for pedestrians and small vehicles rather than large construction equipment,” which forces planners to locate staging zones, turn‑around points for concrete trucks, and periodic shoulder stockpiles along corridor edges. Utility access castings must either sit outside the paved width or be fully embedded, with clear tolerances – no more than 2 in. from a joint or edge – as required by accessibility guidelines: “If the material requires a concrete border away from a joint or edge for proper installation, it shall be 2 in. or less per the Public Right‑of‑Way Accessibility Guidelines (USAB 2011).” </p>
+<p>Environmental drivers include shallow culverts that limit subgrade uniformity and demand low‑load paving methods, as well as retaining walls where terrain restricts trail width. All of these constraints shape both the initial design decisions and the ongoing maintenance regime for concrete trail surfaces. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The following figure illustrates a combined retaining wall and trail to demonstrate how terrain constraints influence surface design.</p>
+<p><img alt="A concrete trail curving along a grassy slope with an integr" src="assets/trail-surface-design-and-maintenance/f37ba0f7b29806f2dbe06ad4973fb4fc84a9ee45df100ded1ac93e61b58d5a1f.jpg" />
+<em>A concrete trail curving along a grassy slope with an integrated retaining wall.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a paved path that curves alongside a grassy embankment, supported by a low concrete retaining wall on the right side. This visualizes how trail and wall can be combined into a single system to accommodate construction in certain terrain.</p>
+<p><small>[2] — Choosing Concrete for Trail Pa… (p. 13), Cross Slope (pp. 16–17), Narrow Corridors (p. 21), Retaining Walls (p. 21), Shallow Culverts (p. 20), Subgrade Support (p. 13), Trail Crossings of Roadways (p. 18), Truncated Domes and ADA Ramps (pp. 27–28), Utility Access Castings (p. 27)</small></p>
+<h2 id="quality-control-and-acceptance">Quality control and acceptance</h2>
+<p>Inspection of trail surfaces must verify several key characteristics. First, the subgrade must provide “adequate and uniform subgrade support”; test procedures should measure moisture content and compaction density to confirm they meet design specifications, noting that “Moisture and density control may also be incorporated into the design when necessary.” Because a drainable rock subbase is generally unnecessary, inspectors should ensure that “non‑permeable support materials are preferred.” Second, the riding way must be uniformly smooth for user comfort – “The trail surface should be smooth for the comfort of pedestrians and bicyclists.” – while preserving traction; therefore surface evenness, tactile grip, and “friction and skid resistance of the trails should not be compromised for the sake of smoothness” are evaluated, with construction methods such as slipform paving or transverse saw‑cut joints used to achieve the required finish. Third, detectable warnings must extend continuously across the opening, with no gaps except for sloped flares – “The detectable warning must provide full coverage across the trail opening, except for the sloped flares.” When a concrete border is required it shall not exceed two inches (“If the material requires a concrete border away from a joint or edge for proper installation, it shall be 2 in. or less per the Public Right‑of‑Way Accessibility Guidelines”). The type of warning material must be verified: cast‑iron units are preferred in high snow‑removal areas, and composite panels inspected for dome shear and secured with bolt‑on connections (“Composite material panels suffer from domes shearing off; however, they can be installed as replaceable panels with bolt‑on connections”). Any damage observed during snow clearing, such as truncated domes, must be documented (“Figure 45 shows damage to truncated domes during snow removal”). [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The following figure illustrates a utility access casting installed completely within the trail pavement slab.</p>
+<p><img alt="Utility access casting—completely within trail pavement slab" src="assets/trail-surface-design-and-maintenance/55134b971533f0ddb53809d693bda5f2a0c3c7ed95b4c7710ab9ae8a8cb32c98.jpg" />
+<em>Utility access casting—completely within trail pavement slab</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a circular, rusted metal utility cover set flush into a light-colored concrete surface. The casting is positioned entirely within the boundaries of the trail pavement slab rather than at an edge or joint.</p>
+<p><small>[2] — Smoothness Requirements (p. 24), Subgrade Support (p. 13), Truncated Domes and ADA Ramps (pp. 27–28)</small></p>
+<p>Measurements of the trail surface are built into the long‑term management plan by conducting pavement reviews on an annual basis, which then guide maintenance budgeting and scheduling. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The following figure illustrates a typical pavement evaluation process used to assess conditions before applying a concrete overlay.</p>
+<p><img alt="Flowchart for pavement evaluation and distress classificatio" src="assets/trail-surface-design-and-maintenance/96c07dcc04207bad98f030f1e378479daa317ddc94491f899de5b33940efb95b.jpg" />
+<em>Flowchart for pavement evaluation and distress classification prior to overlay placement.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure presents a flowchart outlining the process of evaluating existing asphalt surfacing, beginning with gathering historical data on material properties and traffic levels before proceeding to visual examination. It categorizes pavement conditions into &ldquo;Surface/light distresses&rdquo; such as light fatigue or rutting, and &ldquo;Heavy distresses&rdquo; including potholes and poor subgrade support, which must be addressed before overlay placement. The process further includes core analysis to verify thickness and support layer stability, ensuring the subgrade is uniform enough to support a new concrete surface.</p>
+<p><small>[2] — Maintenance (p. 12)</small></p>
+<h2 id="safety-and-environmental-controls">Safety and environmental controls</h2>
+<p>The review identifies several safety concerns arising from trail surface design and maintenance. Inadequate drainage can allow water to accumulate and freeze, creating slick patches that present slip hazards for pedestrians and cyclists, especially during cold months. At roadway intersections, unpaved gravel approaches generate windrows of loose material at the edge of the road, increasing the risk of slip‑and‑trip accidents for trail users. Work over shallow culverts poses a collapse danger: paving equipment can disturb the underlying base and trigger failure of the structure, while heavy loads exacerbate the potential for a sudden collapse that endangers both crew members and downstream trail users. Finally, the installation and maintenance of detectable warning surfaces introduce ergonomic and cutting hazards for workers handling cast‑iron units, and composite panels are prone to dome shearing, which can produce falling debris and compromised tactile warnings that become additional trip or slip hazards for the public. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[2] — Cross Slope (pp. 16–17), Shallow Culverts (p. 20), Trail Crossings of Roadways (p. 18), Truncated Domes and ADA Ramps (pp. 27–28)</small></p>
+<h2 id="curing-protection-and-handoff">Curing, protection, and handoff</h2>
+<p>To safeguard the newly placed concrete over shallow culverts, designers employ thickened concrete sections together with reinforcement, which helps resist flexural cracking and panel movement caused by storm‑water infiltration or settlement. During construction heavy loads are kept off these areas to prevent collapse of the underlying structure, and low‑load paving techniques such as fixed‑form, extension or truss screeds are preferred for installing the surface over the culvert. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure below illustrates a typical bridge abutment paving notch and reinforced approach slab, which exemplifies these reinforcement strategies.</p>
+<p><img alt="Typical bridge abutment paving notch and reinforced approach" src="assets/trail-surface-design-and-maintenance/21f880afe0515348bdbbe5282b91b2f0b2a47e12bb1ad7947bae183406a434b5.jpg" />
+<em>Typical bridge abutment paving notch and reinforced approach slab</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure illustrates a cross-section of a concrete trail surface transitioning from the main deck to an approach panel supported by a bridge abutment. It details specific construction elements such as a paving notch, expansion joint, and optional reinforcement bars within the subgrade area.</p>
+<p><small>[2] — Shallow Culverts (p. 20)</small></p>
+<h2 id="expected-performance-and-maintenance">Expected performance and maintenance</h2>
+<p>Common failures in trail surface design and maintenance include shrinkage cracking when subgrade preparation or joint placement is inadequate—“With proper subgrade preparation and proper joint placement, shrinkage cracks can be controlled”. Over shallow culverts (less than two feet of cover) the pavement is vulnerable to flexural cracking, settlement‑induced distress, and even panel collapse under heavy loads; “Culverts with less than two feet of cover over the structure are considered shallow.” Detectable‑warning elements also deteriorate: composite panels may lose their domes, as “Composite material panels suffer from domes shearing off”, and truncated domes can crack or break during snow removal. Improper concrete border placement beyond two inches from a joint or edge further accelerates premature failure. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure below illustrates concrete pavement reinforced with fibers to mitigate such issues, showing a surface that exhibits only minor hairline cracking.</p>
+<p><img alt="Concrete pavement with fibers and hairline crack" src="assets/trail-surface-design-and-maintenance/34b0b71eae51bed6425fce75d8e14ac3b795e7f28f5084847e58e64d5dd82d24.jpg" />
+<em>Concrete pavement with fibers and hairline crack</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a section of concrete pavement featuring a vertical hairline crack running through the surface. A white plastic Crack Gauge card is placed adjacent to the fracture to provide scale and measure its width.</p>
+<p><small>[2] — Choosing Concrete for Trail Pa… (p. 13), Shallow Culverts (p. 20), Truncated Domes and ADA Ramps (pp. 27–28)</small></p>
+<p>Effective preventive maintenance for concrete trail surfaces begins with proactive planning: agencies should “plan for future maintenance activities” and conduct “annual pavement reviews” while allocating a dedicated “maintenance budget allocation.” Proper subgrade preparation and accurate joint placement are critical; as the guide states, “With proper subgrade preparation and proper joint placement, shrinkage cracks can be controlled,” which limits later repair work. Routine monitoring must include visual inspections for emerging cracks, flexural distress over shallow culverts, and any base disturbance after events such as snow‑removal. Over culvert crossings, preventive measures call for “thickened concrete sections and/or reinforcing” and the use of “Low-load paving methods (e.g., fixed form, extension screeds, truss screeds)” because “Heavy loading should be avoided if there is a potential for collapse of the culvert.” Inspections should verify that any required concrete border from joints or edges does not exceed two inches per accessibility guidelines (“If the material requires a concrete border away from a joint or edge for proper installation, it shall be 2 in. or less per the Public Right-of-Way Accessibility Guidelines (USAB 2011).”). When minor cracking appears, “local agency staff can handle the repairs without needing to outsource,” and reinforcement can be added to arrest panel shift. In areas subject to snow removal, composite panels may experience dome shearing; damaged domes are repaired by swapping them with bolt‑on replaceable panels (“Composite material panels suffer from domes shearing off; however, they can be installed as replaceable panels with bolt‑on connections”). Selecting durable materials such as cast iron for high‑traffic snow‑cleared sections further reduces future wear. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The following figure illustrates a concrete pavement section lacking fiber reinforcement, which demonstrates how such conditions can lead to the noticeable longitudinal cracking that preventive maintenance aims to avoid.</p>
+<p><img alt="Concrete pavement without fibers and with noticeable longitu" src="assets/trail-surface-design-and-maintenance/0f613b9e1de46ba6c34fa5b2341090aa99f72637e24551de0637cc31fa0f732a.jpg" />
+<em>Concrete pavement without fibers and with noticeable longitudinal crack</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a section of gray concrete pavement featuring a prominent, continuous vertical fissure running through the slab. A white plastic card labeled &ldquo;Crack Gauge&rdquo; is placed adjacent to the defect for scale and measurement purposes.</p>
+<p><small>[2] — Choosing Concrete for Trail Pa… (p. 13), Maintenance (p. 12), Shallow Culverts (p. 20), Truncated Domes and ADA Ramps (pp. 27–28)</small></p>
+<h2 id="references">References</h2>
+<ol start="2">
+<li><a id="ref-2"></a>IOWA STATE UNIVERSITY Institute for Transportation · <code>concrete_trails_guide</code></li>
+</ol>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

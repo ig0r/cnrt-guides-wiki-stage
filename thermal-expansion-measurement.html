@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thermal Expansion Measurement</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html" class="active" aria-current="page">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Thermal Expansion Measurement</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=thermal-expansion">thermal-expansion</a><a class="tag" href="index.html?q=concrete-pavement">concrete-pavement</a><a class="tag" href="index.html?q=cte-measurement">cte-measurement</a><a class="tag" href="index.html?q=temperature-gradients">temperature-gradients</a><a class="tag" href="index.html?q=volumetric-changes">volumetric-changes</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>Thermal expansion measurement is the determination of a concrete material’s coefficient of thermal expansion (CTE) by testing representative specimens in accordance with AASHTO T 336 (specimens prepared per ASTM C42) and recording dimensional change over controlled temperature cycles [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. The CTE quantifies the length or volume change per degree of temperature change, a property dominated by the aggregate content—aggregates constitute roughly 60–75 % of the mix and their mineralogy (e.g., low‑expansion limestone versus high‑expansion quartzite) largely sets the composite value [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. Providing a numeric CTE enables engineers to incorporate thermal strain into pavement design, durability models, overlay thickness selection, joint spacing and reinforcement decisions, because variations in CTE directly affect predicted expansion‑induced stresses, cracking risk, and joint integrity [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#material-purpose-and-applicability">Material purpose and applicability</a></li><li><a href="#composition-and-characteristics">Composition and characteristics</a></li><li><a href="#key-material-properties">Key material properties</a></li><li><a href="#behavior-and-mechanisms">Behavior and mechanisms</a></li><li><a href="#durability-and-deterioration">Durability and deterioration</a></li><li><a href="#material-interactions-and-compatibility">Material interactions and compatibility</a></li><li><a href="#influence-of-production-and-placement">Influence of production and placement</a></li><li><a href="#selection-specification-and-improvement">Selection, specification, and improvement</a></li><li><a href="#performance-evaluation-and-implications">Performance evaluation and implications</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (4)</summary><div class="sources-body"><a href="#ref-1">2019-12_IMCP_manual</a>, <a href="#ref-2">Overlays_Design_Guide_508</a>, <a href="#ref-3">concrete_pvmt_distress_assessments_and_solutions_guide_w_cvr</a>, <a href="#ref-4">testing_guide</a></div></details>
+
+<h2 id="material-purpose-and-applicability">Material purpose and applicability</h2>
+<p>Thermal expansion measurement is the determination of a concrete material’s coefficient of thermal expansion (CTE), obtained by testing representative specimens in accordance with AASHTO T 336. The CTE quantifies how much the concrete changes in length or volume for each unit change in temperature, a property that is dominated by the aggregate content. By providing a numeric CTE value, engineers can incorporate it into pavement design calculations and durability models to anticipate volumetric movements, select appropriate overlay thicknesses, set joint spacing and reinforcement, and protect joint integrity; an increase in measured CTE may render an originally specified overlay insufficient, requiring a thicker design to maintain performance. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p><small>[1] — Ch. 3 (p. 91), Ch. 6 (p. 160), Ch. 9 (p. 287); [2] — 1. Introduction (p. 39); [3] — Ch. 4 (pp. 267–280), Ch. 18 (p. 387), Ch. 19 (p. 495)</small></p>
+<h2 id="composition-and-characteristics">Composition and characteristics</h2>
+<p>The thermal‑expansion measurement of concrete pavement is fundamentally governed by its constituent makeup. Aggregates constitute roughly sixty to seventy‑five percent of the concrete volume, so their mineralogy and proportion set the composite coefficient of thermal expansion (CTE). Consequently, the CTE of the aggregate particles dominates the overall CTE of the slab. Low‑expansion carbonate aggregates such as limestone or marble produce the smallest dimensional change, while siliceous aggregates like quartzite yield higher values. When an overlay incorporates a different coarse aggregate, its CTE can differ from that of the existing pavement; for example, an overlay may exhibit a CTE of 6.1 ×10⁻⁶/°F compared with 4.5 ×10⁻⁶/°F for the underlying concrete. The paste‑to‑aggregate ratio, cement content, water‑to‑cementitious material (w/c) ratio, concrete age, ambient humidity and the temperature range experienced also influence the measured expansion. In practice, CTE values for hydraulic‑cement concrete typically fall between 4 ×10⁻⁶ and 7.5 ×10⁻⁶ per degree Fahrenheit, with an average around 5.5 ×10⁻⁶/°F. Standard testing follows AASHTO T 336 (specimens prepared per ASTM C42) to obtain a reliable CTE for design, quality‑control and joint‑spacing decisions. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p><small>[1] — Ch. 3 (p. 91), Ch. 6 (p. 160); [2] — 1. Introduction (p. 40); [3] — Ch. 4 (pp. 244–280), Ch. 18 (p. 387), Ch. 19 (p. 495)</small></p>
+<p>The guides agree that variations in concrete composition, source material, processing, and proportioning have a direct and often dominant influence on the measured coefficient of thermal expansion (CTE) used to predict pavement behavior. Because aggregates constitute most of a concrete slab’s volume, any change in their composition, source or type directly alters the concrete’s coefficient of thermal expansion. Consequently, the aggregate’s intrinsic CTE—lower for limestone or marble and higher for siliceous quartzite—governs the composite response, with high‑CTE aggregates causing greater expansion during warm periods and sharper contraction when temperatures fall, which raises the risk of curling, blowups, and cracking. Raising the CTE from about 4.5 ×10⁻⁶/°F to 6.1 ×10⁻⁶/°F increases predicted cracking rates dramatically; when only an overlay’s CTE is raised while the underlying concrete remains at the lower value, the forecasted cracked‑slab percentage more than doubles, prompting designers to increase overlay thickness to preserve structural integrity. The proportioning of aggregate relative to cement paste—along with water‑to‑cementitious material ratios and any processing differences—shifts the overall CTE, so selecting lower‑CTE carbonate aggregates or adjusting their blend ratio can mitigate temperature‑induced movements and reduce distress potential. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p><small>[1] — Ch. 3 (p. 91), Ch. 6 (p. 160); [2] — 1. Introduction (pp. 39–40); [3] — Ch. 4 (pp. 244–280), Ch. 18 (p. 387)</small></p>
+<h2 id="key-material-properties">Key material properties</h2>
+<p>&ldquo;Thermal‑expansion measurement in concrete pavement is governed by a set of interrelated properties. The dominant thermal property is the coefficient of thermal expansion (CTE), defined as “A material’s CTE is a measure of how much the material changes in length (or volume) for a given change in temperature.” Because aggregates constitute 60 %–75 % of the mix, “Because aggregates make up a majority of a concrete’s volume, the CTE of the aggregate particles will dominate the CTE for the concrete overall,” and “aggregate (particularly coarse aggregate) has a large influence on CTE.” Low‑expansion limestone or marble aggregates produce the lowest values, whereas siliceous aggregates yield higher values. Physical composition also matters: “Physical composition matters because the relative amounts of paste versus coarse aggregate dictate how much of the slab’s volume participates in thermal movement,” and surface color can modify temperature gradients that drive expansion.</p>
+<p>Mechanical characteristics affect how the material accommodates thermal strain. “Mechanical factors such as cement content and the water‑to‑cement (w/c) ratio modify the concrete’s stiffness and moisture state,” and “shrinkage behavior influences dimensional changes after placement and interacts with CTE‑driven movements at joints.”</p>
+<p>Chemical aspects are linked to both thermal response and shrinkage. The heat released during hydration “the heat of hydration released during curing, interact with aggregate behavior to affect measured expansion, especially in early ages,” while the water‑to‑cementitious material ratio governs cement chemistry that controls both thermal response and shrinkage magnitude.</p>
+<p>Thermal considerations beyond CTE include the anticipated temperature range, gradients across slab thickness, concrete age, and ambient relative humidity, all of which further dictate the magnitude and timing of expansion or contraction. Precise measurement and control of CTE are critical for design: “CTE is considered a critical design variable for bonded overlays of existing concrete pavements,” and changes in CTE can invalidate an overlay thickness, as illustrated by “If the CTE for this example is changed from 4.5 to 6.1 (10-6/°F) for both the overlay and existing pavement layers, the original 2 in. thick overlay design would no longer be valid.” [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p><small>[1] — Ch. 3 (p. 91), Ch. 6 (p. 160); [2] — 1. Introduction (pp. 39–40); [3] — Ch. 4 (pp. 244–280), Ch. 18 (p. 387), Ch. 19 (p. 495)</small></p>
+<p>The coefficient of thermal expansion (CTE) quantifies how much an aggregate or concrete changes in length or volume per degree of temperature change; The thermal‑expansion property is quantified by the coefficient of thermal expansion (CTE), reported in micro‑units per degree Fahrenheit (10⁻⁶/°F). Across the guides, the CTE is measured using the standard test method AASHTO T 336, with specimens prepared according to ASTM C42 and subjected to controlled temperature cycles while dimensional change is recorded. The resulting values are used to classify materials—aggregates are grouped by typical linear CTE values (limestone and marble having the lowest expansions) and overlay designs assign specific CTEs (e.g., 6.1 × 10⁻⁶/°F for a new overlay versus 4.5 × 10⁻⁶/°F for existing concrete)—enabling engineers to compare and predict pavement performance. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The following figure illustrates the process for measuring the coefficient of thermal expansion.</p>
+<p><img alt="Laboratory apparatus for measuring the coefficient of therma" src="assets/thermal-expansion-measurement/1a1587e9c2e6193fcfe1beb80b81f1cf7eec90e418eacc08165ced72fe5b31ce.jpg" />
+<em>Laboratory apparatus for measuring the coefficient of thermal expansion of concrete specimens.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The image displays a testing setup consisting of a white control unit connected to a measurement probe positioned over a cylindrical specimen submerged in a liquid bath within a white container.</p>
+<p><small>[1] — Ch. 3 (p. 91), Ch. 6 (p. 160); [2] — 1. Introduction (p. 40); [3] — Ch. 4 (pp. 262–280), Ch. 18 (p. 387), Ch. 19 (p. 495)</small></p>
+<h2 id="behavior-and-mechanisms">Behavior and mechanisms</h2>
+<p>The thermal expansion behavior of concrete pavements is governed primarily by the aggregate component, which dominates the coefficient of thermal expansion (CTE). Across the guides it is noted that &ldquo;Because aggregates make up a majority of a concrete’s volume, the CTE of the aggregate particles will dominate the CTE for a concrete.&rdquo; Consequently, typical values cluster around an average of 5.5 × 10⁻⁶ per °F, with observed ranges from 3.2 to 7.0 × 10⁻⁶/°F, producing &ldquo;a length change of about 2/3 in. for 100 ft of concrete subjected to a rise or fall of 90°F.&rdquo; The measured CTE is sensitive to temperature range and relative humidity; higher temperatures cause lengthening while lower temperatures cause shortening, and moisture conditions influence the measured value.</p>
+<p>When temperature‑induced expansion occurs, panels develop load transfer even without dowels: &ldquo;Even without dowels, rising temperatures expand the pavement panels providing load transfer but the load transfer is lost when the temperature drops.&rdquo; Aggregates with a high CTE amplify this effect, whereas carbonate aggregates, being less thermally expansive, help mitigate volumetric changes.</p>
+<p>The guides also agree that an increase in CTE markedly degrades the performance of bonded overlays. A rise from 4.5 to 6.1 × 10⁻⁶/°F &ldquo;markedly worsens the performance of bonded overlays,&rdquo; driving the predicted proportion of cracked slabs up to nearly 30 % at a 95 % reliability level and rendering a 2‑in. overlay thickness insufficient, thereby requiring a thicker design.</p>
+<p>Thus, under service conditions the concrete’s thermal response is a function of aggregate type, temperature swing, humidity, and the presence or absence of mechanical load‑transfer devices; higher CTE values increase expansion‑induced stresses, crack potential in overlays, and transient load transfer, while lower‑CTE aggregates reduce these adverse effects. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p><small>[1] — Ch. 6 (p. 160); [2] — 1. Introduction (p. 39); [3] — Ch. 4 (p. 244)</small></p>
+<p>Across the guides, the behavior of thermal‑expansion measurement in concrete pavement is controlled by three interrelated mechanisms. </p>
+<p><strong>Physical mechanisms</strong> – The response is rooted in the material’s coefficient of thermal expansion (CTE), defined as “A material’s CTE is a measure of how much the material changes in length (or volume) for a given change in temperature.” Because aggregates dominate the mix, “Because aggregates make up a majority of a concrete’s volume, the CTE of the aggregate particles will dominate the CTE for the concrete overall” and “aggregate type has the greatest influence because aggregates account for about 60 to 75 percent of concrete by volume.” Temperature gradients across a slab produce differential length change that appears as curling: “Curling is a result of a temperature gradient in the concrete slab.” When an overlay uses a different aggregate, the guides note that “the overlay design is analyzed for a CTE value different from the original concrete,” creating differential strain that can lead to cracking. </p>
+<p><strong>Chemical mechanisms</strong> – Internal heat generated during cement hydration adds another source of temperature change: “Temperature changes may be caused by environmental conditions or by the heat of hydration.” Paste chemistry also influences CTE, as “Thermal expansion and contraction of concrete (that is, expansion and contraction related to temperature change) vary with factors such as aggregate type, cement content, w/cm ratio, temperature range, concrete age, and relative humidity.” </p>
+<p><strong>Mechanical mechanisms</strong> – When thermal strain is restrained by joints or subgrade, it converts to stress that affects load transfer: “Even without dowels, rising temperatures expand the pavement panels providing load transfer but the load transfer is lost when the temperature drops.” The magnitude of this strain is captured by standard laboratory procedures in which “Samples are loaded into the CTE frame (Figure 19.32) and the software runs tests on the sample to determine the CTE.” These stresses directly influence joint durability and cracking potential: “The expansion and contraction of concrete due to temperature changes can impact the durability of joints and the risk of cracking in concrete pavements.”</p>
+<p>Thus, physical aggregate‑driven CTE and temperature gradients, chemical heat of hydration and paste composition, and mechanical restraint‑induced stresses together govern thermal‑expansion measurement behavior. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p><small>[1] — Ch. 3 (p. 91), Ch. 6 (p. 160); [2] — 1. Introduction (p. 40); [3] — Ch. 4 (pp. 244–280), Ch. 18 (p. 387), Ch. 19 (p. 495); [4] — Ch. 7 (p. 106)</small></p>
+<h2 id="durability-and-deterioration">Durability and deterioration</h2>
+<p>The cyclic expansion and contraction of concrete generated by daily and seasonal temperature changes produce thermal stresses that act on pavement joints. When joint geometry—layout, spacing, or width—is not consistent with design intent, these stresses become primary damage processes, degrading joint integrity, causing faulting, opening‑and‑closing of joints, blowouts, and initiating slab cracking that compromises structural durability. The guides note that &ldquo;Thermal expansion/contraction is a factor that should be considered in the design phase&rdquo; and that &ldquo;The expansion and contraction of concrete due to temperature changes can impact the durability of joints and the risk of cracking in concrete pavements.&rdquo; </p>
+<p>A high coefficient of thermal expansion (CTE) amplifies these mechanisms. &ldquo;Coefficient of Thermal Expansion (CTE): Aggregates with high CTE properties cause contraction and expansion of panels due to annual and daily temperature swings,&rdquo; generating tensile stresses, loss of load‑transfer efficiency—especially when mechanical connectors such as dowels are absent—and increased potential for curling, roughness, and fatigue cracking. The material factor most influencing temperature curling is &ldquo;the concrete’s coefficient of thermal expansion (CTE) measured in accordance with AASHTO T 336,&rdquo; and &ldquo;All variables equal, concrete having a higher CTE value will have an increased potential for curling&rdquo; as well as for &ldquo;blowups.&rdquo; Moreover, &ldquo;CTE has a huge impact on the opening and closing of joints, and these impacts can lead to pavement distress.&rdquo; </p>
+<p>For bonded overlays, &ldquo;CTE is considered a critical design variable for bonded overlays of existing concrete pavements.&rdquo; An increase of CTE from 4.5 to 6.1 ×10⁻⁶/°F in both overlay and existing pavement renders the original design ineffective: &ldquo;If the CTE for this example is changed from 4.5 to 6.1 (10-6/°F) for both the overlay and existing pavement layers, the original 2 in. thick overlay design would no longer be valid.&rdquo; Predictive analysis shows that &ldquo;AASHTOWare Pavement ME Design predicts slabs cracked to be 29.91% at 95% reliability with the change in concrete CTE,&rdquo; and up to 56.86% when only the overlay CTE is altered. Adjusting overlay thickness restores acceptable reliability, illustrating that inaccurate CTE values or failure to accommodate them constitute a primary deterioration mechanism. </p>
+<p>Consequently, durability concerns are mitigated by selecting aggregates with lower CTE, providing adequate joint provisions, monitoring joint geometry during construction, and adjusting overlay thickness or material properties to match the expected thermal movements. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p><small>[1] — Ch. 9 (p. 287); [2] — 1. Introduction (pp. 39–40); [3] — Ch. 4 (pp. 244–280), Ch. 19 (p. 495); [4] — Ch. 7 (pp. 106–107)</small></p>
+<p>&ldquo;CTE is considered a critical design variable for bonded overlays,&rdquo; and &ldquo;The material factor that has the greatest impact on the development of temperature curling is the concrete’s coefficient of thermal expansion (CTE).&rdquo; A higher CTE increases susceptibility: when &ldquo;If the CTE for this example is changed from 4.5 to 6.1 (10-6/°F) for both the overlay and existing pavement layers, the original 2 in. thick overlay design would no longer be valid,&rdquo; predicted cracking rates rise sharply (&ldquo;slabs cracked to be 29.91% at 95% reliability with the change in concrete CTE,&rdquo; &ldquo;predicts 56.86% slabs cracked at 95% reliability&rdquo;). Likewise, &ldquo;Aggregates with high CTE properties cause contraction and expansion of panels due to annual and daily temperature swings,&rdquo; and &ldquo;concrete having a higher CTE value will have an increased potential for curling&rdquo; as well as &ldquo;All variables equal, concrete having a higher CTE value will have an increased potential for blowups.&rdquo; </p>
+<p>Conversely, susceptibility is reduced when low‑CTE materials are used. &ldquo;Pure limestone aggregates produce concrete with the lowest CTE values, whereas concrete produced with siliceous aggregates such as quartzite have the highest CTE values,&rdquo; and &ldquo;Since carbonate aggregate mixtures are less thermally expansive, the designer should take this reality into consideration when a variety of coarse aggregates are available.&rdquo; Keeping the overlay’s CTE close to that of the existing pavement &ldquo;reduces this susceptibility,&rdquo; and increasing thickness (&ldquo;a 3 in. overlay is more suitable for this scenario&rdquo;) further mitigates thermal strain.</p>
+<p>Exposure conditions also affect risk. Darker or colored surfaces absorb more solar energy, creating larger temperature gradients: &ldquo;The surface of darker concrete, particularly concrete that has been colored, will get hotter under direct sunlight and thus will have a higher positive temperature gradient.&rdquo; Lack of mechanical load‑transfer devices amplifies the problem: &ldquo;The CTE issue is a bigger problem for pavement without mechanical load transfer,&rdquo; whereas appropriate jointing and dowels can accommodate movement even with a higher‑CTE mix (&ldquo;as long as jointing and other design practices are such that the higher CTE value is accommodated&rdquo;). [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p><small>[2] — 1. Introduction (pp. 39–40); [3] — Ch. 4 (pp. 244–280)</small></p>
+<h2 id="material-interactions-and-compatibility">Material interactions and compatibility</h2>
+<p>Thermal‑expansion measurement in concrete reflects the combined response of its constituents, and the coefficient of thermal expansion (CTE) is most strongly governed by the type of aggregate because aggregates occupy roughly 60–75 % of the volume. Consequently, using low‑expansion limestone aggregates will lower the overall CTE compared with siliceous aggregates, while pure limestone aggregates produce the lowest CTE values and siliceous quartzite raises the CTE to its highest range. The interaction of the measured CTE with cement and binder properties is therefore indirect—through their contribution to mix proportions—but cement content, water‑to‑cement ratio and other mix factors also play secondary roles. The material factor that has the greatest impact on temperature‑induced curling is the CTE, which is dominated by the coarse aggregate because &ldquo;as the volume of concrete is predominately aggregate, the aggregate (particularly coarse aggregate) has a large influence on CTE.&rdquo; When all other variables are equal, a higher CTE increases the potential for blowups; however, high‑quality, long‑lasting concrete pavements are routinely produced with aggregates having a high CTE value as long as jointing and other design practices are such that the higher CTE value is accommodated. In overlay applications the same measurement is used to match the CTE of the new coarse aggregate to that of the existing base, ensuring dimensional compatibility and reducing interfacial stress. The composite’s overall thermal response also reflects paste‑to‑aggregate ratios and water‑to‑cementitious material (w/cm) ratios, because &ldquo;comparing the relative proportions of paste and aggregate in the two materials&rdquo; and &ldquo;comparing the water to cementitious material (w/cm) ratio of the two materials&rdquo; directly influences the measured CTE. Post‑construction verification is achieved by measuring CTE and shrinkage on cores taken from both overlay and pavement, confirming that the combined materials will expand and contract together without inducing cracking or delamination. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p><small>[1] — Ch. 6 (p. 160); [3] — Ch. 4 (pp. 267–280), Ch. 18 (p. 387)</small></p>
+<h2 id="influence-of-production-and-placement">Influence of production and placement</h2>
+<p>The construction variations that most strongly dictate the long‑term response of concrete pavement to thermal expansion are those that alter the slab’s coefficient of thermal expansion and those that limit its ability to accommodate movement. Across the sources, aggregate selection is identified as the primary influence: because aggregates constitute the bulk of the mix, their coefficient of thermal expansion governs the composite CTE, with low‑expansion carbonates (e.g., limestone, marble) producing modest dimensional changes and high‑expansion siliceous aggregates (e.g., quartzite) leading to larger expansions and higher cracking risk. When an overlay introduces a different aggregate, the resulting CTE mismatch between overlay and existing slab can dominate performance, driving substantially higher predicted crack rates. A secondary but critical construction defect is improper joint provision; incorrect layout, spacing, or width prevents the slab from expanding freely, accelerating distress such as faulting or cracking over time. Surface coloration can affect temperature gradients, but its impact on long‑term thermal strain is comparatively minor relative to aggregate and joint considerations. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The figure below illustrates how inadequate joint provision can lead to severe distress, such as longitudinal cracking.</p>
+<p><img alt="Longitudinal cracking in pavement due to the lack of a longi" src="assets/thermal-expansion-measurement/3b3e587cd1ffc69e5741b6f43769f19cd2278ccc242e18b4e20157c7428ec123.jpg" />
+<em>Longitudinal cracking in pavement due to the lack of a longitudinal joint</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The image displays a concrete pavement surface featuring a prominent, irregular crack running longitudinally along the lane.</p>
+<p><small>[1] — Ch. 3 (p. 91), Ch. 6 (p. 160), Ch. 9 (p. 287); [2] — 1. Introduction (p. 40); [3] — Ch. 4 (pp. 244–267); [4] — Ch. 7 (p. 107)</small></p>
+<h2 id="selection-specification-and-improvement">Selection, specification, and improvement</h2>
+<p>Selection of thermal‑expansion measurement for concrete pavements is driven primarily by the coefficient of thermal expansion (CTE) of the materials involved. Designers first evaluate the CTE of the dominant aggregates because &ldquo;When specifying how to measure thermal expansion for a concrete pavement, designers first evaluate the coefficient of thermal expansion (CTE) of the aggregates that dominate the mix, because those values control the overall concrete CTE.&rdquo; Low‑CTE aggregates such as limestone or marble are preferred, as &ldquo;Materials with the lowest CTE—such as limestone or marble—are preferred since they produce the smallest volumetric changes under temperature swings.&rdquo; The criteria include aggregate type, cement content, water‑to‑cement ratio, anticipated temperature range, concrete age and relative humidity; these material factors &ldquo;The dominant criteria are material factors that most affect CTE: aggregate type, cement content, water‑to‑cement ratio, anticipated temperature range, concrete age and relative humidity.&rdquo; Given that aggregates constitute 60–75 % of the volume, &ldquo;Since aggregates constitute 60–75 % of the volume, their CTE largely determines the concrete response and is therefore the primary design lever.&rdquo; For bonded overlays, &ldquo;CTE is considered a critical design variable for bonded overlays of existing concrete pavements in the AASHTO Pavement ME Design Guide,&rdquo; and designers must verify that the CTE used in performance models reflects actual material properties; any deviation can invalidate an overlay thickness and require increased depth to meet crack‑prediction reliability: &ldquo;Designers must verify that the CTE value used in the AASHTOWare Pavement ME model reflects the actual material properties; any deviation—e.g., changing the assumed CTE from 4.5 to 6.1 ×10⁻⁶/°F—invalidates a previously acceptable overlay thickness and forces an increase in section depth to meet crack‑prediction reliability targets.&rdquo; Compatibility between new and existing pavement is also required: &ldquo;Compatibility between the overlay and the existing pavement is another key criterion: when the same aggregate cannot be used, the overlay must be analyzed with a different CTE and its predicted cracking percentage and reliability are evaluated to decide whether adjustments such as greater thickness are required.&rdquo; Measurement follows the standard AASHTO T 336 procedure, and designers compare the estimated CTE of overlay aggregates with that of the base concrete while also assessing paste‑to‑aggregate ratios and w/c ratios to ensure dimensional compatibility: &ldquo;Designers therefore determine the CTE using the AASHTO T 336 test, compare the estimated CTE of any overlay’s coarse aggregate with the existing base concrete, and evaluate paste‑to‑aggregate and water‑cement ratios to ensure dimensional compatibility.&rdquo; The chosen CTE must be matched to &ldquo;The selected CTE is then matched to the anticipated temperature gradients and the capacity of joints or other design details to accommodate the predicted length change,&rdquo; because joint performance governs durability: &ldquo;When specifying thermal‑expansion measurement for concrete pavement, the guiding criteria focus on ensuring that the joint system can accommodate the anticipated movement.&rdquo; Consequently, &ldquo;Anticipated joint durability and crack susceptibility are the key criteria for selecting this measurement.&rdquo; [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The following figure illustrates the specialized equipment used to conduct these critical thermal expansion measurements.</p>
+<p><img alt="CTE testing equipment" src="assets/thermal-expansion-measurement/4a291a33ea1bfaee564165adc5e1ca9d844c28f83d74a12a493b82a49209285e.jpg" />
+<em>CTE testing equipment</em> [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The image displays a laboratory apparatus consisting of a temperature-controlled bath and an electronic measurement device used to determine the coefficient of thermal expansion (CTE).</p>
+<p><small>[1] — Ch. 3 (p. 91), Ch. 6 (p. 160); [2] — 1. Introduction (pp. 39–40); [3] — Ch. 4 (pp. 244–280), Ch. 18 (p. 387); [4] — Ch. 7 (pp. 106–107)</small></p>
+<p>Ensuring that the pavement’s joint layout, spacing, and joint width are built exactly as specified in the design provides the primary means of controlling thermal‑expansion related problems; by treating these joint parameters as critical quality‑control checkpoints during construction, the adverse effects of concrete expansion and contraction can be mitigated. To keep thermal‑expansion effects from compromising pavement performance, the construction team should verify that joints are laid out and spaced exactly as specified and that each joint is cut to the required width; these checks serve as the primary quality‑control step recommended for mitigating the weaknesses associated with thermal expansion.</p>
+<p>When an overlay has a higher coefficient of thermal expansion than the underlying concrete, increasing the overlay thickness to three inches adds sufficient stiffness and volume to absorb the mismatch, thereby improving performance and mitigating the weakness associated with CTE differences.</p>
+<p>Since carbonate aggregate mixtures are less thermally expansive, the designer should take this reality into consideration when a variety of coarse aggregates are available. Using these lower‑CTE, carbonate‑based coarse aggregates directly reduces the magnitude of temperature‑induced movement in concrete pavement panels, improving the reliability of thermal‑expansion measurements and limiting cracking. In overlay situations, match the estimated coefficient of thermal expansion (CTE) of the selected overlay coarse aggregate to that of the existing concrete, and adjust the paste‑to‑aggregate content and water‑to‑cementitious (w/cm) ratio so the two layers remain dimensionally compatible.</p>
+<p>After construction, CTE and shrinkage values can be measured directly using concrete beams or cylinders cut from the concrete overlay and existing concrete pavement using equipment and protocols described in AASHTO T 336‑11; this quality‑control step mitigates uncertainties in predicted thermal behavior. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p><small>[1] — Ch. 9 (p. 287); [2] — 1. Introduction (p. 40); [3] — Ch. 4 (p. 244), Ch. 18 (p. 387); [4] — Ch. 7 (p. 107)</small></p>
+<h2 id="performance-evaluation-and-implications">Performance evaluation and implications</h2>
+<p>The material’s coefficient of thermal expansion (CTE) is established primarily through laboratory testing using the AASHTO T 336 protocol. This test quantifies the CTE of both the aggregate and the hardened hydraulic cement concrete, providing the numeric values that feed into pavement design calculations and thermal‑stress models. Designers also verify predicted CTEs by comparing overlay aggregate values with those of the existing slab, using mixture records or petrographic examination, and may re‑measure cores after construction following the same AASHTO procedure.</p>
+<p>Field evidence is obtained from longitudinal roughness monitoring. Long‑term International Roughness Index (IRI) data collected on test sections—such as a 17‑year record from an Arizona SPS‑2 segment—captures daily temperature‑induced curvature and isolates it from permanent warping. The IRI fluctuations associated with thermal curling are quantified, and after removal of curvature effects the remaining baseline remains stable over many years.</p>
+<p>Together, laboratory CTE measurements, comparative aggregate assessments, and multi‑year IRI monitoring constitute the performance evidence used to evaluate thermal‑expansion behavior in concrete pavements. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p><small>[1] — Ch. 3 (p. 91), Ch. 6 (p. 160); [3] — Ch. 4 (pp. 262–267), Ch. 18 (p. 387), Ch. 19 (p. 495)</small></p>
+<p>&ldquo;A material’s CTE is a measure of how much the material changes in length (or volume) for a given change in temperature.&rdquo; Because aggregates constitute most of a concrete mix, &ldquo;the coefficient of thermal expansion (CTE) governs the overall expansion‑contraction behavior of the pavement slab,&rdquo; and &ldquo;as the volume of concrete is predominately aggregate, the aggregate (particularly the coarse aggregate) has a large influence on CTE.&rdquo; Typical values range from 3.2 to 7.0 × 10⁻⁶ /°F (average about 5.5 × 10⁻⁶ /°F), so a 90 °F swing can produce &ldquo;about 2/3 in. for 100 ft of concrete,&rdquo; generating temperature‑induced strains that &ldquo;promote cracking, joint faulting, and loss of durability.&rdquo; High‑expansion aggregates such as those with &ldquo;high CTE properties cause contraction and expansion of panels due to annual and daily temperature swings,&rdquo; increase the potential for curling and loss of load transfer when dowels are absent. Consequently, the guides require designers to incorporate measured CTE values into thermal modeling, select low‑expansivity aggregates (e.g., carbonate blends), size joints, and determine slab or overlay thicknesses that can accommodate the expected movements. When the CTE is increased, design models predict substantially higher cracking rates—for example, changing CTE from 4.5 to 6.1 ×10⁻⁶/°F &ldquo;predicts 56.86% slabs cracked at 95% reliability,&rdquo; and the original 2‑in. overlay becomes invalid, prompting a recommendation for a thicker (e.g., three‑inch) overlay or adjusted slab thickness based on temperature differentials. During construction, &ldquo;joint layout, spacing, and width&rdquo; must be verified to conform with design specifications, and concrete placed must meet the specified CTE values. Post‑construction, maintenance programs monitor joint condition, opening/closing cycles, curvature‑related roughness, and thermal‑induced cracking so that corrective actions can preserve performance and extend service life. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The figure below illustrates how this thermal expansion can cause compression at a transverse joint when adjacent joints fail to open.</p>
+<p><img alt="Compression at transverse joint due to slab expansion and ad" src="assets/thermal-expansion-measurement/570d55df7888ad76b218b2aab17bba38a6a9e6f5f971a115218d0e1abeb21168.jpg" />
+<em>Compression at transverse joint due to slab expansion and adjacent joints not opening Matt Zeller, Concrete Paving Association of Minnesota</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The image displays a longitudinal crack in a concrete pavement that has caused significant vertical displacement and spalling along the centerline.</p>
+<p><small>[1] — Ch. 3 (p. 91), Ch. 6 (p. 160), Ch. 9 (p. 287); [2] — 1. Introduction (pp. 39–44); [3] — Ch. 4 (pp. 244–280), Ch. 18 (p. 387), Ch. 19 (p. 495); [4] — Ch. 7 (pp. 106–107)</small></p>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li><li id="ref-3"></li><li id="ref-4"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

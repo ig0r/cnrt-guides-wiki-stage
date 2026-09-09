@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resilient Modulus and Joint Spacing</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html" class="active" aria-current="page">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Resilient Modulus and Joint Spacing</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=concrete-overlay-design">concrete-overlay-design</a><a class="tag" href="index.html?q=pavement-me-design">pavement-me-design</a><a class="tag" href="index.html?q=performance-criteria">performance-criteria</a><a class="tag" href="index.html?q=resilient-modulus">resilient-modulus</a><a class="tag" href="index.html?q=joint-spacing">joint-spacing</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>Resilient modulus is the stiffness parameter that characterizes the strength of each supporting layer—whether a chemically‑stabilized base, an un‑stabilized layer, or the underlying soil—and is entered as a dynamic k‑value or computed by the Foundation Support module in AASHTOWare Pavement ME Design. Joint spacing specifies the transverse joint configuration for Jointed Plain Concrete Pavements (or its omission for CRCP) and, together with dowel reinforcement, governs load transfer and faulting behavior. By calibrating these two inputs, designers model the interaction between a new concrete overlay and the existing structure so that the overlay can satisfy reliability‑based performance targets for slab cracking, joint fault magnitude, and ride quality over its 20‑year design life [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-design-objectives">Purpose and design objectives</a></li><li><a href="#scope-and-applicability">Scope and applicability</a></li><li><a href="#design-inputs-and-requirements">Design inputs and requirements</a></li><li><a href="#design-methods-and-criteria">Design methods and criteria</a></li><li><a href="#structural-section-and-dimensions">Structural section and dimensions</a></li><li><a href="#materials-and-mixture-design">Materials and mixture design</a></li><li><a href="#structural-details-and-interfaces">Structural details and interfaces</a></li><li><a href="#drainage-environment-and-accessibility">Drainage, environment, and accessibility</a></li><li><a href="#verification-and-expected-performance">Verification and expected performance</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (5)</summary><div class="sources-body"><a href="#ref-1">2019-12_IMCP_manual</a>, <a href="#ref-2">Overlays_Design_Guide_508</a>, <a href="#ref-3">QC_for_concrete_paving_web</a>, <a href="#ref-4">guide_to_concrete_overlays_4th_Ed_web</a>, <a href="#ref-5">hif13059</a></div></details>
+
+<h2 id="purpose-and-design-objectives">Purpose and design objectives</h2>
+<p>The engineering problem addressed by specifying resilient modulus and joint spacing is to provide a concrete overlay that can sustain traffic loads while meeting reliability‑based performance targets for slab cracking, joint faulting, and ride quality over the design life. The guides state that “Resilient modulus (dynamic k‑value) and joint spacing are captured to define the existing pavement’s support conditions and joint configuration so that a bonded concrete overlay can be designed with adequate structural capacity, load transfer, and durability.” For unbonded overlays, “The design of an unbonded concrete overlay uses joint spacing and foundation support properties to ensure the overlay can carry traffic loads without excessive faulting.” Across both sources, the design is calibrated to keep the pavement within allowable limits—“The concrete overlay design is aimed at satisfying a reliability‑based performance target that restricts slab cracking, joint faulting, and ride‑quality deterioration over the 20‑year design life under increasing truck traffic,” and “To meet these limits, the stiffness of the underlying layers—characterized by their resilient modulus—and the chosen joint spacing are calibrated so the overlay can stay within the allowable percentages for cracking, joint fault magnitude, and terminal IRI while achieving a 90 % reliability.” Thus, resilient modulus characterizes layer stiffness and joint spacing controls load distribution, together addressing the need to maintain ride quality and structural integrity of the overlaid section at a high reliability level. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The following figure illustrates the existing pavement cross-section that serves as the basis for these resilient modulus and joint spacing considerations.</p>
+<p><img alt="Summary of Existing Pavement Cross-Section." src="assets/resilient-modulus-and-joint-spacing/6c1672f0156b5998dc7cb3d7e64646f8bf9eb73678d005104388d7f7933948a8.jpg" />
+<em>Summary of Existing Pavement Cross-Section.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays a layered pavement structure consisting of an existing asphalt surface, crushed aggregate base and subbase layers, and the underlying soil subgrade.</p>
+<p><small>[2] — 1. Introduction (pp. 26–67); [4] — App. B (pp. 121–122)</small></p>
+<p>The design &ldquo;must achieve satisfactory serviceability by keeping the pavement smooth, limiting faulting, and restricting the proportion of cracked slabs&rdquo; and it &ldquo;must meet serviceability and durability targets that govern the required concrete stiffness (resilient modulus) and joint layout.&rdquo; Serviceability limits include a terminal IRI at or below 172 in/mi; structural and durability limits require &ldquo;slab cracking is limited to ten percent&rdquo;, &ldquo;joint faulting cannot exceed one‑tenth of an inch&rdquo;, and for continuously reinforced overlays &ldquo;allowable punchouts are capped at ten per mile&rdquo;. These performance limits drive the selection of a 15‑ft joint spacing (with dowels or tied shoulders as appropriate) and appropriate resilient modulus values. All criteria are evaluated at high reliability levels (90 % or 95 %), thereby meeting functional, structural, durability, safety and serviceability objectives. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p><small>[2] — 1. Introduction (pp. 56–67); [4] — App. B (pp. 121–122)</small></p>
+<h2 id="scope-and-applicability">Scope and applicability</h2>
+<p>The resilient‑modulus and joint‑spacing design framework is used for concrete pavement systems, covering both Jointed Plain Concrete Pavement (JPCP) and Continuously Reinforced Concrete Pavement (CRCP). &ldquo;The resilient‑modulus‑and‑joint‑spacing design approach is appropriate for concrete‑overlay projects on existing pavements where the engineer must model the interaction between the new slab and the underlying structure.&rdquo; It is applied to JPCP overlays—both bonded and unbonded—by specifying the original transverse joint spacing and dowel‑bar layout, while &ldquo;for Continuously Reinforced Concrete Pavement (CRCP) overlays where steel reinforcement replaces joint data&rdquo;. Joint spacing is a selectable parameter only for JPCP, where dowel diameter, dowel spacing, joint spacing and sealant type are defined; heavy‑traffic projects often adopt shorter joint spacings (12–15 ft) and 1.25‑in. dowels spaced at about 12 in. to ensure load transfer. The method accommodates a range of base conditions: granular or subgrade bases are treated as “no friction” (unbonded), while asphalt or cement‑treated bases may be modeled as bonded, with interface friction and erodibility defined accordingly. &ldquo;Resilient modulus serves as the strength property for the stabilized layer when chemical stabilizers are employed, for non‑stabilized layers, and for the underlying soil that supports any concrete overlay,&rdquo; and the resilient modulus entry—either a user‑provided dynamic k‑value from deflection testing or an estimated value calculated by the software—serves as the foundation support parameter for any pavement type evaluated in AASHTOWare Pavement ME Design. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The following figure illustrates the adjustment factor used for unbonded overlays in these pavement systems.</p>
+<p><img alt="Adjustment factor for unbonded concrete overlays plotted aga" src="assets/resilient-modulus-and-joint-spacing/8812fc27c8d727eddea08403ee5ddf5a429d2751d4ae68978e84071110d7e617.jpg" />
+<em>Adjustment factor for unbonded concrete overlays plotted against deteriorated transverse joints and cracks per mile.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays a graph of the $F_{jcu}$ adjustment factor on the vertical axis, which decreases as the density of deteriorated transverse joints and cracks increases along the horizontal axis.</p>
+<p><small>[1] — Ch. 3 (p. 63); [2] — 1. Introduction (pp. 26–66)</small></p>
+<p>When the proposed overlay is a continuously reinforced concrete pavement (CRCP), the design workflow shifts away from joint spacing and instead requires input of steel reinforcement, making the joint‑spacing approach unsuitable. In contrast, for jointed plain concrete pavements (JPCP) the software expects joint spacing and dowel data, so the presence of CRCP dictates a different design method. Additionally, the choice between “No friction” and “Full friction” options for the PCC‑base interface reflects whether the existing slab is unbonded or bonded, influencing how foundation support is modeled but not replacing the need for joint information in JPCP designs. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[2] — 1. Introduction (pp. 26–27)</small></p>
+<h2 id="design-inputs-and-requirements">Design inputs and requirements</h2>
+<p>The design of concrete overlays is governed by the AASHTO Pavement ME Design software analysis, which requires that the proposed configuration satisfy specified performance criteria. Across the guides, joint spacing is constrained to fifteen feet for Jointed Plain Concrete Pavement (JPCP) options, with steel dowels sized at 1.25 in. or 1.5 in., and tied concrete shoulders are prescribed when applicable. Input parameters include subgrade resilient moduli of eighteen‑thousand psi for granular base layers and eight‑thousand psi for A‑7‑6 soils. Performance requirements impose limits of ten percent slab cracking, a joint faulting tolerance of one‑tenth inch, a terminal IRI not to exceed one hundred seventy‑two inches per mile, and, for CRCP designs, punchouts limited to ten per mile. Reliability targets are set at ninety percent in some cases and at a higher level of ninety‑five percent for the smoothness, faulting, and slab‑cracking criteria. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p><small>[2] — 1. Introduction (p. 67); [4] — App. B (pp. 121–122)</small></p>
+<h2 id="design-methods-and-criteria">Design methods and criteria</h2>
+<p>The design and analysis of concrete overlays are performed with the mechanistic‑empirical AASHTOWare Pavement ME Design software. Resilient modulus is incorporated through the Foundation Support module, which can either compute a subgrade reaction k‑value from the soil’s resilient modulus or accept a user‑supplied dynamic k‑value obtained by pavement deflection testing and back‑calculation. The guides describe two alternative procedures: an automatic conversion of MR to a k‑value (default) or manual entry of a measured k‑value. When the manual route is chosen, the required input is a dynamic k‑value that must be derived from field tests; this value is often adjusted with an empirical factor of 0.35 applied to the back‑calculated subgrade MR to produce an equivalent laboratory‑scale modulus (e.g., “0.35*backcalculated Mr (psi): 8,400.”). </p>
+<p>Joint spacing is entered as a design property on the JPCP Design Properties screen. The user specifies the transverse concrete joint spacing—commonly in the range of 12–15 ft for unbonded overlays—and provides dowel or steel reinforcement details when a CRCP overlay is considered. Existing joint patterns can be overridden by the selected overlay configuration, and interface conditions such as full‑friction contact are also defined at this stage. </p>
+<p>The software combines the resilient modulus values of existing layers (e.g., 18 000 psi for a granular base and 8 000 psi for subgrade) with traffic inputs (ESALs, vehicle class distribution) to predict performance. Reliability‑based performance criteria are applied at a specified confidence level (typically 90 % or 95 %). The guides cite failure limits of 10 % slab cracking, 0.10 in. joint faulting, and a terminal IRI of 172 in/mi. Predicted smoothness, faulting, and percent slabs cracked are compared against these thresholds to confirm that the chosen configuration meets required performance. </p>
+<p>Key procedural steps and tools across the guides include: 
+1. Obtain a dynamic k‑value from deflection testing and back‑calculation (or let the software compute it). 
+2. Apply the empirical conversion factor 0.35 to back‑calculated subgrade MR when needed. 
+3. Enter joint spacing and dowel/steel reinforcement data via the JPCP Design Properties menu – “The JPCP Design Properties menu is used to enter the joint spacing and dowel inputs that correspond to the existing pavement.” 
+4. Select full‑friction contact or other interface conditions as required. 
+5. Run AASHTOWare Pavement ME Design analysis, using the Foundation Support module – “The Foundation Support menu provides the option to have AASHTOWare Pavement ME Design estimate the modulus of subgrade reaction (default) or to have the user enter it manually.” and, when manual entry is used, provide the dynamic k‑value – “if a value is to be entered manually, AASHTOWare Pavement ME Design requires the dynamic k‑value, which is determined through deflection testing and backcalculation.” 
+6. Evaluate overlay performance against reliability‑based criteria (smoothness, faulting, slab cracking) at the chosen confidence level. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The following figure illustrates the predicted faulting performance resulting from this design process.</p>
+<p><img alt="Predicted faulting over pavement age for an unbonded overlay" src="assets/resilient-modulus-and-joint-spacing/9d6f2cfc987bf69b958e80008a40be494863e2d63ea2e78bca01215303333290.jpg" />
+<em>Predicted faulting over pavement age for an unbonded overlay design.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays a plot of predicted faulting in inches against pavement age in years, showing the progression of distress over time.</p>
+<p><small>[2] — 1. Introduction (pp. 26–66); [4] — App. B (pp. 121–122)</small></p>
+<p>The guides require unbonded concrete overlays to use a transverse joint spacing of fifteen feet, which is shorter than the spacing typically used in new pavements, and to offset overlay joints at least three feet from any existing pavement joints. The design assumes a “no friction” condition at the interface, representing an unbonded state, and specifies 1.25‑in dowels placed at 12‑in intervals with tied concrete shoulders supporting the edges. Overlay thicknesses of 8.5–9 in combined with the fifteen‑foot joint spacing and dowel configuration must satisfy performance criteria for smoothness, faulting, and percent slabs cracked. The performance limits are set to no more than ten percent slab cracking, joint faulting not exceeding one‑tenth of an inch, and a terminal IRI of 172 in/mi. These limits must be met with a reliability target of ninety percent in some guidance and ninety‑five percent in other guidance; the reliability requirement is applied through AASHTOWare Pavement ME Design. No explicit resilient‑modulus threshold is imposed on the new concrete overlay itself, although the analysis uses existing layer moduli (e.g., a granular base with a resilient modulus of 18 000 psi and a subgrade of 8 000 psi) as inputs. The guides do not prescribe additional factors of safety beyond the stated reliability targets. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The figure below illustrates the specific dimensional requirements for the concrete overlay joint relative to the existing pavement cracks.</p>
+<p><img alt="the figure.7 COC–B joint detail showing the widths of the ov" src="assets/resilient-modulus-and-joint-spacing/b9d36a183b7812403ca48f5159a1293c2316f299bb4cb942c24a4f1d32c8d4d7.jpg" />
+<em>the figure.7 COC–B joint detail showing the widths of the overlay joint, sawcut, and underlying crack.</em> [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The figure illustrates a cross-section of a bonded concrete overlay placed over an existing concrete pavement slab. It depicts the alignment between the transverse joint in the new overlay and the sawcut in the underlying structure, highlighting that the width of the new overlay transverse joint (X) must be equal to or greater than the crack width in the existing slab. This detail demonstrates how joint spacing and alignment are managed during construction to ensure proper load transfer and prevent faulting.</p>
+<p><small>[2] — 1. Introduction (pp. 32–67); [4] — App. B (pp. 121–122)</small></p>
+<h2 id="structural-section-and-dimensions">Structural section and dimensions</h2>
+<p>The guides state “existing concrete pavement transverse joint spacing is 15 ft” and require “offsetting the overlay joints a minimum of 3 ft from the existing pavement joints”. Joint spacing recommendations include “joint spacing of 12 ft”, “ranges from 12 to 15 ft”, and “joint spacing was selected to be 15 ft”. Overlay thicknesses are given as “overlay 9 in. thick”, “overlay 8.5 in. thick”, and “Both overlays were designed to be 10 in. thick.” Reinforcement details include “1.25 in. dowels spaced at 12 in.”, “1.5 in. steel dowels”, “typical values of 0.6 percent to 0.75 percent of steel, a bar diameter of 0.625 to 0.75 in., and steel depths of 3.5 in. to mid-depth”, and “0.7 % steel content using No. 6 bars placed 3.5 in. below the slab surface”. The existing pavement description is “existing 8 in. thick jointed plain concrete pavement” supported by “a 10 in. granular base layer with a resilient modulus of 18,000 psi” over “an A‑7‑6 subgrade soil with a resilient modulus of 8,000 psi”. Shoulder provisions are noted as “tied concrete shoulders” and “Asphalt shoulders are included”. No explicit dimensions are provided for edge‑support conditions. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The following figure illustrates the summary of existing pavement cross-section details discussed above.</p>
+<p><img alt="Summary of Existing Pavement Cross-Section." src="assets/resilient-modulus-and-joint-spacing/65f8d86949499f192c0806463aaa8a8b4c70e96fb4c4ed3ae3abffc16acf6794.jpg" />
+<em>Summary of Existing Pavement Cross-Section.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays a schematic cross-section of an existing pavement structure consisting of three distinct layers: an asphalt surface, a granular base, and the underlying soil subgrade.</p>
+<p><small>[2] — 1. Introduction (pp. 32–67); [4] — App. B (pp. 121–122)</small></p>
+<p>The selection of thickness, joint spacing, and related details is driven by the performance predictions from AASHTOWare Pavement ME. The design proceeds by running the analysis and adopting the overlay thickness and joint spacing that the model predicts will satisfy the smoothness, faulting and slab‑cracking limits at the required reliability; in the example the analysis indicated a 9‑inch‑thick concrete overlay with joints spaced 15 ft (using dowels) meets those criteria. A comparable result is obtained when the analysis indicates an overlay 8.5 in thick with a joint spacing of 15 ft, using 1.25‑in dowels and tied concrete shoulders, also satisfies the required smoothness, faulting and slab‑cracking performance criteria at the specified reliability level. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The following figure illustrates the predicted faulting performance for a specific overlay configuration analyzed using AASHTOWare Pavement ME.</p>
+<p><img alt="Predicted faulting of a concrete overlay over pavement age." src="assets/resilient-modulus-and-joint-spacing/ecf8fac45274e8397be1b129773dd646c07978763283e27d1d30aa4818174452.jpg" />
+<em>Predicted faulting of a concrete overlay over pavement age.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The analysis predicts that an overlay with specific joint spacing and no dowels will perform satisfactorily in terms of faulting limits over its design life. This visualization demonstrates how the resilient modulus inputs for supporting layers are used to model load transfer and predict performance metrics like fault magnitude.</p>
+<p><small>[2] — 1. Introduction (pp. 56–67)</small></p>
+<h2 id="materials-and-mixture-design">Materials and mixture design</h2>
+<p>Joint spacing must be defined as part of the JPCP joint‑detail inputs, together with dowel diameter, dowel spacing and sealant type. For the overlay slab, a typical joint spacing of 15 ft is paired with 1.5‑in. steel dowels as joint reinforcement. The resilient modulus is treated as a strength parameter that must be supplied for each structural layer where it applies – the chemical‑stabilized layer, the non‑stabilized layer, and the underlying soil. Backcalculated E (psi) for asphalt and base/subbase: 310,000 and 23,000, respectively. The existing JPCP was supported by a 10 in. granular base layer with an resilient modulus of 18,000 psi and an A‑7‑6 soil with a resilient modulus of 8,000 psi. In the software, users also enter the dynamic k‑value (modulus of subgrade reaction) and select a friction condition based on the base material (“No friction” for granular or subgrade; “Full friction” for asphalt or cement‑treated bases). No specific mixture proportions are required for these inputs. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The figure below illustrates the summary of this existing pavement cross-section.</p>
+<p><img alt="Summary of Existing Pavement Cross-Section." src="assets/resilient-modulus-and-joint-spacing/1a15421c41693f1414e3a3d7436acf5c3292a12a78f4a81e2eeba84a104fa1ce.jpg" />
+<em>Summary of Existing Pavement Cross-Section.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays a schematic cross-section of an existing pavement structure consisting of four distinct layers: asphalt, crushed aggregate base, crushed aggregate subbase, and subgrade soil.</p>
+<p><small>[1] — Ch. 3 (p. 63); [2] — 1. Introduction (pp. 26–53); [4] — App. B (pp. 121–122)</small></p>
+<h2 id="structural-details-and-interfaces">Structural details and interfaces</h2>
+<p>The overlay design process requires specifying transverse joint spacing, dowel bar geometry, reinforcement ratios, and interface conditions. &ldquo;The JPCP Design Properties menu is used to enter the joint spacing and dowel inputs that correspond to the existing pavement.&rdquo; Joint spacing for existing concrete pavements is commonly 15 ft (existing concrete pavement transverse joint spacing is 15 ft), while unbonded overlays often start with a shorter spacing of about 12 ft (joint spacing of 12 ft is initially selected) because &ldquo;recommended joint spacing for unbonded overlays is typically shorter than the spacing for new pavements, which usually ranges from 12 to 15 ft.&rdquo; Joints should be offset at least 3 ft from existing joints (offsetting the overlay joints a minimum of 3 ft from the existing pavement joints). Load transfer is provided by steel dowels; typical dimensions are 1.25 in. diameter on 12‑in centers (dowel bars 1.25 in. in diameter every 12 in.) and may be increased to 1.5 in. for higher demand (joint spacing was selected to be 15 ft with 1.5 in. steel dowels). Dowels are optional in the first iteration of an unbonded overlay (No dowels or PCC tied shoulders are included for load transfer in the first iteration) but can be added if faulting occurs (Dowels may not be required, but, if needed to address faulting, the spacing and diameter are determined following the same guidelines as for new JPCP). For continuously reinforced concrete pavement (CRCP) overlays, &ldquo;For CRCP overlays, steel reinforcement for the proposed overlay is input instead of joint information,&rdquo; with reinforcement ratios of 0.6–0.75 % steel (0.6 percent to 0.75 percent of steel, a bar diameter of 0.625 to 0.75 in., and steel depths of 3.5 in. to mid-depth) or 0.7 % using No. 6 bars placed 3.5 in. below the surface (design steel content was 0.7% with No. 6 bars placed at 3.5 in. from the slab surface to the top of the steel). The overlay‑base interface is modeled as “No friction” when the base is granular or unbonded (For the existing PCC-base interface, the “No friction” option is selected when the base consists of granular materials or subgrade to indicate that the existing PCC slab and the base are unbonded) and as “Full friction” for bonded bases such as asphalt or cement‑treated layers (Other base types, such as asphalt or cement-treated bases, are more likely to be bonded to the existing concrete slab, and the user selects the “Full friction” option and provides the estimated number of months that the bond will last). Finally, material strength is represented by resilient modulus values assigned to stabilized, non‑stabilized, and underlying soil layers (Strength (resilient modulus)), and no additional load‑transfer elements beyond the defined joints and reinforcement are required (JPCP joint details (dowel diameter, dowel spacing, joint spacing, and sealant type); CRCP design details (percent steel, bar diameter, steel depth, and crack spacing)). [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The following figure illustrates the interface where these joint spacing and dowel inputs are specified for existing pavements.</p>
+<p><img alt="Screen Capture of AASHTOWare Pavement ME Design JPCP Design" src="assets/resilient-modulus-and-joint-spacing/d248aa68954fcdcdf27c66b808517d9e019495ad3a7431fcb02e3729fa79e7d0.jpg" />
+<em>Screen Capture of AASHTOWare Pavement ME Design JPCP Design Properties Menu.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays the &ldquo;JPCP Design Properties&rdquo; menu within a software interface, showing specific input fields for overlay design features such as joint spacing and dowel bar geometry. It visually demonstrates how users define the &ldquo;interface condition that exists between the bottom of the overlay and the surface of the base&rdquo; by selecting options like &ldquo;No friction.&rdquo; The menu also allows for the selection of erodibility index, which relates to the strength characteristics of the supporting layers.</p>
+<p><small>[1] — Ch. 3 (p. 63); [2] — 1. Introduction (pp. 26–67); [4] — App. B (pp. 121–122)</small></p>
+<p>The interfaces between pavement layers, materials, structures, and adjacent features are defined by joint spacing and dowel reinforcement together with the resilient modulus of each supporting layer. &ldquo;Joint spacing is listed among the adjustable JPCP joint details&rdquo; and a transverse &ldquo;joint spacing of 15 ft&rdquo; is prescribed; steel dowels (1.25 in or 1.5 in diameter) are spaced at about 12 in to provide load transfer, as reflected in &ldquo;joint spacing was selected to be 15 ft with 1.5 in. steel dowels&rdquo;. The interface condition is set to “No friction” to represent an unbonded relationship, captured by the statement &ldquo;"No friction" is used to indicate that the two layers are unbonded&rdquo; and the assumption that bond weakens quickly after construction. Support layers are treated as elastic foundations characterized by their resilient modulus—e.g., &ldquo;resilient modulus of 18,000 psi&rdquo; for a granular base and &ldquo;resilient modulus of 8,000 psi&rdquo; for an A‑7‑6 subgrade—and these values are used in pavement analysis to define layer interface behavior. By varying joint spacing, dowel size/spacing, and resilient modulus together with thickness and material type, designers achieve the required performance limits at each interface. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p><small>[1] — Ch. 3 (p. 63); [2] — 1. Introduction (pp. 54–66); [4] — App. B (pp. 121–122)</small></p>
+<h2 id="drainage-environment-and-accessibility">Drainage, environment, and accessibility</h2>
+<p>The overlay layout must satisfy clear geometric constraints while no separate accessibility, safety, or user requirements are prescribed for resilient modulus or joint spacing. Specifically, the design calls for &ldquo;offsetting the overlay joints a minimum of 3 ft from the existing pavement joints&rdquo; and requires a transverse joint spacing that is shorter than that used for new pavements. Guidance typically recommends spacing in the 12‑ to 15‑ft range; one source notes &ldquo;joint spacing of 15 ft&rdquo; as the key constraint, while another suggests an initial selection of &ldquo;joint spacing of 12 ft&rdquo;. Moreover, &ldquo;the joints in the new overlay do not need to match the existing pavement joint spacing&rdquo;, allowing flexibility in placement provided the minimum offset and reduced spacing criteria are met. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The following figure illustrates a bonded overlay of existing concrete pavement to contextualize these joint spacing requirements.</p>
+<p><img alt="Illustration of Bonded Overlay of Existing Concrete Pavement" src="assets/resilient-modulus-and-joint-spacing/92e91828030d61d94d7ddc1546a88c9ea4f96e6f60ed043949fd807f8defb2cd.jpg" />
+<em>Illustration of Bonded Overlay of Existing Concrete Pavement.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays a cross-section of a pavement structure consisting of four distinct layers: an overlay, the existing concrete slab, a base course, and the subgrade.</p>
+<p><small>[2] — 1. Introduction (pp. 32–66)</small></p>
+<h2 id="verification-and-expected-performance">Verification and expected performance</h2>
+<p>The expected performance outcomes for concrete overlays are expressed in terms of ride quality, joint faulting, and distress resistance. &ldquo;Smoothness is evaluated through the predicted International Roughness Index (IRI)&rdquo; and a terminal target of 172 in/mi is cited for both conventional jointed and continuously reinforced pavements. Joint faulting is measured either by mechanistic‑empirical modeling—&ldquo;faulting is assessed by the modeled vertical displacement at joints&rdquo;—or by field inspections that limit fault to &ldquo;no more than 0.10 in.&rdquo;. Distress resistance is quantified as the proportion of slabs expected to crack—&ldquo;distress resistance is expressed as the percentage of slabs expected to crack&rdquo;—with a design ceiling of ten percent, while continuously reinforced sections use a punchout criterion of &ldquo;limited to ten punchouts per mile&rdquo;. Across the guides these outcomes are predicted using AASHTOWare Pavement ME Design at specified reliability levels (95 % in one case and 90 % in another) and verified through periodic field inspections that record cracking percentages, joint fault measurements or punchout counts, together with ride‑quality surveys to compute the IRI. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p><small>[2] — 1. Introduction (pp. 56–67); [4] — App. B (pp. 121–122)</small></p>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li><li id="ref-3"></li><li id="ref-4"></li><li id="ref-5"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cement Stabilization Process</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html" class="active" aria-current="page">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Cement Stabilization Process</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=cement-stabilization">cement-stabilization</a><a class="tag" href="index.html?q=base-layer-construction">base-layer-construction</a><a class="tag" href="index.html?q=pulverization">pulverization</a><a class="tag" href="index.html?q=dust-control">dust-control</a><a class="tag" href="index.html?q=pavement-material-durability">pavement-material-durability</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>The cement stabilization process is a field treatment used to convert an unbound, weak or moisture‑sensitive subgrade into a fully bound, compacted base that provides a stable, load‑bearing platform resistant to consolidation, deflection and freeze‑thaw damage [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]. It involves dry‑spreading Portland cement (typically 3–8 % by weight) onto a pulverized aggregate layer, blending the powder with the existing material either in‑place or off‑site, then compacting the mixture to at least 95 % of its laboratory‑determined maximum dry density while maintaining optimum moisture and curing it continuously moist for several days [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>]. By uniformly binding fine particles—including recycled‑concrete paste—and reducing plasticity and permeability, the treatment creates an all‑weather working platform that mitigates dust, leachate, and drainage problems without contributing significant structural capacity to the pavement [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-applicability">Purpose and applicability</a></li><li><a href="#required-inputs">Required inputs</a></li><li><a href="#equipment-and-personnel">Equipment and personnel</a></li><li><a href="#work-sequence">Work sequence</a></li><li><a href="#staging-and-logistics">Staging and logistics</a></li><li><a href="#quality-control-and-acceptance">Quality control and acceptance</a></li><li><a href="#safety-and-environmental-controls">Safety and environmental controls</a></li><li><a href="#curing-protection-and-handoff">Curing, protection, and handoff</a></li><li><a href="#expected-performance-and-maintenance">Expected performance and maintenance</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (11)</summary><div class="sources-body"><a href="#ref-1">2019-12_IMCP_manual</a>, <a href="#ref-2">Guide_to_FDR_with_Cement_Jan_2019_reprint</a>, <a href="#ref-3">IHRB_TR-640_foundation_layers_guide</a>, <a href="#ref-4">IPS</a>, <a href="#ref-5">RCA_practioner_guide_w_cvr</a>, <a href="#ref-6">Sustainable_Concrete_Pavement_508</a>, <a href="#ref-7">US_geotextile_performance_w_cvr</a>, <a href="#ref-8">concrete_pvmt_preservation_guide_3rd_edition_web</a>, <a href="#ref-9">guide_to_CSS</a>, <a href="#ref-10">guide_to_concrete_overlays_4th_Ed_web</a>, <a href="#ref-11">hif13059</a></div></details>
+
+<h2 id="purpose-and-applicability">Purpose and applicability</h2>
+<p>The cement stabilization process is employed to remedy the absence of a dependable, load‑bearing foundation in pavement construction. By converting an unbound, weak, moisture‑sensitive or overly saturated subgrade into a fully bound, compacted mixture, it creates a stable, firm platform that resists consolidation, deflection and freeze‑thaw damage under traffic loads. The method also resolves practical field issues: applying dry cement after the initial pulverizing pass ensures uniform distribution while minimizing fugitive dust, and when recycled concrete aggregate is present, stabilizing the mix binds exposed paste, preventing the formation of crushed‑concrete dust and calcium carbonate leachate that would otherwise clog drainage pipes and filter fabrics. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>]</p>
+<p>The following figure illustrates the application of cement slurry to the pulverized mix.</p>
+<p><img alt="Application of cement slurry to pulverized mix" src="assets/cement-stabilization-process/9ba6a243558380d01ae74a03ad6925283ecfd16b586a6629c773ca661eff7759.jpg" />
+<em>Application of cement slurry to pulverized mix</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image shows a heavy-duty truck equipped with a rear-mounted manifold system featuring multiple vertical nozzles. These nozzles are actively dispensing a grey liquid slurry onto the ground surface, which appears to be a pulverized aggregate mix.</p>
+<p><small>[1] — Ch. 8 (pp. 225–226); [2] — Ch. 6 (p. 81); [4] — Construction (pp. 58–68), Design (pp. 58–67), Materials (pp. 57–58), Solution (p. 62), Typical Applications (p. 56); [5] — Ch. 4 (pp. 43–44); [9] — Ch. 1 (p. 13), Ch. 5 (p. 44), Ch. 6 (p. 46); [11] — 2. Factors Influencing Long-Li… (pp. 19–20)</small></p>
+<p>When the existing subgrade or base material does not provide a stable working platform—such as highly saturated soils, fine recycled‑aggregate that would generate dust and leachate, or soils that fail to meet required Atterberg limits and CBR values—the guides recommend applying cement stabilization. The process is considered appropriate when the mix can be compacted to at least 95 % of maximum dry density, thereby achieving the needed compressive strength for a durable foundation (&ldquo;For both silty/clayey and sandy/gravelly subgrades, the CSS material should be uniformly compacted to a minimum of 95 percent of maximum dry density&rdquo;). It also serves to create an all‑weather platform and reduce plasticity (&ldquo;Cement‑modified soils are typically not designed to meet a compressive strength requirement, but rather designed to meet reduced plasticity requirements and increased CBR values&rdquo;; &ldquo;A cement‑treated or lean concrete base provides a strong and uniform support for the pavement and joints, provides an all‑weather working platform, and contributes to smoother pavements by giving firm support to the forms or paver during construction&rdquo;). For recycled‑concrete aggregate bases that will be exposed to water, cement (or asphalt) effectively eliminates dust and leachate that could clog drainage (&ldquo;Cement stabilization of an RCA base is appropriate when the layer will be exposed to water and you need to virtually eliminate dust and leachate that can clog drainage systems; applying cement (or asphalt) to the base effectively prevents those problems&rdquo;). A typical six‑inch thickness has been shown to supply a satisfactory construction platform (&ldquo;A common thickness of 6 in. (150 mm) has been shown to provide an adequate working platform for construction of base or subbase layers.&rdquo;)</p>
+<p>Conversely, cement stabilization should be avoided when the pavement requires significant structural load‑bearing capacity that the cement‑modified layer cannot provide (&ldquo;The CMS layer, however, does not contribute appreciably to the structural capacity of the pavement&rdquo;). In such cases a conventional granular base or an alternative stabilizing treatment is preferred. The method is also unsuitable for soils classified as A‑6 or A‑7, and for frost‑sensitive A‑4/A‑5 materials that will carry heavy truck traffic (&ldquo;Use of A‑6 and A‑7 soils is not recommended&rdquo;). For light‑traffic pavements—residential streets, secondary roads, parking lots, or light‑duty airports—a cement‑treated base may be unnecessary; proper subgrade preparation or an unstabilized granular base can achieve the desired performance (&ldquo;For light traffic pavements, such as residential streets, secondary roads, parking lots, and light‑duty airports, the use of a base layer may not be required, and the desired results can be obtained with proper subgrade preparation&rdquo;). When compaction to the specified density proves prohibitively difficult, the engineer may accept a naturally firm subgrade instead of proceeding with cement stabilization (&ldquo;If achieving a specified density is prohibitably difficult, a stable, firm, and unyielding subgrade condition may also be accepted by the project engineer&rdquo;). Finally, when dust generation or material volume makes alternatives such as fly ash impractical, cement stabilization is favored over those methods (&ldquo;Fly ash was not chosen as a solution due to potential problems with dust in the residential areas of the project, as well as the high volume of fly ash required to remedy the subgrade&rdquo;). [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>]</p>
+<p><small>[4] — Design (p. 67); [5] — Ch. 4 (pp. 43–44); [9] — Ch. 5 (p. 44), Ch. 6 (p. 46); [11] — 2. Factors Influencing Long-Li… (pp. 19–32)</small></p>
+<h2 id="required-inputs">Required inputs</h2>
+<p>The guides specify that "Granular materials in AASHTO Soil Classification Groups A‑1, A‑2‑4, A‑2‑5, and A‑3 are used for cement‑treated bases." They also require that the material "Contain no more than 35 percent passing the 75‑μm (#200) sieve" and "Have a PI of 10 or less." The mix is described as "Cement-treated base is a mixture of aggregate material, portland cement, and water." with "Any portland cement type can be used, but Types I and II are the most common." Cement content "usually ranges from 3 to 8 percent for most applications" and "A cement content of four percent was recommended by the contractor based on previous experience." Dry cement is placed according to "dry cement powder should be spread after the initial pulverizing pass and prior to the final mixing pass" using a "mechanical bulk spreader" (or "dry cement is spread using a bulk spreader"); "Mechanical style spreaders are desired in lieu of pneumatic style spreaders for dry cement placement." Dust control is emphasized: "When dry cement is added to the grade, dust control should be a priority to avoid fugitive dust, especially on windy days." Mixing may be performed plant‑side or in‑place: "Stabilized bases are predominantly plant mixed." and "For plant‑mixed bases, the material can be mixed either in a pugmill, a central‑mixed concrete plant, or an asphalt plant." In‑place mixing is described as "The cement was applied in powder form and mixed with the existing subgrade using a roadway reclaimer" until a homogeneous blend meeting pulverization criteria is obtained. Compaction must satisfy density requirements: "Each compacted lift should meet the density requirements and optimum moisture content requirements in the geotechnical report or applicable specifications." and for all soil types, "For both silty/clayey and sandy/gravelly subgrades, the CSS material should be uniformly compacted to a minimum of 95 percent of maximum dry density." The required moisture condition is set by laboratory testing: "The CTB mixture should be compacted at optimum moisture to maximum dry density as determined by preliminary laboratory testing per AASHTO T134 or ASTM D558, or as defined by project specifications." Subgrade preparation includes "Shape area to crown and grade; Correct unstable subgrade areas; If necessary scarify, pulverize, and prewet the soil." After placement the layer is cured: "The newly constructed base should be kept continuously moist (by lightly watering or misting) for a 3- to 7-day period." Strength targets are stated as "a seven‑day unconfined compressive strength of between 300 and 400 psi (2.1 and 2.8 MPa) is satisfactory" and "Typical seven‑day UCS for CTB range from 300 to 600 psi (2.1 to 4.1 MPa)." Finally, before a concrete overlay "it is important that a bond‑breaking medium be applied to the base surface." [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>]</p>
+<p>The following figure illustrates the process of spreading dry cement on the grade prior to mixing.</p>
+<p><img alt="A bulk cement truck equipped with a mechanical spreader dist" src="assets/cement-stabilization-process/3bff8d3f5cbd13dffc539b606e7f9f3a5533dfe4351451002a606df2f6637da2.jpg" />
+<em>A bulk cement truck equipped with a mechanical spreader distributing dry cement onto the road surface.</em> [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The image displays a large grey tanker truck fitted with flexible hoses and an orange dust-control skirt at the rear, which is actively spreading material onto the ground.</p>
+<p><small>[1] — Ch. 8 (pp. 226–227); [2] — Ch. 6 (p. 81); [4] — Construction (pp. 58–68), Design (p. 67), Materials (pp. 57–58); [9] — Ch. 1 (p. 13), Ch. 5 (p. 44), Ch. 6 (p. 46); [11] — 2. Factors Influencing Long-Li… (pp. 19–32)</small></p>
+<p>Design details for cement‑stabilized bases are governed by explicit thickness, material content, density, and pre‑construction testing requirements. The base is typically placed as a &ldquo;12 in. (300 mm)&rdquo; layer, but design thickness may range from a &ldquo;minimum thickness of 100 mm (4 in.)&rdquo; to typical values of &ldquo;typical thicknesses range from 6 to 12 in. (150 to 300 mm).&rdquo; Cement content &ldquo;usually ranges from 3 to 8 percent for most applications,&rdquo; and many designs specify &ldquo;four percent cement by weight.&rdquo; Strength criteria call for &ldquo;a seven‑day unconfined compressive strength of roughly 300–400 psi&rdquo; where required. Material classification must meet &ldquo;Granular materials in AASHTO Soil Classification Groups A-1, A-2-4, A-2-5, and A-3 are used for cement‑treated bases,&rdquo; with fine‑aggregate content limited to &ldquo;Contain no more than 35 percent passing a 75‑μm (#200) sieve&rdquo; and a plasticity index of ten or less; soils in groups A‑6 or A‑7 are excluded. Prior to placement, laboratory testing determines the optimum moisture content and maximum dry density using standard Proctor methods (&ldquo;per AASHTO T134 or ASTM D558&rdquo; and &ldquo;ASTM D698/AASHTO T99&rdquo;). Compaction must achieve the lab‑derived target: a &ldquo;minimum of 95 % of maximum dry density for all soil types&rdquo; is required in general, while &ldquo;at least 105 % of the maximum dry density … for heavily traveled projects.&rdquo; Compaction is performed with vibratory sheepsfoot rollers for silty/clayey or sandy/gravelly soils, and may also employ vibratory‑steel, pneumatic‑tire, or smooth‑drum rollers as appropriate. After compaction, density is verified by &ldquo;standard Proctor testing (supplemented by DCP testing where Proctor is unsuitable)&rdquo; and a proof roll with a fully loaded tandem‑axle truck provides final confirmation of uniform treatment. Curing requires maintaining continuous moisture for a minimum of 24 hours before further subgrade activity, and preferably &ldquo;3‑to‑7 days&rdquo; to allow proper cement hydration. In addition, the treated base must provide an adequate trackline width—generally about three feet—to support slipform pavers. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>]</p>
+<p>The laboratory testing described above generates data to produce curves such as the one shown below.</p>
+<p><img alt="Maximum dry density and optimum moisture content curve for a" src="assets/cement-stabilization-process/1ca3f5a707e052d1a95f9e6ca84507fb5373eeb0403c28137d1dce2101404a7b.jpg" />
+<em>Maximum dry density and optimum moisture content curve for a stabilized clay soil</em> [<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>]</p>
+<p>The figure displays a Moisture-Density Relationship graph plotting Dry Density (lb/cf) against Moisture Content (%). A best-fit curve illustrates the relationship, identifying a peak labeled Maximum Dry Density and a corresponding vertical line for Optimum Moisture. This graph represents the laboratory determination of optimum moisture content (OMC) and maximum dry density (MDD), which are calculated in accordance with AASHTO T 134 to guide field compaction.</p>
+<p><small>[1] — Ch. 8 (pp. 225–226); [4] — Construction (pp. 58–59), Design (pp. 58–67), Materials (pp. 57–58); [9] — Ch. 5 (p. 44), Ch. 6 (p. 46); [11] — 2. Factors Influencing Long-Li… (pp. 19–32)</small></p>
+<h2 id="equipment-and-personnel">Equipment and personnel</h2>
+<p>Preparation begins by shaping the subgrade to the required crown and grade; unstable areas are corrected with scarifiers, pulverizers, or by pre‑wetting dry soils or aerating wet soils using a disc harrow or an open‑hood rotary mixer. Cement is introduced either on‑site or off‑site. When mixed off‑site, the granular aggregate is blended with cement “mixed either in a pugmill, a central‑mixed concrete plant, or an asphalt plant” and then hauled to the work area. For in‑place placement, cement is placed “either as a dry powder from a mechanical spreader mounted on a dump or bulk‑cement truck—or as a slurry from a distributor truck.” Immediate blending on‑site is achieved with a “single‑shaft pulvermixer (or, when mixed off‑site, rotary‑drum mixers or high‑speed pugmills).” Placement of the mixed material follows the practice that “Placement with a high‑density asphalt paver is common,” while lean‑concrete type bases may be laid using a slipform paver (“placement employs a slipform paver”). In some projects “the cement was applied in powder form and mixed with the existing subgrade using a roadway reclaimer.” Compaction to the moisture‑density optimum is performed with vibratory steel rollers, sheepsfoot (tamping) rollers, and pneumatic‑tire rollers; a final pass with a pneumatic steel roller provides a smooth, void‑free surface. When required density is not attained, “when necessary, a roller can be used to reach density.” The consolidated layer is then finished by shaping and trimming; “final grading and trimming are performed with a motor grader or a dedicated trimmer,” or trimmed with a skid loader. Finishing may also include broom dragging, light water application, or an additional sealing coat. Curing is accomplished by maintaining continuous moisture for three to seven days using light watering, misting, moisture‑retaining covers, or curing compounds; additionally “a wax‑based curing compound is applied as a bond‑breaking medium,” and the layer may be “allowed to set for 24 hours prior to resumption of activity on the subgrade.” Field testing verifies density and moisture content in accordance with AASHTO T134 or ASTM D558, and compaction quality is confirmed by “standard Proctor testing and supplemental Dynamic Cone Penetrometer (DCP) testing.” [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>]</p>
+<p>The following figure illustrates the cement and subgrade being mixed with a reclaimer.</p>
+<p><img alt="Vibratory sheepsfoot roller compacting subgrade" src="assets/cement-stabilization-process/85c1bce0be748f77bd0e333568386f5f7e653b3529003511c54c348a2e9d9715.jpg" />
+<em>Vibratory sheepsfoot roller compacting subgrade</em> [<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>]</p>
+<p>The image displays a large yellow vibratory sheepsfoot roller operating on a construction site.</p>
+<p><small>[1] — Ch. 8 (pp. 226–227); [4] — Construction (pp. 58–68); [9] — Ch. 6 (p. 46)</small></p>
+<h2 id="work-sequence">Work sequence</h2>
+<p>Before cement stabilization can begin, a full‑depth reclamation or CMS design must be completed that determines the type and thickness of existing pavement layers and identifies the material to be combined with cement to create a stable base. The work area is then shaped to the required crown and grade and any unstable subgrade zones are corrected; if necessary the soil is scarified, pulverized, and pre‑wetted. An initial pulverization pass is made at a depth about one to two inches shallower than the final mixing depth – “The depth of the initial pulverization pass is typically 1 to 2 in. less than the final mixing pass.” – and after this pass “the contractor should perform light compaction and reshaping to provide a solid working base for equipment in the subsequent construction phases.” The subgrade must be evaluated for saturation; when it is highly saturated, remediation such as constructing a CSS is required – “Because the subgrade was highly saturated, it was decided to construct a CSS to remedy the saturation.” All shallow buried utilities are identified and excluded from treatment – “Areas containing shallow buried utilities were avoided for the CSS treatment.” The appropriate cement dosage is determined and formally approved – “A cement content of four percent was recommended by the contractor based on previous experience, and the recommendation was reviewed by the design team and the Iowa Department of Transportation.” Finally, dust‑control measures must be in place before dry cement powder is introduced – “dust control should be a priority.” [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>]</p>
+<p>The following figure shows the Pulvermizer used for in-place mixing of CMS.</p>
+<p><img alt="A large yellow Pulvermizer and a cement distributor truck op" src="assets/cement-stabilization-process/8201af465214d74632994ddb02f1989d5daf21ec8e0c9f4298009e32439c4142.jpg" />
+<em>A large yellow Pulvermizer and a cement distributor truck operating on a construction site.</em> [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The image displays heavy machinery, specifically a Pulvermizer with large tires caked in mud, positioned next to a tanker truck on an unpaved road surface.</p>
+<p><small>[2] — Ch. 6 (pp. 77–81); [4] — Construction (pp. 58–68), Design (pp. 63–67); [9] — Ch. 5 (p. 44), Ch. 6 (p. 46)</small></p>
+<p>Step‑by‑step sequence for cement stabilization:
+1. <strong>Prepare and locate the work area</strong> – &ldquo;A cross‑cut is made from the shoulder perpendicular to travel to establish a starting line for the reclaimer&rdquo; and the area is &ldquo;shaped to crown and grade; &hellip; scarify, pulverize, and prewet the soil&rdquo; while correcting any soft or unsuitable spots.
+2. <strong>Adjust moisture of the existing subgrade</strong> – &ldquo;If necessary, prewet dry soils to aid pulverization or dry back wet soils by aeration with disc harrow or rotary mixer with its hood open.&rdquo; This ensures the material is ready for effective pulverizing.
+3. <strong>Scarify/pulverize the subgrade (initial pass)</strong> – The reclaimer makes overlapping passes &ldquo;cutting to a depth 1 to 2 in. less than the final mixing pass&rdquo; to produce a uniform aggregate surface.
+4. <strong>Lightly compact and reshape the pulverized surface</strong> – &ldquo;After the initial pulverization pass, the contractor should perform light compaction and reshaping to provide a solid working base for equipment in the subsequent construction phases.&rdquo; This creates a smooth working platform.
+5. <strong>Distribute cement</strong> – &ldquo;dry cement powder should be spread after the initial pulverizing pass and prior to the final mixing pass&rdquo; using a mechanical bulk spreader (&ldquo;Mechanical style spreaders are desired in lieu of pneumatic style spreaders for dry cement placement&rdquo;); alternatively, cement may be placed as a slurry from a distributor truck. Dust‑control enclosures are used when windy: &ldquo;dust control should be a priority to avoid fugitive dust, especially on windy days.&rdquo;
+6. <strong>Blend cement with the aggregate</strong> – The reclaimer makes a final mixing pass or a pulvermixer is used: &ldquo;Mix with pulvermixer, adding water if necessary, until a homogeneous, friable mixture is obtained that will meet the specified pulverization requirements&rdquo; and &ldquo;The cement was applied in powder form and mixed with the existing subgrade using a roadway reclaimer.&rdquo;
+7. <strong>Compact the stabilized layer promptly</strong> – Initial compaction is performed with appropriate rollers (&ldquo;first with a tamping/sheepsfoot roller and then with steel‑drum or pneumatic‑tire rollers for surface densification&rdquo;; &ldquo;initial compaction should be done with a vibratory tamping roller &hellip; or padfoot roller&rdquo;). The material must reach at least 95 % of maximum dry density: &ldquo;the CSS material should be uniformly compacted to a minimum of 95 percent of maximum dry density.&rdquo; Multiple lifts may be required: &ldquo;multiple‑lift construction may be necessary&rdquo; with the same mixing and compaction steps repeated as needed.
+8. <strong>Proof roll and verify performance</strong> – A proof roll is performed: &ldquo;Perform a proof roll with a fully loaded tandem‑axle truck as a final uniformity check.&rdquo; Density and strength are confirmed by testing: &ldquo;Verify density and strength using standard Proctor testing and DCP testing.&rdquo;
+9. <strong>Grade, finish, and trim the surface</strong> – The compacted surface is graded to the final crown and finished: &ldquo;Grade and finish the surface to the final crown, optionally broom‑dragging or lightly wetting, and roll with a pneumatic steel roller to obtain a smooth, void‑free layer.&rdquo; Trimming is done as needed: &ldquo;Trim the compacted surface with a skid loader as needed.&rdquo;
+10. <strong>Cure the cement‑stabilized base</strong> – Keep the layer continuously moist (or covered) for the required period: &ldquo;Cure the cement‑stabilized base by keeping it continuously moist (or covered) for three to seven days&rdquo; and at least 24 hours before further work: &ldquo;Allow the cement‑stabilized layer to cure for 24 hours before resuming any further subgrade work.&rdquo; [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>]</p>
+<p>The following figure illustrates the schematic of the mixing chamber within the reclaimer machine used to blend the cement with the aggregate.</p>
+<p><img alt="Schematic of the mixing chamber of a reclaimer machine" src="assets/cement-stabilization-process/b63ac668e97f89fe1d6cbc69b62f494a517120e0a7c6eb7791f21539d3b7cd72.jpg" />
+<em>Schematic of the mixing chamber of a reclaimer machine</em> [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The figure displays a schematic cross-section of a milling drum rotating within a pavement structure, illustrating the mechanical pulverization of distressed pavement and granular material. A water injection system is depicted spraying liquid onto the mixing zone to adjust moisture content during the blending process. This apparatus represents a critical step in cement stabilization where existing layers are pulverized and blended with additives like water or cement to create a stable base.</p>
+<p><small>[2] — Ch. 6 (pp. 77–81); [4] — Construction (pp. 58–68); [9] — Ch. 5 (p. 44), Ch. 6 (p. 46)</small></p>
+<p>The guides state that no rigid interval is imposed between mixing cement with the subgrade and compacting the layer, but compaction should be carried out as soon as practicable—ideally immediately after mixing. Regardless of the exact gap, all steps of the cement stabilization sequence—including distribution, mixing, and final surface compaction—must be completed within the same workday (or calendar day). After the compacted, cement‑treated layer is placed, a mandatory cure period of 24 hours must elapse before any further activity on the underlying subgrade can resume. [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>]</p>
+<p><small>[4] — Construction (pp. 67–68); [9] — Ch. 5 (p. 44), Ch. 6 (p. 46)</small></p>
+<h2 id="staging-and-logistics">Staging and logistics</h2>
+<p>The cement stabilization process requires sufficient lateral space for equipment; a stable trackline of adequate width (typically 3 ft) for slip‑form pavers is needed, and any limited space or adjacent obstacles that prevent a clean cross‑cut forces the reclaimer to work more slowly (“If a cross cut is not possible due to adjacent obstacles, the reclaimer should slowly pulverize the existing asphalt pavement into the underlying base”). Adequate site access must allow the roadway reclaimer to meet overlap tolerances – “The minimum overlap width should be 6 in. between longitudinal joints and 2 feet between transverse joints” – while avoiding areas with shallow buried utilities and respecting residential or commercial zones (“Part of the project ran through a residential area and part through a commercial area”, “Areas containing shallow buried utilities were avoided for the CSS treatment”).</p>
+<p>Weather imposes several limits. Operations rely on a stable working platform to expedite construction and minimize downtime for inclement weather, and temperature fluctuations affect pavement hardness and grinding efficiency (“Temperature conditions of the existing pavement affect its hardness and grinding efficiency, making weather‑related temperature variations a constraint”). Windy days increase fugitive dust risk, so “dust control should be a priority to avoid fugitive dust, especially on windy days” and special enclosures may be required (“special enclosures can be used on the spreaders as discussed earlier”). Rain or moisture can re‑wet the mix; all operations, including compaction, must be finished in one day because rain would halt progress (“all operations, including compaction, should be completed in the same day”). Soil moisture also dictates preparation: wet soils may need multiple mixing passes, dry soils often require pre‑wetting, and wet soils can be dried by aeration with an open‑hood rotary mixer (“Wet soils may require multiple mixing passes”, “If the soil is dry, pre-wetting and allowing the water to soak in may facilitate pulverization”, “dry back wet soils by aeration with disc harrow or rotary mixer with its hood open.”).</p>
+<p>Environmental considerations include high subgrade saturation that necessitates cement treatment (“Because the subgrade was highly saturated, it was decided to construct a CSS to remedy the saturation”), and potential chemical reactions driven by evaporation and temperature changes that can produce calcium carbonate precipitate and high‑pH runoff (“evaporation and temperature changes that result in supersaturation of the calcium hydroxide‑infused solution, resulting in precipitate formation”, “The hydroxide ions that remain in solution can result in the efflux of high‑pH (alkaline) water from pavement drains and runoff from RCA stockpiles”). Dust concerns in nearby residential neighborhoods may preclude alternative binders such as fly ash (“Fly ash was not chosen as a solution due to potential problems with dust in the residential areas of the project”). Finally, soil type limits apply in frost‑prone climates; A‑4 and A‑5 soils are generally avoided where freeze–thaw cycles or heavy truck traffic are expected (“Generally such soils are not recommended for bases in frost areas or where large volumes of heavy truck traffic are expected”). [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>]</p>
+<p>The following figure illustrates how this approach enhances durability by demonstrating that full-depth reclamation with cement is less susceptible to moisture intrusion than a compacted recycled asphalt pavement base.</p>
+<p><img alt="Comparison of moisture infiltration in unstabilized RAP base" src="assets/cement-stabilization-process/200f433934ccc8b0a78f1bccbe61bc1e09a5f6f4d721ad896dde335d8eb85d50.jpg" />
+<em>Comparison of moisture infiltration in unstabilized RAP base versus FDR with cement base under high water table conditions.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure displays two cross-sections of pavement structures subjected to a high water table, contrasting an unstabilized RAP or granular base on the left with an FDR (Full Depth Reclamation) with cement base on the right. In the unstabilized section, arrows indicate moisture infiltrating the base through capillary action and high water table conditions, causing softening and reduced stiffness.</p>
+<p><small>[1] — Ch. 8 (pp. 225–226); [2] — Ch. 6 (pp. 77–81); [4] — Construction (pp. 67–68); [5] — Ch. 4 (pp. 43–44); [9] — Ch. 6 (p. 46); [11] — 2. Factors Influencing Long-Li… (p. 32)</small></p>
+<h2 id="quality-control-and-acceptance">Quality control and acceptance</h2>
+<p>The cement‑stabilized base must be inspected for a series of material, mix‑design, compaction and performance characteristics. Aggregate quality is verified by confirming that the gradation meets the specified grading controls, that no more than thirty‑five percent passes a 75 µm (No. 200) sieve, and that Atterberg limits satisfy project requirements – including a plasticity index of ten or less and reduced plasticity compared with the untreated subgrade. Acceptable soils are limited to classifications A‑1, A‑2‑4, A‑2‑5, or A‑3; soils from groups A‑6 and A‑7 are excluded. The cement content is checked to be within the typical 3 to 8 percent by weight range (with a common practice of four percent in some jurisdictions) and must provide a seven‑day unconfined compressive strength that falls between 300 psi and 400 psi, or up to 600 psi where higher strength is required. Additional engineering properties such as modulus of rupture, modulus of elasticity, Poisson’s ratio and the increase in California Bearing Ratio are evaluated for durability.</p>
+<p>Compaction requirements are a central inspection focus. Each lift must be placed at the laboratory‑determined optimum moisture content and compacted to at least ninety‑five percent of its maximum dry density as established by standard Proctor (AASHTO T134, ASTM D558) or, for heavily traveled projects, to a minimum of one hundred five percent of the ASTM D698/AASHTO T99 density. Uniformity is confirmed by the disappearance of roller impressions and may be corroborated with a proof roll using a fully loaded tandem‑axle truck. Where Proctor results are insufficient, Dynamic Cone Penetrometer testing can be employed to verify bearing capacity before the 24‑hour set period elapses.</p>
+<p>The installed thickness must meet or exceed the minimum design depth of one hundred millimetres (four inches), with six‑inch (150 mm) sections being common for typical applications. The finishing process is inspected to ensure a high‑quality surface free of soft spots, surface compaction planes, and other defects. Existing pavement layers are identified, their thicknesses recorded, and the combined strength and stiffness of the cement‑treated base and any overlying layers are checked against anticipated loads and performance criteria. [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>]</p>
+<p><small>[4] — Construction (pp. 58–59), Design (pp. 63–67), Materials (pp. 57–58); [9] — Ch. 1 (p. 13), Ch. 5 (p. 44), Ch. 6 (p. 46); [11] — 2. Factors Influencing Long-Li… (pp. 19–32)</small></p>
+<h2 id="safety-and-environmental-controls">Safety and environmental controls</h2>
+<p>During dry‑cement placement the primary hazard for workers and nearby people is the generation of cement dust, especially when the powder first contacts the ground; wind can carry this fugitive dust and cause respiratory irritation or other health effects. Using pneumatic spreaders that blow cement under pressure increases uncontrolled dust release, so mechanical spreaders and enclosure devices are recommended to keep dust emissions down. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure below illustrates this method by showing dry powder cement being placed using a bulk spreader.</p>
+<p><img alt="A bulk spreader truck applying dry cement powder to a road s" src="assets/cement-stabilization-process/58d6653f9d84ead3d34a73da58eee0ae9c67fe5cee5bf902c1a456ad35a090e5.jpg" />
+<em>A bulk spreader truck applying dry cement powder to a road surface.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image displays a heavy-duty truck equipped with a large hopper and rear-mounted dispensing mechanism, actively spreading material onto the ground. A visible cloud of dust is rising from the road surface behind the vehicle as it moves forward. This apparatus demonstrates the method where cement is placed on the grade in dry powder form using a bulk spreader.</p>
+<p><small>[2] — Ch. 6 (p. 81)</small></p>
+<h2 id="curing-protection-and-handoff">Curing, protection, and handoff</h2>
+<p>After placement and final compaction of a cement‑stabilized base, the work is protected and cured by first applying a bond‑breaking medium to the surface—commonly two heavy coats of a wax‑based curing compound—to reduce friction and prevent the overlying concrete pavement from bonding to the stabilized layer. The cured layer must then be kept continuously moist so that cement hydration can proceed; this is achieved by lightly watering or misting for three to seven days, or by covering the surface with a moisture‑retaining cover or curing compound placed soon after completion. In addition, the treated layer is left undisturbed for at least a full day (24 hours) before any further activity on the subgrade, allowing the material to set and develop strength. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>]</p>
+<p><small>[1] — Ch. 8 (pp. 226–227); [4] — Construction (pp. 58–68); [9] — Ch. 6 (p. 46)</small></p>
+<p>After the cement powder is blended into the existing subgrade with a roadway reclaimer and compacted by a vibratory sheepsfoot roller, the layer is trimmed and its density verified using Proctor or DCP testing. The stabilized base must then be allowed to set for a full day before any further activity on the subgrade is permitted. Therefore construction traffic or public use can resume only after the 24‑hour cure period has elapsed. [<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>]</p>
+<p>The figure below illustrates the subgrade condition immediately following the cement application and compaction steps described above.</p>
+<p><img alt="Roadway reclaimer and sheepsfoot roller in operation during" src="assets/cement-stabilization-process/ccad3308180d1a4f84d0bb86462119088cd60ce3f56c42ef69551a87028e3b3a.jpg" />
+<em>Roadway reclaimer and sheepsfoot roller in operation during cement stabilization.</em> [<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>]</p>
+<p>The image displays a large white Wirtgen roadway reclaimer actively processing the soil surface, accompanied by an orange vibratory sheepsfoot roller following behind to compact the material.</p>
+<p><small>[9] — Ch. 6 (p. 46)</small></p>
+<h2 id="expected-performance-and-maintenance">Expected performance and maintenance</h2>
+<p>The guides note several recurring distresses in cement‑stabilized bases: a thin, stronger base is more brittle and more likely to crack, resulting in potential reflective cracking; localized cracking often appears directly above deep utilities such as sanitary lines even when the mix contains four percent powder cement, is mixed with the existing subgrade using a roadway reclaimer, and is compacted with a vibratory sheepsfoot roller; the system imposes added restraint to the concrete thus increasing the stresses due to thermal and drying shrinkage, meaning that greater care has to be taken to prevent early‑age cracking; and highly permeable bases may be unstable. [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>]</p>
+<p><small>[4] — Design (p. 58); [9] — Ch. 6 (p. 46); [11] — 2. Factors Influencing Long-Li… (pp. 19–20)</small></p>
+<p>The cement stabilization process requires ongoing preventive maintenance and monitoring to ensure the base meets design specifications. The depth of pulverization is checked regularly against the design target, and the gradation of the pulverized material is verified to meet the specified mix‑design gradation. Overlap between successive reclaimer passes is maintained at the prescribed minimum widths to prevent unpulverized strips. After the initial pulverization pass, a light compaction and reshaping of the uncompacted mixture provides a stable working platform for the final mixing pass when cement is added. If depth or gradation fall outside tolerances, adjustments to reclaimer settings such as drum speed or door position are made as corrective maintenance before proceeding.</p>
+<p>Immediately after placement, each lift of the cement‑stabilized mix is compacted and its density and moisture content continuously verified against geotechnical specifications. Each compacted lift should meet at least ninety‑five percent of maximum dry density using the appropriate roller for the soil type (vibratory tamping or padfoot for silty/clayey soils, vibratory smooth drum or pneumatic tire roller for sandy or gravelly layers). When a single lift cannot achieve the required density, additional lifts or a test strip are employed to determine the necessary number of passes. A final proof‑roll with a fully loaded tandem‑axle truck confirms uniform strength and stability. Failure to achieve the specified density triggers corrective action such as re‑compaction or adjustment of subgrade conditions before pavement placement. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>]</p>
+<p>The following figure illustrates the mixing and compacting of cement and subgrade.</p>
+<p><img alt="Compacting cement-stabilized subgrade" src="assets/cement-stabilization-process/e50639affa884bc603196aed9a10883ad5a43c13e17428d4692f69e388aba688.jpg" />
+<em>Compacting cement-stabilized subgrade</em> [<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>]</p>
+<p>The image shows a large orange vibratory roller operating on an unpaved surface, consistent with the equipment used to compact cement-stabilized mix.</p>
+<p><small>[2] — Ch. 6 (pp. 77–79); [9] — Ch. 5 (p. 44)</small></p>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li><li id="ref-3"></li><li id="ref-4"></li><li id="ref-5"></li><li id="ref-6"></li><li id="ref-7"></li><li id="ref-8"></li><li id="ref-9"></li><li id="ref-10"></li><li id="ref-11"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

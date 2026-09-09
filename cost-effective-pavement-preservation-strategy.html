@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cost-Effective Pavement Preservation Strategy</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html" class="active" aria-current="page">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Cost-Effective Pavement Preservation Strategy</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=pavement-preservation">pavement-preservation</a><a class="tag" href="index.html?q=treatment-selection">treatment-selection</a><a class="tag" href="index.html?q=cost-effectiveness">cost-effectiveness</a><a class="tag" href="index.html?q=preservation-strategies">preservation-strategies</a><a class="tag" href="index.html?q=project-specific-constraints">project-specific-constraints</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>The Cost‑Effective Pavement Preservation Strategy is a systematic decision‑making process used to select the most appropriate concrete‑pavement preservation treatment—or combination of treatments—for a given roadway segment[<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]. It begins with a thorough pavement evaluation that documents observed deficiencies, structural capacity and project‑specific constraints such as funding, geometric limits, traffic impacts and environmental considerations, ensuring the data are current (within one to two years) before alternatives are screened[<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. Candidate strategies—including periodic diamond grinding, DBR applications, overlays or hybrid options—are then compared using quantitative cost‑effectiveness tools such as benefit‑cost ratios or life‑cycle cost analyses, and the highest‑ranking option is selected only after constraints and stakeholder preferences are applied through a weighted decision matrix[<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]. The resulting treatment plan must satisfy performance, functional, budgetary, network‑priority and environmental requirements while delivering the greatest net benefit over the analysis horizon[<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-decision-context">Purpose and decision context</a></li><li><a href="#scope-and-applicability">Scope and applicability</a></li><li><a href="#information-needs">Information needs</a></li><li><a href="#alternatives">Alternatives</a></li><li><a href="#decision-criteria">Decision criteria</a></li><li><a href="#analysis-methods-and-tools">Analysis methods and tools</a></li><li><a href="#stakeholders-and-constraints">Stakeholders and constraints</a></li><li><a href="#timing-and-implementation">Timing and implementation</a></li><li><a href="#outcomes-and-follow-up">Outcomes and follow-up</a></li><li><a href="#references">References</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (4)</summary><div class="sources-body"><a href="#ref-1">IPS</a>, <a href="#ref-2">concrete_overlay_repair_strategies_guide_web</a>, <a href="#ref-3">concrete_pvmt_preservation_guide_3rd_edition_web</a>, <a href="#ref-4">preservation_reference_manual</a></div></details>
+
+<h2 id="purpose-and-decision-context">Purpose and decision context</h2>
+<p>The Cost‑Effective Pavement Preservation Strategy is used to decide which concrete‑pavement preservation treatment—or combination of treatments—should be chosen as the preferred alternative for a given roadway segment or project. It guides engineers to evaluate observed deficiencies, identify all project‑specific constraints and selection factors, and then compare candidate strategies on overall cost‑effectiveness, using either benefit‑cost ratios or life‑cycle cost analyses, before selecting the treatment plan that best meets performance, functional, budgetary, network‑priority, and environmental requirements. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The figure below illustrates how to determine an appropriate concrete overlay solution based on existing pavement conditions and the necessary preliminary repairs.</p>
+<p><img alt="Decision flowchart for selecting concrete overlay treatments" src="assets/cost-effective-pavement-preservation-strategy/fa6d72fb7887b6ae3066d0dbc4a0e6cc451a73af4997f89339d16bda0be42d63.jpg" />
+<em>Decision flowchart for selecting concrete overlay treatments based on pavement condition and repair feasibility.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays a decision-making process that categorizes existing pavement into four conditions: Good, Fair, Poor, and Deteriorated. If existing deficiencies cannot be addressed cost-effectively using these techniques, the process directs the user toward reconstruction.</p>
+<p><small>[3] — Ch. 12 (pp. 267–276); [4] — Ch. 1 (pp. 17–18), Ch. 11 (pp. 214–223)</small></p>
+<p>The Cost‑Effective Pavement Preservation Strategy addresses the problem of converting identified pavement distress into a viable treatment plan while respecting limited resources. It starts with “The primary goal of this activity is to identify the deficiencies in the pavement,” then follows “the selection of an appropriate preservation or rehabilitation treatment for a given concrete pavement project requires a systematic, step‑by‑step approach that considers all relevant factors.” After feasible alternatives are defined, it conducts “Assess the cost‑effectiveness of alternative treatment strategies.” to ensure the chosen solution meets performance objectives within functional and monetary constraints. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p><small>[3] — Ch. 12 (pp. 267–276); [4] — Ch. 1 (pp. 17–18), Ch. 11 (pp. 214–223)</small></p>
+<h2 id="scope-and-applicability">Scope and applicability</h2>
+<p>The Cost‑Effective Pavement Preservation Strategy is appropriate for concrete‑pavement projects that are still in the evaluation phase and have been screened as viable preservation candidates using pavement management data, with a field assessment confirming that deficiencies are limited to functional issues or localized structural problems. It applies after an initial pavement evaluation has identified the specific distresses and their causes, positioning the project at the treatment‑strategy selection stage where multiple alternatives—such as preservation methods (e.g., PDR, FDR, diamond grinding, joint resealing), a thin overlay, or full reconstruction—are being compared. At this point agencies conduct a cost‑effectiveness analysis to determine the most appropriate preservation treatment before proceeding to more extensive rehabilitation. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The following figure illustrates the general applicability of these preservation, rehabilitation, and reconstruction activities within the broader context of pavement management.</p>
+<p><img alt="General applicability of pavement preservation, rehabilitati" src="assets/cost-effective-pavement-preservation-strategy/6842eaed1c9f2463aafbd0fb03eda266be90b4a1d2ea08819676919d72ecceae.jpg" />
+<em>General applicability of pavement preservation, rehabilitation, and reconstruction activities over time.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays a curve plotting pavement condition against time, illustrating the relative timing for applying different maintenance strategies. It visually defines the &ldquo;Pavement Preservation&rdquo; phase as occurring during the early years of the constructed pavement while it is still in good to very good condition, before the curve drops into rehabilitation and reconstruction zones.</p>
+<p><small>[3] — Ch. 12 (pp. 267–276); [4] — Ch. 11 (pp. 214–215)</small></p>
+<p>When the diagnostic assessment shows that deficiencies extend beyond localized functional or structural problems to widespread (global) structural deterioration or material degradation, a cost‑effective preservation strategy is deemed unsuitable; as one source notes, &ldquo;if more global structural or material problems exist, then the pavement section is more likely suited for a structural overlay treatment or perhaps even complete reconstruction,&rdquo; while another states, &ldquo;If more global structural or material problems exist, then the pavement section is more likely suited for an asphalt or concrete overlay, or perhaps even complete reconstruction in the most severe case.&rdquo; Even when preservation yields the lowest life‑cycle cost, it must be set aside if project‑specific constraints make implementation infeasible. The guides list such constraints, including &ldquo;Available funding,&rdquo; &ldquo;Geometric restrictions,&rdquo; &ldquo;Lane closure time,&rdquo; and broader impacts such as &ldquo;Traffic level&rdquo; and &ldquo;User impacts during construction (e.g., lane closure time, traffic disruption/congestion, and safety).&rdquo; Environmental considerations are also cited: &ldquo;Environmental impact (e.g., energy demands in materials production and greenhouse gas emissions during construction)&rdquo; and &ldquo;Environmental impact (e.g., contamination generated during construction work).&rdquo; The guides further warn that reliance on preservation is questionable when the underlying data are outdated; &ldquo;This is particularly true if the most recent data in the pavement management database are more than 1 or 2 years old.&rdquo; Both sources caution that cost‑effectiveness or life‑cycle cost analyses alone do not guarantee the optimal alternative, stating that &ldquo;cost‑effectiveness analysis by itself does not necessarily identify the optimal alternative&rdquo; and &ldquo;A detailed LCCA can be one part of the decision‑making process, but by itself does not necessarily identify the most optimal alternative.&rdquo; Moreover, &ldquo;constraints identified in Step 4 may override the results of the cost‑effectiveness analysis&rdquo; and &ldquo;some of the selection factors and constraints identified in step 4 may over‑ride the results of the LCCA,&rdquo; while noting that &ldquo;The lowest life‑cycle cost option may not be practical when other considerations, such as available budgets, network priorities, or environmental factors are taken into account.&rdquo; [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p><small>[3] — Ch. 12 (pp. 267–274); [4] — Ch. 11 (pp. 214–223)</small></p>
+<h2 id="information-needs">Information needs</h2>
+<p>The strategy starts with a thorough pavement evaluation that provides condition data; &ldquo;Historical condition data in the form of overall condition indicators and individual distress parameters can be obtained from an agency’s pavement management database&rdquo;. Structural assessments, such as evaluating the structural capacity of the existing concrete overlay, including the underlying pavement, subbase, and base layers, must be performed to confirm a stable platform for any new treatment; &ldquo;The structural capacity of the existing concrete overlay, including the underlying pavement, subbase, and base layers, must be evaluated to ensure that the structure can function as a stable platform for the new overlay without experiencing excessive deformation or failure.&rdquo; Site information includes geometric restrictions, slope and drainage characteristics, utility adjustment needs, and permissible lane‑closure duration. Cost considerations require knowledge of funding; &ldquo;Available funding.&rdquo; and all material, construction, traffic‑control, and life‑cycle expenses. Traffic inputs such as current traffic level and network priorities guide where preservation resources are allocated. Environmental factors encompass environmental impact; &ldquo;Environmental impact (e.g., contamination generated during construction work).&rdquo; together with broader resource‑conservation concerns. Finally, stakeholder input—agency and customer preferences, utility owner coordination, and compliance with accessibility standards—is incorporated before feasible treatment alternatives are ranked. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p><small>[2] — Key Considerations (p. 37); [3] — Ch. 12 (pp. 271–276); [4] — Ch. 11 (pp. 219–223)</small></p>
+<p>Information used to select a cost‑effective pavement preservation strategy must be both accurate and up‑to‑date; data that are older than about one to two years are considered insufficient for confirming suitability. A complete picture requires a thorough pavement evaluation that identifies all deficiencies, their causes, feasible treatments, and any project constraints before the alternatives can be compared on cost‑effectiveness. Only with this current, accurate, and comprehensive dataset can the most appropriate preservation treatment be reliably chosen. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p><small>[3] — Ch. 12 (p. 267)</small></p>
+<h2 id="alternatives">Alternatives</h2>
+<p>The feasible treatment alternatives that should be compared include a single‑treatment plan of <strong>periodic diamond grinding every 8 to 12 years</strong> (or “diamond grinding applied on an 8‑to‑10 year cycle”), a one‑time <strong>application of DBR followed by periodic diamond grinding</strong>, the <strong>placement of an unbonded concrete overlay with a 25-year service life</strong>, and hybrid options such as <strong>combined DBR with periodic diamond grinding</strong>. Additional preservation actions that may form separate strategies are <strong>joint resealing</strong>, <strong>full‑depth repairs</strong>, <strong>partial‑depth repairs</strong>, <strong>retrofitted load transfer devices</strong>, <strong>dowel‑bar retrofitting</strong>, and <strong>slab stabilization</strong>; these activities are typically performed prior to any diamond‑grinding step. The set of alternatives can also be broadened to include a <strong>thin concrete overlay</strong>, full <strong>reconstruction</strong>, or a “do nothing” baseline for reference. Each distinct combination or timing scenario is treated as an individual treatment strategy and evaluated through life‑cycle cost analysis (LCCA) and benefit‑cost ratio (BCR) comparisons to identify the most cost‑effective solution. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The following figure illustrates the condition of diamond ground pavements in California to provide context for these preservation strategies.</p>
+<p><img alt="Percent increase in IRI as a ratio to initial IRI over time" src="assets/cost-effective-pavement-preservation-strategy/67657037bde8196576580fd789a3dc0f28f31f1caf953f934d7ceadf551aed76.jpg" />
+<em>Percent increase in IRI as a ratio to initial IRI over time after grinding.</em> [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The figure plots the percent increase in International Roughness Index (IRI) relative to the initial value against the time elapsed since diamond grinding, showing an upward trend where roughness increases over the years. This data supports the selection of preservation treatments by quantifying how long a specific strategy maintains pavement smoothness before rehabilitation is required.</p>
+<p><small>[3] — Ch. 12 (pp. 271–276); [4] — Ch. 11 (pp. 214–223)</small></p>
+<h2 id="decision-criteria">Decision criteria</h2>
+<p>Across the guides, the controlling criteria for selecting a cost‑effective pavement preservation strategy are drawn from the project‑specific constraints that filter feasible treatments. Cost considerations dominate, as “It is essential to evaluate the costs associated with these additional requirements” and “Available funding” together with the requirement that “Competing strategies can be objectively compared by considering the overall life-cycle cost associated with each.” Safety of users and workers is another core control, reflected in “Transition zones. Smooth transitions between the existing pavement grade and the new overlay grade are essential for safety and ride quality” and “Traffic safety during construction.” Schedule impacts, especially lane‑closure duration, are also required controls: “Lane closure time” and “construction‑schedule impacts such as lane closures and traffic disruption.” Sustainability and environmental stewardship appear in both “sustainability concerns reflected in environmental impact and natural‑resource conservation” and “Environmental impact (e.g., contamination generated during construction work).” Public impact, captured through user experiences during construction and service, is highlighted as a distinct factor: “overall public impact captured through user experiences during both construction and service.” Performance benefits—including roughness, PCI, and durability—are identified as a primary economic driver: “Consequently, cost, performance, sustainability, and public impact are the controlling criteria for selecting a cost‑effective pavement preservation strategy.” Finally, accessibility for pedestrians, cyclists, and persons with disabilities is emphasized: “Accessibility. Changes in pavement grade can affect accessibility for pedestrians, cyclists, and individuals with disabilities.” [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p><small>[2] — Key Considerations (p. 37); [3] — Ch. 12 (pp. 271–276); [4] — Ch. 11 (pp. 219–223)</small></p>
+<p>Competing criteria are first screened against any identified external constraints—budget limits, network priorities, environmental restrictions, or other functional requirements—so that alternatives violating those constraints are eliminated. The remaining feasible treatment combinations are then evaluated primarily through an economic metric: either a life‑cycle benefit‑cost ratio (BCR) or a life‑cycle cost analysis (LCCA). The guides state that “the strategy with the highest BCR is deemed the most cost‑effective” and that “the primary weighting should be given to the strategy’s overall life‑cycle cost; this single metric allows an objective comparison among competing alternatives.” However, the economic result alone does not guarantee selection; “the highest BCR option may not be practical when other considerations, such as available budget, network priorities, environmental factors, and agency and customer preferences, are considered,” and “the lowest life‑cycle cost option may not be practical when other considerations, such as available budgets, network priorities, or environmental factors are taken into account.” To incorporate noneconomic factors—such as continuity of adjacent pavements, lane continuity, local preference, or environmental and social impacts—a weighted decision matrix is used. Each factor “is assigned a weighting that reflects the agency’s perception of the importance of that factor,” and the weighted scores are summed with the economic score to identify the preferred alternative. Thus, across sources the prioritization sequence is: (1) eliminate alternatives that violate external constraints; (2) rank remaining options by the dominant economic metric (BCR or LCCA); and (3) adjust the ranking through a decision matrix that balances additional functional and stakeholder considerations. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p><small>[3] — Ch. 12 (pp. 272–276); [4] — Ch. 11 (pp. 219–223)</small></p>
+<h2 id="analysis-methods-and-tools">Analysis methods and tools</h2>
+<p>The Cost‑Effective Pavement Preservation Strategy relies on a multi‑step evaluation framework that begins with a comprehensive pavement assessment. Existing deficiencies are documented through condition surveys and verified for structural integrity using nondestructive testing, while ride quality and safety are quantified by roughness and friction assessments. Candidate treatments are then screened and compared using quantitative cost‑effectiveness tools. Benefit‑cost ratio (BCR) analysis is applied to quantify performance benefits against costs, and the associated costs are derived from life‑cycle cost analysis (LCCA). In addition, project‑level optimization methods such as dollars‑per‑lane‑mile‑per‑year (DLMY) analysis or the remaining service interval (RSI) framework can be used to rank alternatives under funding constraints. After these analyses, treatments are entered into a strategy decision matrix where each selection factor is weighted, rating scores are multiplied by the weightings, and the weighted totals are summed to identify the highest‑scoring preservation option. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p><small>[3] — Ch. 12 (pp. 272–276); [4] — Ch. 1 (pp. 17–18), Ch. 11 (pp. 214–223)</small></p>
+<p>A cost‑effective pavement preservation strategy rests on a set of core assumptions that are common across guidance sources. It presumes that the pavement‑management database accurately reflects current conditions and that any lag in data collection is minimal; otherwise, outdated information can misrepresent existing distress. The approach also assumes that a comprehensive field inspection will uncover all relevant deficiencies and their underlying causes, providing the basis for identifying constraints and key treatment‑selection factors. Reliable historic condition data are expected to be available for constructing performance curves, which are then used to forecast future behavior of alternative treatments. In addition, the strategy presumes that project‑specific constraints such as funding levels, anticipated future maintenance needs, geometric limitations, and permissible lane‑closure durations can be known or reasonably estimated, and that life‑cycle cost analysis (LCCA) yields dependable cost and performance estimates.</p>
+<p>Uncertainties arise from multiple sources. Data age or incompleteness may lead to incorrect treatment matching. Traffic volume forecasts, climate conditions, and future maintenance requirements are inherently variable and affect projected cost‑effectiveness. Geometric limitations, construction‑phase impacts (including lane closures and safety considerations), environmental effects of material production, resource‑conservation goals, service‑phase performance criteria (smoothness, friction, noise), worker safety, traffic‑management options, equipment and material availability, supplier competition, and agency policy constraints further compound uncertainty. Performance curves often need to be extrapolated beyond observed time or traffic ranges, introducing variability into benefit‑cost ratios. Timing of future treatments is frequently derived from historical records or expert judgment, adding another layer of uncertainty. Errors in estimating material, construction, traffic‑control, and other costs propagate through present‑value calculations, while the selection of discount rates influences overall assessments. Finally, budget limits, shifting network priorities, and environmental considerations can override the lowest‑cost alternative identified by LCCA. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p><small>[3] — Ch. 12 (pp. 267–274); [4] — Ch. 11 (pp. 219–223)</small></p>
+<h2 id="stakeholders-and-constraints">Stakeholders and constraints</h2>
+<p>The agency responsible for the roadway provides the input for the preservation‑strategy process through its policy and preference attributes—such as continuity of adjacent pavements, continuity of adjacent lanes, and local preference. Those inputs are entered into a strategy decision matrix where the agency assigns weightings that reflect its perception of each factor’s importance, rates each treatment against the factors, and sums the weighted scores. The treatment achieving the highest total score is identified as the preferred option, and the agency’s decision authority formally approves that selection. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p><small>[3] — Ch. 12 (pp. 274–275)</small></p>
+<p>The selection of a cost‑effective pavement preservation treatment is bounded by a set of permits, standards, policies, funding rules, and design requirements that must be identified early in the project. Structural capacity of existing overlays must be verified through coring or falling weight deflectometer testing, and any increase in pavement grade triggers compliance with accessibility standards such as the ADA and requires coordination with utility owners and adjustments to slopes, drainage, and transition zones. Agency‑level policies impose performance and design limits including expected traffic levels, climate conditions, geometric restrictions, lane‑closure time, continuity of adjacent pavements and lanes, and local environmental goals. All treatments must satisfy life‑cycle cost analysis procedures mandated by state DOTs, and the use of LCP in risk‑based asset management plans is required. Funding constraints are expressed through dollars per lane‑mile‑year (DLMY) analysis, which directs selection toward alternatives that deliver the greatest lane‑mile years per dollar. The RSI framework permits any feasible preservation or rehabilitation option provided that established performance constraints and minimum acceptable level‑of‑service criteria are met. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p><small>[2] — Key Considerations (p. 37); [3] — Ch. 12 (pp. 271–275); [4] — Ch. 11 (pp. 219–223)</small></p>
+<h2 id="timing-and-implementation">Timing and implementation</h2>
+<p>The guides state that the decision on a cost‑effective pavement preservation strategy is made after the comprehensive evaluation steps have been completed – once the pavement has been assessed, deficiencies identified, causes determined, and a list of possible effective treatments compiled. At this stage the alternatives are screened against project‑specific constraints: “After compiling a list of possible effective treatments under Step 3 and before proceeding further in the treatment strategy selection process” the infeasible options are removed. The remaining feasible strategies are then subjected to a cost‑effectiveness analysis, as directed by “Step 6: Assess the Cost‑Effectiveness of Alternative Treatment Strategies” and the instruction to “Assess the cost‑effectiveness of alternative treatment strategies.” Some sources also require a life‑cycle cost analysis (“After applying any outside constraints, feasible treatment strategies … are determined and associated costs are objectively compared by conducting a LCCA (if necessary)”). After comparing benefit‑cost ratios or similar metrics, the preferred alternative is chosen: “Select preferred strategy,” “Step 7. Select Preferred Strategy,” and finally “the most appropriate treatment strategy is selected using a strategy decision matrix” that incorporates economic, environmental, social, and functional considerations. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p><small>[3] — Ch. 12 (pp. 267–276); [4] — Ch. 11 (pp. 214–223)</small></p>
+<p>Action is triggered when the pavement management database contains data that are “more than 1 or 2 years old,” which prompts a fresh pavement evaluation; the evaluation itself becomes the trigger for the preservation decision process. The “primary goal of this activity is to identify the deficiencies in the pavement,” and if the existing pavement is exhibiting only functional deficiencies or localized structural problems, those observed deficiencies initiate the step‑by‑step selection of cost‑effective concrete pavement preservation treatments (“if the existing pavement is exhibiting only functional deficiencies or localized structural problems, the observed deficiencies can most likely be addressed with one or more concrete pavement preservation treatments”). Action is also initiated when “agencies also select the lower condition threshold at which major rehabilitation or reconstruction is required,” and whenever “When cost‑effectiveness considerations may come into play, however, is when there are competing treatment strategies identified” so that a benefit‑cost analysis can be performed within the selected analysis period. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p><small>[3] — Ch. 12 (p. 267)</small></p>
+<p>To implement the chosen preservation option, agencies must secure the required treatment materials and equipment—diamond‑grinding machinery, DBR material, concrete overlay mix, and any full‑depth patching resources—and allocate traffic‑control provisions. The cost analysis must therefore “include all costs associated with these treatment strategies, including the materials, construction/installation, traffic control, and so on.” Scheduling follows the defined treatment strategy, which is a plan that specifies when each intervention occurs over the project horizon. For example, the option may call for “periodic diamond grinding every 8 to 12 years,” a one‑time DBR application followed by those same grinding cycles, or a single unbonded concrete overlay intended to provide a 25‑year service life. The timing of these actions is derived from historic condition and treatment records or expert judgment, ensuring the preservation plan aligns with the targeted remaining service interval. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The typical configuration for a diamond grinding and overlay treatment is illustrated in the following figure.</p>
+<p><img alt="Typical DBR configuration showing dowel bar placement in a c" src="assets/cost-effective-pavement-preservation-strategy/0b706b944898d94020bf1553bfb169a7a8ce08fcad49e0279c93b08f4b7620e8.jpg" />
+<em>Typical DBR configuration showing dowel bar placement in a concrete pavement lane.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays the geometric layout of a typical Dowel Bar Retrofit (DBR) installation, illustrating three vertical bars placed within each wheel path across a transverse joint. This configuration is used to prevent or minimize faulting in concrete pavements, which is a primary objective of the Cost-Effective Pavement Preservation Strategy.</p>
+<p><small>[3] — Ch. 12 (pp. 271–274)</small></p>
+<h2 id="outcomes-and-follow-up">Outcomes and follow-up</h2>
+<p>The guides define success as the development and implementation of a treatment strategy that fully resolves identified pavement distress, complies with all functional, monetary, environmental and social constraints, and yields the greatest net benefit over the analysis horizon. Success is demonstrated when the team can reliably follow the systematic selection workflow—articulating each step, listing every life‑cycle cost component, and accounting for project‑specific influences—and produces a feasible plan that specifies what treatments to apply, their timing (concurrent or separate), and shows the lowest total life‑cycle cost among alternatives. Measurement is performed through quantitative analyses: a benefit‑cost ratio (BCR) analysis evaluates performance benefits against costs, and a life‑cycle cost analysis (LCCA) objectively compares total costs of competing strategies; the option with the highest BCR and the smallest LCC is recorded as the successful outcome. Additional verification comes from knowledge checks and practical exercises that require participants to describe the selection process, develop an activity inventory, and confirm that the chosen sequence maximizes effectiveness while protecting recent repairs. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p><small>[3] — Ch. 12 (pp. 272–276); [4] — Ch. 11 (pp. 214–223)</small></p>
+<p>Results should be tracked through the agency’s pavement‑management database, continuously recording condition indicators, roughness and friction measurements that feed performance curves for each treatment option. All cost elements—materials, construction, traffic control, etc.—are entered into a life‑cycle cost analysis that uses the same analysis period and timing as the benefit calculation, producing a benefit‑cost ratio for every alternative. The computed BCRs are documented in a comparative report; the alternative with the highest ratio is selected, and the observed post‑implementation performance is fed back into the database to refine future service‑life estimates and improve subsequent strategy selections. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p><small>[3] — Ch. 12 (pp. 272–274)</small></p>
+<h2 id="references">References</h2>
+<ol start="2">
+<li><a id="ref-2"></a>Concrete Overlay Repair and Replacement Strategies · <code>concrete_overlay_repair_strategies_guide_web</code></li>
+<li><a id="ref-3"></a>Concrete Pavement Preservation Guide (Third Edition) · <code>concrete_pvmt_preservation_guide_3rd_edition_web</code></li>
+<li><a id="ref-4"></a>Concrete Pavement Preservation Workshop · <code>preservation_reference_manual</code></li>
+</ol>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li><li id="ref-3"></li><li id="ref-4"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

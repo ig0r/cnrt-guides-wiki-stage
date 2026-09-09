@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concrete Workability Testing Methods</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html" class="active" aria-current="page">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Concrete Workability Testing Methods</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=concrete-workability">concrete-workability</a><a class="tag" href="index.html?q=testing-procedures">testing-procedures</a><a class="tag" href="index.html?q=box-test">box-test</a><a class="tag" href="index.html?q=4-probe-test">4-probe-test</a><a class="tag" href="index.html?q=astm-c-143-aashto-t-119">astm-c-143-aashto-t-119</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>Concrete workability testing methods are defined as the set of procedures used to assess the property of freshly mixed concrete or mortar that governs how easily it can be mixed, placed, consolidated and finished into a homogeneous condition【1】. The tests quantify consistency, fluidity, response to vibration, mobility, pumpability, compactability, finishability and harshness by measuring slump or flow characteristics, edge stability and surface voids after standardized compaction and vibration sequences, thereby indicating the mix’s flowability, placeability and ability to retain shape under static or dynamic loading【3】【7】. By providing rapid checks on water content, aggregate grading and admixture dosage, these methods ensure that the fresh mix possesses the appropriate balance of fluidity for vibration‑induced consolidation and post‑vibration stiffness needed to avoid defects such as segregation, premature stiffening or excessive edge slumping【9】【10】.</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-quality-objectives">Purpose and quality objectives</a></li><li><a href="#scope-and-applicability">Scope and applicability</a></li><li><a href="#test-methods-and-procedures">Test methods and procedures</a></li><li><a href="#sampling-and-testing-frequency">Sampling and testing frequency</a></li><li><a href="#acceptance-criteria-and-tolerances">Acceptance criteria and tolerances</a></li><li><a href="#quality-control-and-process-monitoring">Quality control and process monitoring</a></li><li><a href="#nonconformance-and-corrective-action">Nonconformance and corrective action</a></li><li><a href="#documentation-and-reporting">Documentation and reporting</a></li><li><a href="#relationship-to-long-term-performance">Relationship to long-term performance</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (10)</summary><div class="sources-body"><a href="#ref-1">2019-12_IMCP_manual</a>, <a href="#ref-2">QC_for_concrete_paving_web</a>, <a href="#ref-3">commentary_on_AASHTO_R_101_manual_web</a>, <a href="#ref-4">concrete_pvmt_distress_assessments_and_solutions_guide_w_cvr</a>, <a href="#ref-5">concrete_pvmt_preservation_guide_3rd_edition_web</a>, <a href="#ref-6">guide_to_CSS</a>, <a href="#ref-7">hif13059</a>, <a href="#ref-8">preservation_reference_manual</a>, <a href="#ref-9">smooth_concrete_pvmt_guidelines_w_cvr</a>, <a href="#ref-10">testing_guide</a></div></details>
+
+<h2 id="purpose-and-quality-objectives">Purpose and quality objectives</h2>
+<p>The guides concur that concrete workability testing methods are aimed at assessing “that property of freshly mixed concrete or mortar that determines the ease with which it can be mixed, placed, consolidated, and finished to a homogeneous condition.” They &ldquo;evaluate fresh‑concrete characteristics that define its workability—specifically consistency or fluidity, response to vibration, mobility, pumpability, compactability, finishability and harshness—and quantify the mix’s flowability and placeability by measuring how readily it moves, consolidates, and retains shape under static or dynamic loading.&rdquo; To address vibration effects, &ldquo;The Box Test and VKelly Test are used to evaluate a concrete mixture’s workability under vibration, specifically its edge stability and surface consolidation for slip‑form placement.&rdquo; Moreover, the methods &ldquo;evaluate and control the fresh‑mix’s workability (consistency) by measuring slump or flow characteristics—specifically the uniformity of slump, its loss over time, and early stiffening—and they measure flowability by quantifying the mortar’s spread after a standardized compaction and vibration sequence.&rdquo; [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p>The following figure illustrates how the VKelly index is derived from the relationship between penetration depth and root time.</p>
+<p><img alt="Plot of penetration depth versus root time for the VKelly te" src="assets/concrete-workability-testing-methods/bbe587765d852e09f0bf8b2e8901243cb51471c1bfb3d62025d1bc9e9d04baa9.jpg" />
+<em>Plot of penetration depth versus root time for the VKelly test.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays a scatter plot with vibration duration in square roots of seconds on the horizontal axis and penetration depth in inches on the vertical axis, showing data points that form a linear trend.</p>
+<p><small>[1] — Ch. 3 (p. 136), Ch. 6 (pp. 151–153), Ch. 7 (p. 213), Ch. 9 (pp. 275–277), Ch. 10 (p. 321); [3] — Box Test (AASHTO T 396) (p. 29), Workability (p. 29); [7] — 2. Factors Influencing Long-Li… (p. 33); [9] — Response to Vibration and Edge… (pp. 24–27); [10] — Ch. 6 (pp. 56–60), Ch. 7 (pp. 66–87)</small></p>
+<p>The quality requirement addressed by concrete workability testing methods is that the fresh mix must possess the appropriate consistency, fluidity and vibration response to be placed, consolidated and finished without defects such as segregation, surface voids, premature stiffening, edge slumping or excessive shrinkage. The tests provide a rapid check on mix parameters—water content, aggregate grading, admixture dosage—and flag deviations that could lead to equipment jams or durability loss. By confirming the balance between fluidity for vibration‑induced consolidation and post‑vibration stiffness needed to retain defined edges, the slump test (ASTM C143/AASHTO T 119) provides an overall consistency check while the Box Test, VKelly Test and related vibration tests specifically assess a mix’s ability to compact fully under vibration yet remain stiff enough to keep straight vertical edges in slip‑form paving. Acceptable results—e.g., edge slump ≤ 0.25 in, surface‑void score ≤ 2, VKelly index 0.6–1.1 in/√s, and a slump of roughly one to two inches—indicate that the mixture will not produce placement defects such as inadequate fluidization, excessive edge slumping, segregation, or void formation that would compromise strength, durability, or dimensional stability. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p>The following figure illustrates how aggregate gradation influences workability relative to paste content.</p>
+<p><img alt="Effect of aggregate gradation on workability as a function o" src="assets/concrete-workability-testing-methods/53be06df0af028b782df728f7b3bdbbdd5b63a5bb17b6d6681a3095ed9c0862b.jpg" />
+<em>Effect of aggregate gradation on workability as a function of paste content</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure plots the VKelly Index against Paste Content for three different aggregate gradations, showing that higher paste content generally increases the index value.</p>
+<p><small>[1] — Ch. 3 (p. 136), Ch. 6 (pp. 151–153), Ch. 7 (p. 213), Ch. 9 (pp. 275–277), Ch. 10 (p. 321); [3] — Box Test (AASHTO T 396) (p. 29), Workability (p. 29); [7] — 2. Factors Influencing Long-Li… (p. 33); [9] — Response to Vibration and Edge… (pp. 24–27); [10] — Ch. 6 (pp. 56–60), Ch. 7 (pp. 66–87)</small></p>
+<h2 id="scope-and-applicability">Scope and applicability</h2>
+<p>Concrete workability testing methods are applicable to any fresh concrete intended for pavement construction—including conventional paving mixes with coarse aggregate ≤ 1.5 in. and slump between 0.5 and 9 in., paste‑only mixtures used in early‑hydration or rapid‑setting situations, the stabilization grout employed in slab‑stabilization projects, and all fresh‑concrete materials such as aggregates, cement, fly ash and admixtures. The methods are applied to freshly mixed concrete or mortar—most notably hydraulic‑cement concrete used in pavement—and are intended for any pavement construction activity that involves mixing, placing, vibrating, and slip‑forming where a consistent level of workability is required. They are used during laboratory mixture proportioning and pre‑qualification as well as on‑site during mixing, transport, and placement operations that involve vibration‑sensitive equipment such as slip‑form paving machines, central mix plants shipping concrete in non‑agitating trucks, and field placement where slump measurements are taken at specified times after discharge. The primary quality‑control test is the slump test (ASTM C 143/AASHTO T 119), which evaluates the ease of placement and consolidation; for slip‑form equipment and vibration‑consolidated mixes, the Box Test and VKelly Test are applicable to assess vibration response, edge stability, and surface voids. Workability must be ensured for the given mixture characteristics, the project paving equipment, and expected ambient conditions at time of paving, and a concrete mixture’s response to vibration is a good indicator of whether it will be placeable in the field. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p>The following figure illustrates a box test specimen after the mold has been stripped.</p>
+<p><img alt="Box test specimen after stripping the mold" src="assets/concrete-workability-testing-methods/805214f85ad27d7ca466999ab55ae22a5c08bcac590f79b2728e8bea6907e360.jpg" />
+<em>Box test specimen after stripping the mold</em> [<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>]</p>
+<p>The image displays a rectangular block of gray concrete that has been removed from its casting container, revealing the material&rsquo;s internal structure and surface texture. This specimen is the result of the Box Test, which is used to assess the dynamic behavior of a mixture under vibration for slipform placement applications.</p>
+<p><small>[1] — Ch. 3 (p. 136), Ch. 6 (pp. 151–153), Ch. 7 (p. 213), Ch. 9 (pp. 275–277), Ch. 10 (p. 321); [3] — Box Test (AASHTO T 396) (p. 29), Workability (p. 29); [7] — 2. Factors Influencing Long-Li… (p. 33); [9] — Response to Vibration and Edge… (pp. 24–27); [10] — Ch. 6 (pp. 56–60), Ch. 7 (pp. 68–72)</small></p>
+<p>Workability testing is mandatory for every batch of concrete to confirm that its consistency, plasticity and workability meet the placement conditions. The standard slump test, specified by ASTM C143/AASHTO T119, must be performed on each randomly‑selected batch at the prescribed sampling frequency (approximately every 500 yd³) and at multiple times after batching (e.g., 5, 10, 15 and 20 min) to monitor slump loss. For slip‑form paving a slump of about 1–2 inches is normally required, but the specification may allow the contractor to select the slump that best matches their equipment and use the test only as a uniformity check. Because a standard slump does not adequately reflect a mixture’s response to vibration, the Box test and/or VKelly test become required laboratory procedures for slip‑form mixes; these tests must be repeated in the field during plant startup to verify that the production mix matches the approved lab results, with acceptance limits such as edge slump ≤0.25 in., surface‑void score ≤2 and VKelly index 0.6–1.1 in/√s. </p>
+<p>Optional methods include the Vebe test for very dry mixes (no ASTM standard) and the compacting‑factor test for low‑workability mixes with maximum aggregate size ≤1.5 in.; both may be used when appropriate but are not required for general placement. The slump test itself may be applied optionally for general workability checks, provided it is not used as the sole acceptance criterion.</p>
+<p>The slump test alone is inappropriate for determining suitability of slip‑form placement; likewise, using VKelly or Box tests outside controlled laboratory prequalification settings is inappropriate because their indices are highly sensitive to aggregate gradation and paste content. The compacting‑factor test becomes unreliable for higher‑workability mixes or when larger aggregates are present, and the Vebe test’s lack of an ASTM standard limits its use as a primary acceptance method.</p>
+<p>Key limitations across all methods are: slump is only comparable for mixtures with similar proportions and is considered a pseudomeasure of workability that does not directly correlate with placement performance; sampling at fixed intervals can miss rapid variations in mix properties; control‑chart thresholds may fail to reveal special‑cause changes; VKelly indices are highly sensitive to gradation and paste content; compacting‑factor sensitivity declines for higher workability mixes; Vebe test results are confined to a 5–30 s range and lack standardization. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p><small>[1] — Ch. 6 (pp. 152–153), Ch. 7 (p. 213); [7] — 2. Factors Influencing Long-Li… (p. 33); [9] — Response to Vibration and Edge… (pp. 24–27); [10] — Ch. 6 (pp. 56–60), Ch. 7 (p. 68)</small></p>
+<h2 id="test-methods-and-procedures">Test methods and procedures</h2>
+<p>Valid workability test results require strict environmental control of concrete temperature—concrete must be kept below 85 °F (using chilled water and mobilizing water chillers) and the ambient conditions for set‑time testing must be maintained between 68 °F and 77 °F with both ambient and mortar temperatures recorded. Equipment performance is verified by regularly downloading vibrator monitor data and reviewing frequency changes to ensure vibrators are functioning properly. The source material does not provide specific calibration procedures for the test apparatus nor define operator qualification requirements; compliance is limited to temperature control, accurate data recording, and equipment monitoring. [<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p><small>[10] — Ch. 6 (pp. 56–60), Ch. 7 (p. 87)</small></p>
+<h2 id="sampling-and-testing-frequency">Sampling and testing frequency</h2>
+<p>Sampling locations are selected through a random‑sampling worksheet that assigns specific times and batch numbers, and the plan requires taking one slump sample at the central mixing plant and a second at the placement site for each batch. The quantity of concrete to be tested is tied to production volume: fresh‑mix properties such as slump, loss of workability, microwave water content, unit weight and air content are sampled every 500 yd³ (with aggregate gradation checked every 1,500 yd³), providing two measurements per batch. Frequency is governed by a schedule of two timed tests—first at about five minutes after discharge from the drum and second at about twenty minutes after discharge—and by control‑chart criteria that may adjust testing rates when special‑cause variations are observed. [<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p><small>[10] — Ch. 6 (pp. 56–60), Ch. 7 (p. 68)</small></p>
+<p>The guides require that samples be taken so they truly reflect the intended concrete mix and the production process. &ldquo;Materials representative of the proposed mixture are mixed in the laboratory&rdquo;, then &ldquo;placed into the Box test mold, vibrated, and visually inspected for surface voids and conformance to a standard rating system&rdquo;. To confirm that the field batch matches the approved mix, &ldquo;These tests should be repeated in the field during the mixture verification stage (plant startup) to confirm that the production mixture has the same properties as the laboratory results for the approved mixture.&rdquo; &ldquo;Edge slump greater than 0.25 in. indicates that the mixture may not be appropriate for slipform placement.&rdquo; &ldquo;A surface void score greater than 2 indicates that the mixture may not be appropriate for slipform placement.&rdquo; &ldquo;Current experience indicates that a VKelly index between 0.6 in. &hellip; and 1.1 in./√?? is appropriate for mixtures that will be slipformed.</p>
+<p>Sampling follows a structured random‑sampling plan, typically one sample per 500 yd³ of concrete produced as described by &ldquo;Sampling frequency: 500 yd3 Sample from the batch containing random sample cumulative yd³ as shown in the table&rdquo;; &ldquo;Time and location are determined by random sampling worksheet&rdquo;. Samples are taken both at the plant and on site – &ldquo;Sample concrete at the central mix plant.&rdquo; and &ldquo;Sample concrete at the placement location and test.</p>
+<p>Slump measurements are made twice: &ldquo;Perform the first slump test 5 minutes after the concrete batch is discharged from the mixing drum.&rdquo; and &ldquo;Perform the second slump test 20 minutes after the concrete batch is discharged from the mixing drum.&rdquo; to detect early stiffening. The standard slump test should be considered as a pseudomeasure of workability; &ldquo;Changes in slump indicate variability in the materials and/or the batching process,&rdquo; and &ldquo;Uniformity of the concrete slump and slump loss is o primary concern.</p>
+<p>Field specimens are collected by &ldquo;Field samples should be obtained by vibrating a sample of concrete across a #4 sieve.&rdquo; The sieved material can then be prepared in the lab – &ldquo;Lab samples may be mixed or sieved.&rdquo; By following these procedures—representative mixing, dual‑location random sampling, timed slump tests, and consistent specimen preparation—the measurements reliably represent the material, process, lot, or completed work. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p>The following figure illustrates a vibratory mortar sampler used in these testing procedures.</p>
+<p><img alt="Vibratory mortar sampler in use for field specimen collectio" src="assets/concrete-workability-testing-methods/b7b05acc1afb296ec0bfab808630017e9ecd45097b8df4faa1ae76f6fd49f76c.jpg" />
+<em>Vibratory mortar sampler in use for field specimen collection.</em> [<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p>The image shows a worker holding a cylindrical wire mesh basket attached to a handle, which contains wet concrete and is positioned over a white plastic container.</p>
+<p><small>[1] — Ch. 9 (pp. 275–277); [9] — Response to Vibration and Edge… (pp. 24–27); [10] — Ch. 6 (pp. 56–60), Ch. 7 (pp. 68–71)</small></p>
+<h2 id="acceptance-criteria-and-tolerances">Acceptance criteria and tolerances</h2>
+<p>The guides accept a slump result when it falls within the overall permissible interval quoted as “The slump test is valid for a range of results from 0.5 to 9 in.” For slip‑form paving, the commonly cited satisfactory band is “Typically, a range between 1 and 2 inches is satisfactory for slipform paving,” which may be used either as a fixed specification or as a uniformity benchmark.</p>
+<p>Workability measured by the VKelly test is deemed acceptable only when the index lies inside the limits stated as “VKelly index for slipform paving mixtures should be in the range of 0.6 to 1.1 in./√s” and reinforced by “Current experience indicates that a VKelly index between 0.6 in. \mathbf { \Omega } _ { / \sqrt { S } }and 1.1 in./√?? is appropriate for mixtures that will be slipformed.”</p>
+<p>The Box test imposes visual limits on edge deformation: both “more than ¼ in. deformation on edges is considered unacceptable” and “Edge slump greater than 0.25 in. indicates that the mixture may not be appropriate for slipform placement.” Surface‑void assessment adds a further visual threshold: “A surface void score greater than 2 indicates that the mixture may not be appropriate for slipform placement.” Consolidation must match the prescribed visual reference, as expressed by “degree of consolidation on each side as indexed against a template” and “Consolidation is subjectively rated against a visual standard (Figure 8).”</p>
+<p>Statistical control of workability uses three‑sigma limits: batches are run “continue with every batch until three consecutive batches are within specification tolerance,” and the control chart limits are defined by “calculate the 3s control limits based on the QC data represented by the stable period.” Any measurement that falls outside these limits, e.g., “Sample 11-2 is outside of the 3s upper control limit,” triggers a special‑cause investigation.</p>
+<p>Final set acceptance requires achieving a penetration resistance quoted as “final set of 4,000 lb/in² occurs” while maintaining test temperature conditions of “Maintain the ambient test conditions at 68°F to 77°F (lab and field tests).”</p>
+<p>All listed numerical ranges, sigma‑based statistical criteria, and visual standards together constitute the acceptance envelope for concrete workability. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p>The following figure illustrates how these principles apply to specific mixture parameters through an example of a coarseness factor and workability factor.</p>
+<p><img alt="Example mixture design coarseness factor and workability fac" src="assets/concrete-workability-testing-methods/f2ba77c06f0ab11f154e93f89b7c54b2a3e2f13e529ce8ee3db5ba50961615be.jpg" />
+<em>Example mixture design coarseness factor and workability factor</em> [<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p>The figure displays a scatter plot with the Coarseness factor on the horizontal axis and the Workability factor on the vertical axis. Two parallel blue lines define an allowable project tolerance envelope, while two dashed blue lines indicate specific control line boundaries within that range.</p>
+<p><small>[1] — Ch. 6 (pp. 151–152); [7] — 2. Factors Influencing Long-Li… (p. 33); [9] — Response to Vibration and Edge… (pp. 24–27); [10] — Ch. 6 (pp. 56–60), Ch. 7 (p. 87)</small></p>
+<p>Across the guides, concrete workability test results are first evaluated by comparing each measured value to the specification limits. For slip‑form placement an edge slump greater than 0.25 in or a surface‑void score above 2 signals non‑acceptance, and a VKelly index outside roughly 0.6–1.1 in/√s is also rejected. Likewise fresh‑concrete tests such as slump, loss of workability, microwave water content, unit weight and air content are checked against the project’s tolerance limits; any batch that fails must be adjusted until three consecutive batches satisfy the criteria.</p>
+<p>Regarding lot‑average performance and variability, the guides differ. One set of guidance does not prescribe averaging or variability assessment; compliance is determined solely by each individual sample meeting its threshold. The other guide requires entering all results into a QC database, plotting them on control charts, establishing 3‑sigma control limits after a period of stable data, and investigating any measurement that falls outside those limits as special‑cause variability. Successive slump readings are used to monitor between‑batch uniformity and trigger corrective actions before the lot average drifts out of tolerance. [<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p>The figure below illustrates a control chart demonstrating how such monitoring identifies out-of-control test conditions.</p>
+<p><img alt="Control chart showing out-of-control test conditions" src="assets/concrete-workability-testing-methods/526af492b875e3bf3f70778748ec57fe6ad4175620d898a2d5990eb83d27baee.jpg" />
+<em>Control chart showing out-of-control test conditions</em> [<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p>The figure displays a statistical process control (SPC) plot tracking unit weight QC test data against established upper and lower control limits. The chart visually identifies specific regions where test results indicate that a process is unstable or out of control, requiring root cause analysis.</p>
+<p><small>[9] — Response to Vibration and Edge… (pp. 24–27); [10] — Ch. 6 (pp. 56–60), Ch. 7 (p. 68)</small></p>
+<h2 id="quality-control-and-process-monitoring">Quality control and process monitoring</h2>
+<p>The workability program must continuously monitor a set of fresh‑mix characteristics that directly affect placement quality. Core consistency is tracked with the slump test: &ldquo;The slump test (ASTM C143/AASHTO T 119) measures the consistency of the mix&rdquo; and &ldquo;the most common test method used to assess workability for quality control purposes is AASHTO T 119… the slump test… provides an indication of the consistency of an individual batch of concrete.&rdquo; Slump loss over time is recorded at defined intervals: &ldquo;Slump and loss of workability (5, 10, 15, &amp; 20 min.)&rdquo;. Acceptable slump ranges are specified, for example &ldquo;range between 1 and 2 inches&rdquo;, while edge‑slump limits such as &ldquo;Edge slump greater than 0.25 in.&rdquo; signal a problem.</p>
+<p>Response to vibration is evaluated through the VKelly index: &ldquo;VKelly index for slipform paving mixtures should be in the range of 0.6 to 1.1 in./√s&rdquo; and &ldquo;The VKelly index is the slope of this plotted line. Current experience indicates that a VKelly index between about 0.6 and 1.1 in/√s is appropriate for mixtures that will be slipformed.&rdquo; The Box test provides feedback on surface voids and edge stability: &ldquo;The Box test &hellip; provides feedback on surface voids and edge stability for a given mixture&rdquo; and &ldquo;A surface void score greater than 2 indicates that the mixture may not be appropriate for slipform placement.&rdquo; Qualitative checks of consolidation and edge slumping are also required: &ldquo;concrete is then qualitatively evaluated for the degree of consolidation and edge slumping&rdquo;.</p>
+<p>The guides further require monitoring of additional workability attributes: &ldquo;Additional attributes that should be tracked include mobility, pumpability, compactability (e.g., compacting factor), finishability and harshness&rdquo;. For very dry mixes a Vebe test may be used: &ldquo;For very dry mixes the Vebe test offers a rapid check on plasticity&rdquo;.</p>
+<p>Water content and aggregate moisture must be verified because &ldquo;Inaccurate aggregate moisture contents can impact workability, strength development, air entrainment, permeability, and shrinkage of the concrete mixture.&rdquo; Air‑entrainment levels are watched each shift: &ldquo;Air entrainment is monitored each shift; testing continues until three consecutive batches meet specification.&rdquo; Mortar‑flow testing offers a supplemental sensitivity to water and air: &ldquo;Mortar flow is most sensitive to water content and air content.&rdquo;</p>
+<p>Vibration behavior is examined in detail: &ldquo;To better understand the ease with which concrete can be consolidated and finished as it passes through a paving machine, its behavior under and immediately after vibration must be assessed&rdquo; and &ldquo;the vibration must adequately fluidize the stiff concrete to promote good consolidation, yet the concrete must have sufficient stiffness after vibration for the slipformed paving edges to resist edge slumping.&rdquo; Proper vibration is essential: &ldquo;Proper vibration is essential to providing long‑term durability for a Portland cement concrete pavement.&rdquo; However, excessive vibration can be detrimental: &ldquo;Excessive vibration can adversely affect the entrained air properties of the concrete, resulting in premature failure due to freeze‑thaw deterioration,&rdquo; and it may cause segregation: &ldquo;Segregation is also an unwanted by‑product of excessive vibration.&rdquo; Conversely, insufficient vibration leads to voids: &ldquo;A pavement that is undervibrated will have excessive voids, resulting &hellip; reduced strength and durability.&rdquo;</p>
+<p>When any monitored parameter deviates from its control limits, corrective actions such as adjusting water, admixture dosages, mixing time or vibration practices are implemented to restore consistent concrete quality. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p><small>[1] — Ch. 3 (p. 136), Ch. 6 (pp. 151–153), Ch. 7 (p. 213), Ch. 9 (pp. 275–277), Ch. 10 (p. 321); [3] — Box Test (AASHTO T 396) (p. 29), Workability (p. 29); [7] — 2. Factors Influencing Long-Li… (p. 33); [9] — Response to Vibration and Edge… (pp. 24–27); [10] — Ch. 6 (pp. 56–60), Ch. 7 (pp. 66–87)</small></p>
+<p>The guides require immediate process adjustments or additional testing whenever any workability indicator moves beyond its established control limits. A slump measured by ASTM C 143/AASHTO T 119 that falls outside the generally acceptable 1‑ to 2‑inch window, or shows &lsquo;significant changes in the slump on a given job indicating that changes have occurred in the characteristics of materials, mixture proportions, water content, mixing, time of test, or the testing itself&rsquo;, triggers a review of mix design and repeat testing. Early stiffening is flagged when &lsquo;slump can also be used as an indicator of early stiffening&rsquo; and slump loss is observed between the 5‑minute and 20‑minute tests (&lsquo;Performing slump tests at 5 minutes and 20 minutes after batching is a practice that is encouraged&rsquo;). The mini‑slump cone test provides another warning: a decreasing &lsquo;The mini-slump cone test monitors the area of smallslump cone samples made using paste at selected time intervals&rsquo; signals early hydration problems and calls for corrective action.</p>
+<p>Edge‑related box‑test criteria also demand adjustment. Any &lsquo;more than ¼ in. deformation on edges is considered unacceptable&rsquo;, and the specific statements &lsquo;Edge slump greater than 0.25 in.&rsquo; or a &lsquo;surface void score greater than 2&rsquo; require the mixture to be re‑evaluated, water‑reducing admixture dosage modified, and the test repeated.</p>
+<p>The VKelly index must remain within its prescribed band; values outside &lsquo;VKelly index for slipform paving mixtures should be in the range of 0.6 to 1.1 in./√s&rsquo; or &lsquo;VKelly index between 0.6 … and 1.1 in./√?? is appropriate&rsquo; indicate that aggregate gradation or paste content is off‑spec, prompting mix‑design revision.</p>
+<p>Moisture‑related controls are equally critical. When the microwave water‑content chart shows a &lsquo;special cause variability condition&rsquo; such as &lsquo;Sample 11‑2 is outside of the 3s upper control limit&rsquo;, batch proportions must be adjusted. Likewise, inaccurate aggregate moisture (&lsquo;Batching concrete based on inaccurate aggregate moisture contents can impact workability, strength development, air entrainment, permeability, and shrinkage of the concrete mixture&rsquo;) necessitates proportion revisions and repeat workability checks.</p>
+<p>Mortar‑flow measurements that deviate from baseline are also triggers: &lsquo;Changes in flow indicate variability in the materials and/or the batching process that may not be observed from slump testing alone&rsquo; and because &lsquo;mortar flow is most sensitive to water content and air content&rsquo;, any drift calls for mix adjustments and additional monitoring.</p>
+<p>Finally, vibration data outside the optimal range demand correction; &lsquo;excessive vibration can adversely affect the entrained air properties of the concrete, resulting in premature failure due to freeze‑thaw deterioration&rsquo;, while an &lsquo;undervibrated&rsquo; pavement &lsquo;will have excessive voids, resulting in reduced strength and durability&rsquo;. Such deviations require adjustment of vibrator settings and verification testing. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p><small>[1] — Ch. 3 (p. 136), Ch. 6 (pp. 151–152), Ch. 9 (pp. 275–277); [7] — 2. Factors Influencing Long-Li… (p. 33); [9] — Response to Vibration and Edge… (pp. 24–27); [10] — Ch. 6 (pp. 56–60), Ch. 7 (pp. 66–72)</small></p>
+<h2 id="nonconformance-and-corrective-action">Nonconformance and corrective action</h2>
+<p>When a concrete sample fails a workability test—such as showing surface voids in the Box test, exceeding slump‑loss limits, or falling outside microwave water‑content control limits—the guides require immediate corrective action. The batch must be remixed with an appropriate amount of water‑reducing admixture—&ldquo;Samples can be remixed with the addition of water‑reducing admixture until they conform to the Box test standard&rdquo;—and the test repeated until the mixture conforms to the required standard; &ldquo;Mixtures requiring little or no additional water‑reducing admixture to meet the Box test standard are preferable over mixtures requiring higher dosages of admixture.&rdquo; At the same time, the QC manager must notify the paving superintendent and suspend paving while investigating the cause—&ldquo;Paving is temporarily suspended.&rdquo; Corrective measures may include adjusting mixture proportions (e.g., reducing fly ash, increasing cement, removing added water) and applying temperature controls such as chilled water. The revised batch is then retested for slump, loss of workability, air content, and microwave water content to confirm it meets specification before work resumes—&ldquo;Fresh concrete properties are tested on the adjusted 6-yd³ batch: slump, loss of workability, air content, and microwave water content tests are all acceptable.&rdquo; Finally, testing frequency is increased to closely monitor the corrected process—&ldquo;QC testing frequency will be doubled for the next 6,000 yd³ of production.&rdquo; [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p>The following figure illustrates the mixture verification stiffening tests used to confirm that adjusted concrete proportions meet specification requirements.</p>
+<p><img alt="Mixture verification stiffening tests (Modified ASTM C 359)" src="assets/concrete-workability-testing-methods/98cee64befdf06f07540752608037c11af4ba85099da1a8c4d0725b19cb74d63.jpg" />
+<em>Mixture verification stiffening tests (Modified ASTM C 359)</em> [<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p>The figure displays a line chart plotting penetration depth against time for concrete mixtures containing Portland cement, fly ash, and water reducer.</p>
+<p><small>[1] — Ch. 9 (pp. 275–277); [10] — Ch. 6 (pp. 56–60)</small></p>
+<p>When a fresh‑concrete test such as slump loss or microwave water content falls outside the established three‑sigma control limits—or when a loss of workability is observed—the batch must be corrected by adjusting mix proportions (for example, adding water, reducing fly ash, or increasing cement). After any adjustment, the same workability tests are repeated; if the retested values fall within the control limits and meet the design tolerances, the concrete may be accepted with the documented adjustment and an increased testing frequency for a defined production volume. If the out‑of‑control condition cannot be resolved by simple proportion changes or the retest still fails, further investigation of root causes such as temperature rise or chemical incompatibility is required before a final decision; persistent failure after investigation leads to rejection of the batch. [<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p><small>[10] — Ch. 6 (pp. 56–60)</small></p>
+<h2 id="documentation-and-reporting">Documentation and reporting</h2>
+<p>Inspection records for each concrete batch must include the date, time and random sampling location, together with all fresh‑property measurements. The QC program requires that every concrete batch be documented with the date, time and random sampling location together with slump measurements at 5, 10, 15 (and optionally 20) minutes, microwave‑determined water content, unit weight, air content, aggregate moisture and sieve‑analysis results, and any fresh‑property sensors such as maturity probes. Concrete workability testing records must capture the sampling location (central mix plant versus placement site), the exact timing of each slump test (5 minutes after discharge at the plant and 20 minutes after discharge on‑site), and for every test log the concrete temperature, ambient temperature, elapsed time and the measured slump; the results are then plotted for review. All of these test values are entered into a QC database, printed with the original worksheets, plotted on control charts and compared to the 3‑sigma limits; when a result exceeds an upper control limit, corrective actions such as adjusting water dosage, modifying fly‑ash or cement content, adding chilled water, or increasing testing frequency are recorded. Documentation of concrete workability tests should record the fresh‑mortar temperature at sampling, confirm that ambient conditions are kept between 68 °F and 77 °F, note the start of penetration testing about three to four hours after water contact and each subsequent interval, and for every penetration log the ambient temperature, mortar temperature, applied force and bearing area. Supporting records include compressive‑strength specimens at prescribed ages, vibrator monitor logs, weather analyses, and any certifications of laboratory calibration that support the test methods. [<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p>The following figure illustrates how mixture verification is integrated with combined gradation analysis to support these documentation requirements.</p>
+<p><img alt="Mixture verification combined gradation analysis" src="assets/concrete-workability-testing-methods/90a7395453588a8d004d5485b3c1efe43a67398392689a56079a70a057e6b399.jpg" />
+<em>Mixture verification combined gradation analysis</em> [<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p>The figure displays a scatter plot comparing the coarseness factor and workability factor of concrete mixtures against allowable project tolerance limits. It plots specific quality control data points from different dates alongside a mixture design target to verify that fresh concrete properties meet specified gradation and consistency requirements. This visualization serves as a quality control check for the workability of freshly mixed concrete, ensuring it possesses the appropriate balance of fluidity and aggregate grading.</p>
+<p><small>[10] — Ch. 6 (pp. 56–60), Ch. 7 (pp. 68–87)</small></p>
+<p>Quality records for concrete workability testing are required to capture the measured values of each test performed. For slip‑form paving mixtures, the sink rate of the vibrating Kelly ball over 36 seconds is recorded and the slope on a root‑time plot is reported as the VKelly index; the index is then compared with the accepted range of 0.6 to 1.1 in./√s, and any result within this band serves as evidence that the mixture meets workability requirements. For other workability samples, slump measured at 5, 10 and 15 minutes, microwave‑determined water content, unit weight and air content are entered into a quality‑control database, printed together with the original worksheets, and plotted on control charts. The charts are examined for points beyond three‑sigma limits that indicate special‑cause variability.</p>
+<p>All recorded data are reviewed as part of laboratory mixture proportioning and prequalification activities, and also during routine QC monitoring. When an out‑of‑limit condition appears on a control chart, the fresh‑property results are compared with the mixture design and prior QC history; discussions with the paving superintendent lead to corrective actions such as adjusting water content or mix proportions, increasing testing frequency, or adding chilled water, after which the revised batch is retested to confirm acceptance. The reviewed records become part of a data set that supports acceptance of the current concrete and are used to recalculate control limits on a weekly basis, providing documented evidence for evaluating future performance trends. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p>The following figure illustrates a sample control chart used to monitor concrete unit weight.</p>
+<p><img alt="Sample control chart: concrete unit weight" src="assets/concrete-workability-testing-methods/93a2e121dc67f924d43902f76a0833541a2cecb45e94fbda3ed886321434c03c.jpg" />
+<em>Sample control chart: concrete unit weight</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays a statistical process control chart tracking the variation of concrete unit weight across sequential sample IDs.</p>
+<p><small>[1] — Ch. 6 (p. 152); [10] — Ch. 6 (pp. 56–60)</small></p>
+<h2 id="relationship-to-long-term-performance">Relationship to long-term performance</h2>
+<p>The guides agree that the Box test, which evaluates edge deformation under a standardized vibration, uses a limit of “more than ¼ in. deformation on edges is considered unacceptable.” When this criterion and low vibration response are satisfied, “the mixture is expected to place without excessive voids, segregation, or cracking, which in turn supports longer service life and greater resistance to traffic‑induced distress.” Similarly, the VKelly index provides a quantitative measure of vibration response; “Current experience indicates that a VKelly index between 0.6 in. \mathbf { \Omega } _ { / \sqrt { S } }and 1.1 in./√?? is appropriate for mixtures that will be slipformed,” and achieving this range “to arrive at a mixture that will yield the durability, surface finish, and edge stability that are both desired and specified.” The guides also note thresholds indicating poor workability: “Edge slump greater than 0.25 in. indicates that the mixture may not be appropriate for slipform placement” and “A surface void score greater than 2 indicates that the mixture may not be appropriate for slipform placement,” prompting mix adjustments before field production.</p>
+<p>Daily quality‑control monitoring of slump loss, unit weight, air content and microwave‑measured water content is required because “By keeping these measured properties within the established tolerances, the concrete achieves its designed strength development and resists distress mechanisms such as sulfate/aluminate reactions, thereby supporting the intended service life of the pavement.” Accurate aggregate moisture measurement “drives adjustments to the mix proportions that keep strength development, air entrainment, permeability and shrinkage within acceptable limits; by controlling these properties the concrete remains uniform and durable, which translates into a longer expected service life and greater resistance to cracking, freeze‑thaw damage and other distress mechanisms.” Finally, vibration control is emphasized: “Proper vibration is essential to providing long-term durability for a portland cement concrete pavement,” while “Excessive vibration can adversely affect the entrained air properties of the concrete, resulting in premature failure due to freeze-thaw deterioration” and “Segregation is also an unwanted by‑product of excessive vibration.” Together, these measured workability indicators directly inform expected service life and resistance to various forms of distress. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-9" aria-label="Reference 9">9</a></sup>][<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p>The following figure illustrates example water-to-cement ratio quality control test data alongside corresponding concrete temperatures to demonstrate these monitoring practices in action.</p>
+<p><img alt="Control chart of microwave water-to-cement ratio and concret" src="assets/concrete-workability-testing-methods/af091f48d527d3954db3631afe27a2ff727ae3f22b1882f45f31a9e580369082.jpg" />
+<em>Control chart of microwave water-to-cement ratio and concrete temperature over time.</em> [<sup><a href="#ref-10" aria-label="Reference 10">10</a></sup>]</p>
+<p>The figure displays a control chart tracking the microwave water-to-cement (w/cm) ratio alongside concrete temperatures across various sample IDs, with horizontal lines indicating target averages and upper/lower control limits.</p>
+<p><small>[1] — Ch. 6 (p. 152), Ch. 9 (p. 275); [9] — Response to Vibration and Edge… (pp. 24–27); [10] — Ch. 6 (pp. 56–60), Ch. 7 (pp. 66–72)</small></p>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li><li id="ref-3"></li><li id="ref-4"></li><li id="ref-5"></li><li id="ref-6"></li><li id="ref-7"></li><li id="ref-8"></li><li id="ref-9"></li><li id="ref-10"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

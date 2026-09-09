@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IRI Pavement Profile Measurement</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html" class="active" aria-current="page">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>IRI Pavement Profile Measurement</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=pavement-roughness">pavement-roughness</a><a class="tag" href="index.html?q=iri">iri</a><a class="tag" href="index.html?q=inertial-profiler">inertial-profiler</a><a class="tag" href="index.html?q=pavement-profile">pavement-profile</a><a class="tag" href="index.html?q=ride-quality-evaluation">ride-quality-evaluation</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>IRI pavement profile measurement is a nondestructive road‑profiling survey that uses a high‑speed inertial profiler equipped with line‑laser (or wide‑spot) sensors traveling along the wheel path to record closely spaced vertical height points of the true surface shape[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]. The raw elevation data are processed through an IRI model in software such as ProVAL, which simulates a standard vehicle suspension and yields the International Roughness Index—a single numeric scale that quantifies longitudinal smoothness (ride quality) and serves as the primary acceptance metric for new and existing asphalt or concrete pavements[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]. Results are presented as running‑average IRI values over a typical 0.10 mi base length together with power‑spectral‑density plots that reveal dominant wavelengths, enabling engineers to locate sections exceeding agency trigger thresholds (approximately 2–2.7 m/km) and diagnose construction or material deficiencies[<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]. Measurements are normally performed within 24 hours of placement on cleaned surfaces, with the equipment calibrated to AASHTO M 328 and R 56 specifications to ensure repeatable, objective data that support maintenance, rehabilitation, and design decisions[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-investigation-objectives">Purpose and investigation objectives</a></li><li><a href="#scope-and-applicability">Scope and applicability</a></li><li><a href="#existing-information-and-records">Existing information and records</a></li><li><a href="#visual-inspection-and-condition-assessment">Visual inspection and condition assessment</a></li><li><a href="#field-measurements-and-testing">Field measurements and testing</a></li><li><a href="#structural-and-functional-performance">Structural and functional performance</a></li><li><a href="#data-interpretation-and-diagnosis">Data interpretation and diagnosis</a></li><li><a href="#findings-confidence-and-next-actions">Findings, confidence, and next actions</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (7)</summary><div class="sources-body"><a href="#ref-1">2019-12_IMCP_manual</a>, <a href="#ref-2">QC_for_concrete_paving_web</a>, <a href="#ref-3">concrete_overlay_repair_strategies_guide_web</a>, <a href="#ref-4">concrete_pvmt_distress_assessments_and_solutions_guide_w_cvr</a>, <a href="#ref-5">concrete_pvmt_preservation_guide_3rd_edition_web</a>, <a href="#ref-6">preservation_reference_manual</a>, <a href="#ref-7">smooth_concrete_pvmt_guidelines_w_cvr</a></div></details>
+
+<h2 id="purpose-and-investigation-objectives">Purpose and investigation objectives</h2>
+<p>The IRI pavement profile measurement evaluates the surface roughness (smoothness) condition of a pavement—whether asphalt or concrete, newly placed, freshly hardened, or existing. It quantifies the longitudinal profile with an International Roughness Index obtained from an inertial profiler. The investigation must answer several questions: </p>
+<ol>
+<li>How closely does the measured IRI represent the ride quality perceived by road users? </li>
+<li>Does the pavement meet current agency acceptance or trigger values, noting that many agencies have moved from the Profilograph Index to the IRI for acceptance? </li>
+<li>Where along the project do IRI values exceed acceptable limits, and which specific profile features (bumps, dips, repeating patterns) are responsible for elevated indices? </li>
+<li>What dominant wavelengths are present in the profile data, as identified by a power‑spectral‑density analysis, indicating construction‑related or material deficiencies? </li>
+<li>Are the profiling equipment and software correctly calibrated and configured, and were measurements taken at an appropriate time (e.g., within 24 hours of paving for concrete surfaces) to avoid bias from temperature‑induced curling or debris? </li>
+<li>Which construction processes (batch uniformity, paver speed, vibrator settings, hand‑finishing) may be influencing the measured roughness, and what corrective actions such as diamond grinding might be required? </li>
+<li>How does the observed roughness compare with other projects, and does it demonstrate that any applied treatments have improved ride quality?</li>
+</ol>
+<p>These questions together provide a comprehensive assessment of pavement ride quality and support decisions on maintenance, repair, or acceptance.</p>
+<p>&ldquo;Pavement smoothness is one of the key functional characteristics.&rdquo; [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p><small>[1] — Ch. 9 (pp. 288–290); [2] — App. C (p. 124); [3] — Pavement Roughness Evaluation (p. 21); [5] — Ch. 3 (pp. 61–62); [6] — Ch. 3 (p. 55); [7] — 2. Which features show up in r… (pp. 48–50), Specifications for Initial Smo… (p. 15)</small></p>
+<p>The IRI profile results give engineers a quantitative view of pavement smoothness that agencies now use as the primary acceptance metric, allowing planners to set design targets that promote longer service life and reduce later corrective actions. The running‑average IRI values in the roughness report identify sections where maintenance, rehabilitation or resurfacing is required, while the accompanying power spectral density plot reveals dominant wavelengths so designers can adjust mix gradations, paver settings, joint spacing, and other construction parameters for future projects. Real‑time smoothness monitoring behind the paver shortens the feedback loop from days to hours, providing immediate diagnostic information that helps correct material variability or equipment issues before they become costly defects.</p>
+<p>Inertial profiling of the finished pavement will be performed within 24 hours of paving, and the resulting profiles are analyzed using ProVAL, and a power spectral density (PSD) analysis will be performed to identify any dominant wavelengths that appear in the profiles. Finishing procedures and processes may be adjusted to correct any deficiencies identified by the profile analyses.</p>
+<p>Roughness is a core factor in the decision to rehabilitate, resurface, or reconstruct any pavement; by quantifying concrete overlay roughness periodically, engineers can track an overlay’s functional condition and project when it may require intervention. A pavement’s IRI or other smoothness index value helps decision‑makers program repair strategies and ultimately signals whether the overlay has reached the end of its useful life.</p>
+<p>High‑speed profiling provides a longitudinal profile along the wheel paths together with ride‑quality information such as faulting at joints and cracks, which are good indicators of pavement performance. Since the HSP operates at highway speed, the advantage of this device is there is faster data collection without the need for traffic control, lane closures, safety measures, and their inherent costs.</p>
+<p>The IRI values generated by an inertial profiling system give engineers a quantitative map of ride quality that can be directly linked to design and maintenance actions; by collecting a representative index for each 0.1‑mile segment in every lane, planners can pinpoint sections where roughness exceeds acceptable limits and prioritize resurfacing or slab replacement. Because the equipment must be calibrated and certified according to AASHTO standards, the resulting data are reliable enough to justify investment decisions, and repeat runs capture temperature‑induced profile changes that might otherwise mask true distress. The International Roughness Index quantifies the true pavement profile on a single numeric scale, allowing direct comparison to FHWA‑defined thresholds for good, fair, or poor ride quality.</p>
+<p>Because the IRI provides an objective, quantifiable picture of ride quality, its values become a primary input for setting smoothness targets during planning and defining design criteria for different facility types. The IRI is a more objective measure of ride quality or how a vehicle responds to the pavement profile than a straightedge or profilograph, and inertial profilers provide the best representation of the actual pavement profile for the interpretation of ride quality. By measuring IRI soon after construction—ideally each paving shift—engineers obtain timely feedback that reveals where the current mix design, equipment settings, or joint placement are affecting smoothness; timely collection of hardened‑pavement profile data is critical for assessing the impacts of various project features and paving processes on pavement smoothness. The Smoothness Assurance Module (SAM) provides a grinding simulation tool that generates customizable grinding plans, directly informing rehabilitation strategies. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates a real-time smoothness measurement device mounted to the back of a paver.</p>
+<p><img alt="Construction crew performing real-time smoothness measuremen" src="assets/iri-pavement-profile-measurement/42ebcba5e8f4e42e51c6d3b0c3ae6191319b00c88b8d2633d193a69470f003e1.jpg" />
+<em>Construction crew performing real-time smoothness measurement on a fresh concrete pavement.</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image shows several workers in high-visibility safety gear standing and kneeling beside a newly paved concrete surface, with one worker operating a handheld device near the ground.</p>
+<p><small>[1] — Ch. 9 (pp. 288–290); [2] — App. C (p. 124); [3] — Pavement Roughness Evaluation (p. 21); [4] — Ch. 4 (pp. 241–242); [5] — Ch. 3 (pp. 61–62); [6] — Ch. 3 (pp. 55–57); [7] — 2. Which features show up in r… (pp. 48–50), SMOOTHNESS MEASUREMENTS (p. 46), Specifications for Initial Smo… (p. 15)</small></p>
+<h2 id="scope-and-applicability">Scope and applicability</h2>
+<p>The guides agree that IRI profiling with an inertial profiler is appropriate for a broad spectrum of concrete pavements. “IRI profiling with an inertial profiler and IRI processing in ProVAL is appropriate for assessing the smoothness of newly placed concrete pavements,” and “I RI pavement profile measurement is suitable for evaluating the roughness of concrete overlay pavements and, by extension, any concrete pavement in a network.” The method applies to jointed concrete pavements, short‑slab sections, and overlays regardless of underlying layers or specific distresses because “the IRI is a property of the true pavement profile, and as such can be measured with any valid profiler.” Textured surfaces—longitudinal grooves, tines, or diamond‑ground finishes—are also covered: “IRI profiling is suitable for concrete pavements, particularly those that have textured surfaces such as longitudinal grooves, tines, or diamond‑ground finishes, because a line‑laser inertial profiler captures the true tire footprint on these surfaces,” and “When measuring roughness on concrete pavements with textured surfaces, it is important that the roughness be measured with a line laser instead of a spot laser.” The technique can be used on high‑speed highways as well as lower‑speed or urban roads; “Lower-speed and/or urban pavement smoothness requirements may not need to be as stringent as those of high‑speed facilities,” and “Smoothness requirements may need to be relaxed for lane additions (paving next to existing pavement) and concrete overlays where there is little control over the smoothness of the underlying surface.” Site conditions that influence measurement are acknowledged. Daily temperature cycles and associated slab curling or moisture warping are noted as concerns: “One concern when testing on concrete pavements is the effect of daily temperature cycles on the measured roughness&hellip; slab curling effects may be introduced that may cause significant variations in the measured pavement profile over the course of the day,” and “A particular concern when testing on concrete pavements is the effect of daily temperature cycles on the measured roughness,&rdquo; which is most pronounced on short‑concrete slabs and may produce the highest roughness values in early‑morning hours.” The surface must be free of debris: “The pavement surface should be clear of foreign objects and debris (saw slurry, rocks, dirt, etc.) that may artificially impact IRI.” Roughness remains the primary factor for maintenance decisions: “Roughness is a core factor in the decision to rehabilitate, resurface, or reconstruct any pavement, including concrete overlays,” and “A pavement’s IRI or other smoothness index value helps decision‑makers program repair strategies and ultimately signals whether the overlay has reached the end of its useful life.” Trigger values are used without special adjustments: “No special consideration is necessary to use IRI trigger values for determining concrete overlay interventions.” Acceptable ride quality thresholds are cited, with a break point near 2 m/km and an acceptable range up to 2.7 m/km: “The approximate break point between "rough" and "smooth" concrete pavements is often considered to be 2 m/km (125 in/mi).” and “FHWA has presented guidelines in which an "acceptable" ride quality for highway pavements is defined by an IRI range of 0 to 2.7 m/km (0 to 170 in/mi).” [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p><small>[1] — Ch. 9 (pp. 289–290); [3] — Pavement Roughness Evaluation (p. 21); [5] — Ch. 3 (pp. 61–62); [6] — Ch. 3 (pp. 56–57); [7] — 2. Which features show up in r… (pp. 48–49), Specifications for Initial Smo… (p. 15)</small></p>
+<p>The IRI profile derived from inertial‑profiler data is a trusted indicator of overall roughness, but its usefulness is limited by several practical factors. First, the index is only available after raw measurements are processed through specialized software and a report is compiled, which can take many hours; therefore it cannot provide immediate feedback on construction problems. When rapid diagnosis of material variability or paver adjustments is required—within one to two hours after paving—a complementary real‑time smoothness measurement taken directly behind the paver should be employed, recognizing that this does not replace the formal acceptance test.</p>
+<p>On concrete surfaces, sensor selection matters: conventional spot lasers can drift in and out of surface grooves on longitudinally grooved, tined, or diamond‑ground textures, producing false roughness readings. A line laser whose footprint matches a tire is recommended for textured concrete to obtain more representative data. Additionally, daily temperature cycles cause slab curling and moisture warping that alter the measured profile, especially on short concrete sections where peak roughness often occurs in early morning hours. Because equipment may capture only a single wheel path, lane‑specific variations can be missed; traversing each lane (or both wheel paths) and confirming calibration are essential before relying solely on IRI results.</p>
+<p>Surface cleanliness also affects reliability: debris such as saw slurry, rocks, or dirt can artificially inflate IRI values. Since no standard correction exists for temperature‑induced changes, a single IRI reading taken at any one time is insufficient when early‑age conditions or significant temperature swings are expected. In those cases, repeat runs at different times of day, response‑type roughness measurements, or correlation with real‑time profiling data should be used to achieve an accurate assessment. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p><small>[1] — Ch. 9 (pp. 289–290); [5] — Ch. 3 (pp. 61–62); [6] — Ch. 3 (p. 56); [7] — 2. Which features show up in r… (pp. 48–49)</small></p>
+<h2 id="existing-information-and-records">Existing information and records</h2>
+<p>Field investigations must resolve several documented gaps in existing IRI profile records. First, daily temperature cycles can induce slab curling that causes the measured roughness to fluctuate over a single day, so repeat profiling at multiple times is required to capture true conditions. Second, on textured concrete surfaces the narrow‑footprint sensor may drift in and out of surface grooves, producing profile variations that are mistakenly interpreted as roughness; verification of laser type and measurement technique is therefore essential. Third, equipment calibration must be confirmed before each survey to eliminate systematic deviations and ensure repeatable IRI values. Fourth, smoothness specifications differ among agencies, creating contradictory requirements and uncertainty about the appropriate profiling procedures. Addressing these uncertainties through targeted field work will close the gaps in the current record base. [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p><small>[5] — Ch. 3 (pp. 61–62); [6] — Ch. 3 (p. 56); [7] — 2. Which features show up in r… (pp. 48–49), SMOOTHNESS MEASUREMENTS (p. 46), Specifications for Initial Smo… (p. 15)</small></p>
+<h2 id="visual-inspection-and-condition-assessment">Visual inspection and condition assessment</h2>
+<p>The high‑speed inertial profiler used for IRI pavement profiling records a longitudinal profile along the wheel paths and extracts ride‑quality metrics that directly reveal visible discontinuities such as faulting at joints and surface cracking. These distress features are identified from the recorded profile without lane closures, serving as reliable indicators of overall pavement performance. [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The high-speed pavement profiler used to capture these longitudinal profiles is shown below.</p>
+<p><img alt="High speed pavement profiler vehicle equipped with sensors." src="assets/iri-pavement-profile-measurement/d4fd0a353a66022167d433f2a2681ad9d4338b760ffd3ebed69aac79437d3035.jpg" />
+<em>High speed pavement profiler vehicle equipped with sensors.</em> [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The image displays a white Ford Transit van outfitted with specialized hardware, including roof-mounted sensor arrays and forward-facing measurement devices attached to the front bumper. This device provides a longitudinal profile along the wheel paths and provides ride quality values including faulting at joints and cracks which are good indicators of pavement performance.</p>
+<p><small>[4] — Ch. 4 (pp. 241–242), Ch. 19 (p. 477)</small></p>
+<h2 id="field-measurements-and-testing">Field measurements and testing</h2>
+<p>&ldquo;IRI pavement profile measurement employs nondestructive road‑profiling surveys using inertial profiling equipment. The guides cite both a “lightweight inertial profiler” and a “high‑speed profiler equipped with line lasers and an accelerometer”. These devices travel along the wheel path—“The inertial profiler travels along the pavement with the laser sensors centered on a wheel path collecting profile data.”—and record closely spaced vertical height points after the surface is cleaned (“The pavement should be cleaned prior to testing”). The measurement is typically carried out soon after construction—“Inertial profiling of the finished pavement will be performed within 24 hours of paving”. Modern roughness testing is performed using inertial road profiling systems (IRPSs), which measure actual pavement profiles and not a vehicle response to pavement imperfections (“Modern roughness testing is performed using inertial road profiling systems (IRPSs), which measure actual pavement profiles and not a vehicle response to pavement imperfections.”). The collected raw elevation data are processed in a computer model that “simulates the reaction of a standard vehicle suspension yielding the IRI”, and the results are presented as a running average over a predefined base length (commonly 0.10 mi) (“A roughness report (Figure 9-13) shows the running average for IRI over a predefined base length; 0.10 mi is the most common base length.”).</p>
+<p>In addition to inertial profiling, the guides recognize “response‑type road roughness measuring systems (RTRRMS)” that infer roughness from vehicle dynamics, and visual “windshield surveys” that quickly locate zones of severe roughness (“the primary purpose of the survey is to identify areas of severe roughness on a given project”). Both types must be calibrated before use.</p>
+<p>When profiling concrete pavements with texture, a line‑laser sensor is required because spot lasers can drift (“When measuring roughness on concrete pavements with textured surfaces, it is important that the roughness be measured with a line laser instead of a spot laser.”). Modern systems are calibrated to “AASHTO M 328, Standard Specification for Inertial Profiler” and certified under “AASHTO R 56, Standard Practice for Certification of Inertial Profiling Systems” to ensure repeatable results.</p>
+<p>The raw profiles are analyzed with software such as ProVAL; the guides state that “The resulting profiles will be analyzed using ProVAL, and a power spectral density (PSD) analysis will be performed to identify any dominant wavelengths that appear in the profiles”. A PSD plot (“A power spectral density (PSD) plot (Figure 9-14) shows if there are any predominant repeating wavelengths that are contributing to pavement roughness”) highlights systematic wavelength components that may point to construction issues. The high‑speed inertial profiler also provides “ride quality values including faulting at joints and cracks which are good indicators of pavement performance”, derived from accelerometers (“accelerometers that measure the movement of the vehicle frames”) and laser displacement sensors (“sensors (typically lasers) that record the displacement between the vehicle and the pavement at certain fixed intervals”).</p>
+<p>Together, these field tests—cleaned‑surface inertial profiling, RTRRMS response measurement, visual surveys, and PSD analysis—produce the International Roughness Index, a common numeric scale of ride quality (“One example of such an index is the International Roughness Index (IRI), which has become the most widely used statistic to describe pavement roughness.”) that can be correlated across methods (“the IRI provides a common numeric scale of measuring roughness that can be correlated to roughness measurements obtained from both response‑type and inertial‑based profiler systems”).&rdquo; [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates how this measurement approach captures specific surface characteristics by comparing power spectral density data for real-time and hardened profiles.</p>
+<p><img alt="Comparison of power spectral density (PSD) data for real-tim" src="assets/iri-pavement-profile-measurement/5ac70949da96b4bb90a438c132cd5313fa12e9a9ffa0bd006bf526059b9eb0c4.jpg" />
+<em>Comparison of power spectral density (PSD) data for real-time and hardened profiles demonstrating that hand finishing removes roughness at the 5 ft wavelength.</em> [<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The figure displays a plot comparing the slope spectral density of pavement profiles measured in real-time versus after hardening, with two distinct curves representing these stages. A prominent peak circled on the graph indicates that hand finishing removes short wavelength roughness content from the surface profile. This reduction in localized roughness directly supports the use of PSD analysis to diagnose construction deficiencies and verify that hand finishing improves short-baselength continuous IRI results.</p>
+<p><small>[1] — Ch. 9 (pp. 288–290); [2] — App. C (p. 124); [4] — Ch. 4 (pp. 241–242), Ch. 19 (p. 477); [5] — Ch. 3 (pp. 61–62); [6] — Ch. 3 (pp. 55–57); [7] — 2. Which features show up in r… (pp. 48–50), SMOOTHNESS MEASUREMENTS (p. 46), Specifications for Initial Smo… (p. 15)</small></p>
+<p>The equipment for IRI pavement profile measurement consists of inertial profilers—lightweight units equipped with wide‑spot or line lasers—and may also include response‑type road roughness measuring systems (RTRRMS). The profiler’s laser sensors are positioned centrally over the wheel path: “The inertial profiler travels along the pavement with the laser sensors centered on a wheel path collecting profile data.” When only one wheel path can be measured, the right wheelpath is recorded. Testing is performed by traversing each lane; the guides state to “traverse the project in each lane and obtain a representative roughness index for each 0.1 mi increment” and also “traverse the project in each lane and obtain a representative roughness index for each 0.16 km (0.1 mi) increment.” Raw data are captured as “a series of closely spaced height measurements” and later processed: “Process the profile data through an IRI model using ProVAL software.” Prior to testing, the surface must be prepared: “The pavement should be cleaned prior to testing” and “The pavement surface should be clear of foreign objects and debris (saw slurry, rocks, dirt, etc.) that may artificially impact IRI.” For concrete surfaces, a line laser is recommended: “a line laser (more representative of the tire footprint) is recommended for use when measuring roughness on textured concrete pavement surfaces.” Because concrete slabs are sensitive to temperature, testing should be repeated at different times of day; the guides note that “On days when the air temperature changes significantly throughout the day, slab curling effects may be introduced that may cause significant variations in the measured pavement profile over the course of the day,” and that “A particular concern when testing on concrete pavements is the effect of daily temperature cycles on the measured roughness.” For jointed concrete sections, “For jointed concrete pavements, changes in IRI may be observed when profiling at different times of day as a result of temperature curling and/or moisture warping.” Profiling is often scheduled after each paving operation: “should be collected after each paving day (or the following day) to provide timely feedback.” [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p><small>[1] — Ch. 9 (pp. 288–290); [5] — Ch. 3 (pp. 61–62); [6] — Ch. 3 (p. 56); [7] — 2. Which features show up in r… (pp. 48–49)</small></p>
+<h2 id="structural-and-functional-performance">Structural and functional performance</h2>
+<p>The IRI pavement profile measurement is performed with a high‑speed profiler that records the longitudinal surface shape along the wheel paths. From this profile the system derives ride‑quality metrics, notably faulting at joints and cracks, which are used as functional condition indicators of pavement performance. While it supplies roughness/ride quality data, the method does not directly measure deflection, load‑transfer efficiency, layer thickness, friction or bearing strength. [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The high-speed pavement profiler used to capture these longitudinal surface profiles is shown below.</p>
+<p><img alt="High-speed pavement profiler vehicle equipped with inertial" src="assets/iri-pavement-profile-measurement/e88148b88f635ca471f6da28568c73c27bb1d164393184cdf1e5305b15c66d19.jpg" />
+<em>High-speed pavement profiler vehicle equipped with inertial sensors.</em> [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The image displays a white pickup truck outfitted with specialized hardware mounted to the front bumper, including multiple sensor housings and an antenna. This apparatus is identified as a high-speed profiler (HSP) that utilizes accelerometers and sensors to record displacement between the vehicle and the pavement at fixed intervals. The device provides a longitudinal profile along the wheel paths to generate ride quality information, allowing for faster data collection without traffic control.</p>
+<p><small>[4] — Ch. 4 (pp. 241–242)</small></p>
+<p>The merged assessment notes that IRI values obtained with inertial profiling are treated as an objective indicator of ride quality and are compared against smoothness‑index trigger limits that embody the anticipated traffic loads and design assumptions. Across the guides, concrete overlays are judged using the same standard thresholds applied to other concrete pavements, yet the guidelines also recognize that threshold levels are not uniform: high‑speed facilities require tighter IRI limits, while lower‑speed or urban routes, as well as lane additions and overlay projects where the underlying surface is less controllable, may be permitted higher values. Regarding remaining service life, one source states that rising IRI values as an overlay approaches its 20‑ to 40‑year design horizon signal the pavement’s nearing end of useful life and trigger repair or reconstruction without modifying the standard limits; the other source does not prescribe explicit service‑life criteria, so remaining life must be inferred from how closely measured IRI approaches the applicable (potentially relaxed) thresholds. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p><small>[3] — Pavement Roughness Evaluation (p. 21); [7] — Specifications for Initial Smo… (p. 15)</small></p>
+<h2 id="data-interpretation-and-diagnosis">Data interpretation and diagnosis</h2>
+<p>The guides concur that elevated IRI values on concrete pavements can arise from several distinct mechanisms. Construction‑related deficiencies are repeatedly cited as primary sources of short‑wavelength irregularities; inconsistent concrete gradation, lack of between‑batch uniformity, and non‑uniform delivery speed that leads to paver stops all generate profile disturbances, while improper paver setup (draft/lead settings, vibrator frequency and height, float pan adjustments) and human factors such as inadequate training further contribute. In addition, the guides identify material deterioration caused by cumulative traffic loading combined with long‑term environmental exposure as a progressive source of roughness that becomes more pronounced as the overlay approaches its 20‑ to 40‑year service life. A separate but related environmental mechanism is emphasized: daily temperature fluctuations induce slab‑curling, which can dominate the measured profile and produce the highest IRI values in early‑morning tests; multiple profiling passes at different times are therefore recommended to isolate this effect. Across the sources, inadequate drainage, weak subgrade support, and overloading are not highlighted as likely causes of the observed condition. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p>The following figure illustrates how these daily temperature fluctuations induce slab-curling by showing the resulting variation in backcalculated k-value.</p>
+<p><img alt="Variation in backcalculated k-value due to variation in temp" src="assets/iri-pavement-profile-measurement/8a24d41d4b7f6891b57a3adcdf14e18e8845789e0ab629ef3015f117e2b1c66d.jpg" />
+<em>Variation in backcalculated k-value due to variation in temperature gradient (Khazanovich and Gotlif 2003).</em> [<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p>The figure plots the backcalculated modulus of subgrade reaction (k-value) against station location for four distinct times of day, ranging from early morning to late afternoon. Data points collected in the morning show significantly higher k-values compared to those measured later in the day when temperatures are warmer.</p>
+<p><small>[1] — Ch. 9 (pp. 289–290); [3] — Pavement Roughness Evaluation (p. 21); [5] — Ch. 3 (pp. 61–62); [6] — Ch. 3 (p. 56)</small></p>
+<h2 id="findings-confidence-and-next-actions">Findings, confidence, and next actions</h2>
+<p>The merged guidance indicates that IRI measurements derived from inertial profiling systems are regarded as a reliable, objective and repeatable index of pavement roughness. Because the IRI is calculated from the true surface profile, it supports judgments about ride quality, driver comfort and long‑term pavement performance, enables identification of zones exceeding smoothness thresholds, facilitates monitoring of concrete overlays for functional condition and timing of repair or grinding actions, and provides a common numeric scale that can be compared across response‑type and inertial profilers. Power‑spectral‑density analysis of the profiles further allows engineers to pinpoint dominant wavelengths linked to construction practices. However, the guides also note several sources of uncertainty: measurement results can vary with temperature‑induced slab curling or moisture warping, calibration drift, single‑wheel‑path surveys, and timing of data collection after placement; surface debris may artificially inflate IRI values; and no confidence limits or standardized correction procedures are provided. Consequently, multiple runs, careful calibration, and quality‑controlled data acquisition are recommended to mitigate these uncertainties. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The figure below illustrates real-time profile data showing how IRI values fluctuate with distance from the paver to the robotic total station.</p>
+<p><img alt="Real-time profile data illustrating fluctuation of IRI corre" src="assets/iri-pavement-profile-measurement/0db99777b377f2491637438b8e4f3423135e640d0e08ae1eb7c85ea42c48cf07.jpg" />
+<em>Real-time profile data illustrating fluctuation of IRI corresponding to distance from the paver to the robotic total station</em> [<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The figure displays a line chart plotting IRI (in/mi) against Distance (ft), comparing measurements for the &lsquo;RTS - Right Side&rsquo; and &lsquo;RTS - Left Side&rsquo;.</p>
+<p><small>[1] — Ch. 9 (pp. 288–290); [2] — App. C (p. 124); [3] — Pavement Roughness Evaluation (p. 21); [4] — Ch. 4 (pp. 241–242), Ch. 19 (p. 477); [5] — Ch. 3 (pp. 61–62); [6] — Ch. 3 (pp. 56–57); [7] — 2. Which features show up in r… (pp. 48–50), SMOOTHNESS MEASUREMENTS (p. 46), Specifications for Initial Smo… (p. 15)</small></p>
+<p>After an IRI profile is processed, the next step is to examine the roughness report using the typical 0.10 mi base length to locate high‑IRI sections and to run a power‑spectral‑density (PSD) analysis for dominant wavelengths that may signal joint spacing or paving‑process issues. When problem areas are identified, corrective actions should target construction variables—adjusting paver speed, batch uniformity, vibrator frequency or height, hand‑finishing short‑wavelength roughness, and ensuring proper concrete delivery and trackline stability. Real‑time smoothness monitoring directly behind the paver can be employed to shorten the feedback loop from 24–48 hours to a few hours, allowing immediate tuning of material or equipment settings before cure.</p>
+<p>Inertial profiling should be performed within 24 hours of paving, with the resulting profiles analyzed using ProVAL and PSD analysis to reveal any repeating wavelength irregularities; finishing procedures may then be adjusted to correct identified deficiencies. The crew must collect hardened‑pavement profile data promptly after each paving shift, verify that the surface is clear of foreign objects and debris, and compare IRI results to any real‑time system (RTS) readings taken during placement. Any significant deviation or unexpected IRI spike should trigger a review of paving parameters for subsequent work.</p>
+<p>Because concrete pavements are sensitive to daily temperature cycles, agencies should first verify equipment calibration and then conduct additional profile runs in each lane for every 0.16 km segment at multiple times of day; these repeat measurements help separate temperature‑induced variation from true surface distress before preservation actions are planned.</p>
+<p>Engineers should institute regular roughness monitoring by repeating profile measurements at defined intervals, comparing the obtained IRI values against established trigger thresholds that drive decisions to rehabilitate, resurface, or reconstruct. ProVAL’s Ride Quality module or the Smoothness Assurance Module (SAM) can isolate specific bumps or dips; SAM’s grinding simulation tool enables design of a customized diamond‑grinding plan prior to field work. Periodic re‑profiling with the same interval analysis should be scheduled to confirm that corrective grinding and any process changes have achieved the desired smoothness targets. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates a sample output from this process.</p>
+<p><img alt="ProVAL power spectral density plot showing a repeating wavel" src="assets/iri-pavement-profile-measurement/e8857da3bdadeb5f7c9d8512643c3c0e7406ee9cec1b053113d6e766aa0058d3.jpg" />
+<em>ProVAL power spectral density plot showing a repeating wavelength at 15 ft that corresponds to joint spacing</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays a power-spectral-density plot with slope spectral density on the vertical axis and wave length on the horizontal axis.</p>
+<p><small>[1] — Ch. 9 (pp. 289–290); [2] — App. C (p. 124); [3] — Pavement Roughness Evaluation (p. 21); [6] — Ch. 3 (p. 56); [7] — 2. Which features show up in r… (pp. 48–50)</small></p>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li><li id="ref-3"></li><li id="ref-4"></li><li id="ref-5"></li><li id="ref-6"></li><li id="ref-7"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

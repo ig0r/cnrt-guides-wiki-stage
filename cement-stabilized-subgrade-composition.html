@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cement-Stabilized Subgrade Composition</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html" class="active" aria-current="page">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Cement-Stabilized Subgrade Composition</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=cement-stabilized-subgrade">cement-stabilized-subgrade</a><a class="tag" href="index.html?q=portland-cement">portland-cement</a><a class="tag" href="index.html?q=soil-composition">soil-composition</a><a class="tag" href="index.html?q=unit-weight">unit-weight</a><a class="tag" href="index.html?q=compressive-strength">compressive-strength</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>Cement‑stabilized subgrade (also termed cement‑stabilized base or lean concrete base) is a bound composite layer created by blending existing soil or granular aggregate—often recycled concrete aggregate (RCA)—with a modest amount of cement and water, optionally supplemented with lime, fly ash, or Portland cement, to form a cohesive, load‑bearing foundation beneath pavement [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]. The mix is limited to coarse gradations (no more than about 35 % passing the #200 sieve, profile index ≤10, and maximum particle size roughly ¾–1 in) so that hydrated cement paste coats or embeds the angular RCA particles, locking in fines and preventing calcium‑hydroxide migration while the granular skeleton supplies bulk stiffness and durability [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]. By selecting a lean cement dosage aimed at a target unconfined compressive strength, the resulting material exhibits increased strength, modulus, and resistance to deterioration compared with untreated fill, and its performance is routinely verified through unit‑weight and compressive‑strength testing [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#material-purpose-and-applicability">Material purpose and applicability</a></li><li><a href="#composition-and-characteristics">Composition and characteristics</a></li><li><a href="#key-material-properties">Key material properties</a></li><li><a href="#behavior-and-mechanisms">Behavior and mechanisms</a></li><li><a href="#durability-and-deterioration">Durability and deterioration</a></li><li><a href="#material-interactions-and-compatibility">Material interactions and compatibility</a></li><li><a href="#influence-of-production-and-placement">Influence of production and placement</a></li><li><a href="#selection-specification-and-improvement">Selection, specification, and improvement</a></li><li><a href="#performance-evaluation-and-implications">Performance evaluation and implications</a></li><li><a href="#references">References</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (7)</summary><div class="sources-body"><a href="#ref-1">2016_joint_deterioration_in_pvmts_guide</a>, <a href="#ref-2">2019-12_IMCP_manual</a>, <a href="#ref-3">IPS</a>, <a href="#ref-4">RCA_practioner_guide_w_cvr</a>, <a href="#ref-5">Sustainable_Concrete_Pavement_508</a>, <a href="#ref-6">guide_to_CSS</a>, <a href="#ref-7">guide_to_LCC_for_geotech_apps</a></div></details>
+
+<h2 id="material-purpose-and-applicability">Material purpose and applicability</h2>
+<p>The cement‑stabilized subgrade, also termed a cement‑stabilized base or lean concrete base, is a bound composite layer created either by coating or embedding recycled concrete aggregate (RCA) in fresh cement paste or mortar, or by blending RCA with cementitious binders such as lime, fly ash, or Portland cement. Adding these binders raises the material’s strength and yields a cohesive, load‑bearing layer that serves as the foundation beneath the pavement structure. This stabilized layer serves as a durable, load‑bearing foundation in the pavement system and, by immobilizing the RCA, it prevents migration of crusher fines and the dissolution and transport of calcium hydroxide that could otherwise impair drainage. [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[4] — Ch. 4 (p. 49); [5] — Ch. 6 (pp. 83–84)</small></p>
+<p>Cement‑stabilized subgrade is appropriate when the layer being constructed is a cement‑treated base made from granular material that falls in AASHTO Soil Classification Groups A‑1, A‑2‑4, A‑2‑5 or A‑3; it can also be used with A‑4 and A‑5 soils provided the location is free of frost and traffic is not dominated by large volumes of heavy trucks. In frost‑prone regions or where heavy truck loads are expected, these latter soil groups should be avoided, and in any case soils classified as A‑6 or A‑7 are unsuitable for cement‑treated bases, requiring an alternative material. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[2] — Ch. 8 (p. 226)</small></p>
+<h2 id="composition-and-characteristics">Composition and characteristics</h2>
+<p>The material is produced by blending the existing soil or granular aggregate with a modest amount of cement and sufficient water to initiate hydration. The soil component may be natural granular soils classified in AASHTO groups A‑1, A‑2‑4, A‑2‑5, or A‑3, or it can consist of recycled concrete aggregate (RCA). In all cases the blend is limited to a low fines content—no more than about 35 % passing the #200 sieve—and the particles are sized no larger than one inch (preferably three‑quarters of an inch), giving a profile index of ten or less. Cement is added at a dosage lower than that used for normal concrete and is selected to meet a target strength; when additional cementitious binders such as lime, fly ash, or Portland cement are incorporated the mix evolves into a lean‑concrete base with higher strength. For RCA‑based mixes the fresh cement paste or mortar coats or embeds the angular, rough‑textured aggregate particles, locking in crusher fines and limiting calcium‑hydroxide migration; the absorption capacity of the RCA must be accounted for in the design. The resulting composite forms a dense, low‑fines base where the hydrated cement binds soil or aggregate particles into a cohesive matrix while the remaining granular material provides bulk and load‑bearing capacity, delivering increased strength, stiffness and durability compared with untreated fill. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p>The figure below illustrates the recycled concrete aggregates used in this composition.</p>
+<p><img alt="Recycled concrete aggregates" src="assets/cement-stabilized-subgrade-composition/68768ad777f7ccef95c1145d835713cb3c14d60f53e5683ebcb31bed32af0d6d.jpg" />
+<em>Recycled concrete aggregates</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The image displays a close-up view of numerous irregular, angular stones with a light gray coloration. These particles represent recycled concrete aggregates (RCA), which are produced by breaking down old concrete pavement and crushing it to create a granular material.</p>
+<p><small>[2] — Ch. 8 (p. 226); [3] — Solution (p. 66); [4] — Ch. 4 (p. 49); [5] — Ch. 6 (pp. 83–84); [6] — Ch. 4 (p. 35)</small></p>
+<p>The composition, source, processing, and proportioning of the constituents directly influence the mechanical behavior of cement‑stabilized subgrade. “RCA typically contains some unhydrated cement that, when exposed to moisture in compacted bases and subbases, can hydrate to produce base/ subbase materials with increased stiffness and other improved properties when compared with those of virgin aggregates.” The benefit varies with the proportion of coarse versus fine fractions and with processing; “Using RCA fines in stabilized base applications has no negative impact on its physical or chemical properties.” Across sources, “Granular materials in AASHTO Soil Classification Groups A-1, A-2-4, A-2-5, and A-3 are used for cement-treated bases.” These aggregates must meet gradation limits: “They contain not more than 35 percent passing the #200 sieve, have a profile index (PI) of 10 or less” and “the maximum size of material is usually limited to 1 in. and preferably to ¾ in.” Cement dosage is lower than that for normal concrete; “Cement content is less than what is used for normal concrete and is selected based on the target strength.” Raising the binder proportion yields a stronger mix: “When the cementitious content is increased, a stronger material called lean concrete base (LCB) is easily produced.” When an asphaltic binder is employed, RCA absorption can be problematic: “the effect of absorption can be problematic, not from a moisture control issue but as an economic issue since there will be an increased demand for asphaltic binder due to the absorption of the RCA.” [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[2] — Ch. 2 (p. 38), Ch. 8 (p. 226); [5] — Ch. 6 (pp. 83–84)</small></p>
+<h2 id="key-material-properties">Key material properties</h2>
+<p>The performance of cement‑stabilized subgrade is governed by a suite of physical, mechanical, chemical and (where noted) thermal attributes. Physically, the aggregate gradation must be coarse enough that no more than about 35 % passes the #200 sieve, the overall texture should have a profile index of ten or less, and the largest particles are limited to ¾‑inch (preferably) up to 1 inch to permit proper compaction. The high angularity and rough surface texture of recycled concrete aggregate further enhances interlock, while its absorption capacity influences mix water demand. Mechanical performance is linked to cement dosage selected for a target strength; the resulting hardened layer is evaluated by unit weight, unconfined compressive strength, stiffness (modulus of elasticity), bearing capacity and durability. Air content, permeability and sorption capacity are additional physical‑mechanical factors considered when required. Chemically, stability is achieved by coating or embedding the RCA in fresh cement paste, which limits dissolution and migration of calcium hydroxide that could precipitate as calcium carbonate; the inherent chemical characteristics of the aggregate are preserved, and incorporation of RCA fines does not adversely affect these properties. Thermal attributes are not specifically highlighted as performance drivers in the guidance. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates how the required cementitious content decreases as the coarse aggregate size increases.</p>
+<p><img alt="Reduction of cementitious content with increasing coarse agg" src="assets/cement-stabilized-subgrade-composition/47da330318f1286997a81bee8a33ebfae71f5f58ab91bac61454be8e85877034.jpg" />
+<em>Reduction of cementitious content with increasing coarse aggregate size (based on ACI 211)</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The figure displays a bar chart illustrating the relationship between Coarse Aggregate Nominal Maximum Size and Cementitious Content.</p>
+<p><small>[2] — Ch. 8 (p. 226); [4] — Ch. 4 (p. 49); [5] — Ch. 6 (pp. 83–84); [7] — Ch. 2 (p. 22)</small></p>
+<p>The properties of cement‑stabilized subgrade are characterized primarily through the AASHTO soil classification system, which groups suitable granular materials into categories such as A‑1, A‑2‑4, A‑2‑5, and A‑3. Within these groups the gradation is limited to no more than 35 % passing the #200 sieve and a profile index of ten or less, while the aggregate size is typically capped at one inch and preferably three‑quarters of an inch to ensure accurate grading and consistent performance. The most common hardened properties are unit weight and unconfined compressive strength, which should be measured on every job to verify that the composite meets design criteria. Additional characteristics such as air content, permeability, sorption capacity, or modulus of elasticity may also be determined, but only when specifically requested by the design engineer. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p><small>[2] — Ch. 8 (p. 226); [7] — Ch. 2 (p. 22)</small></p>
+<h2 id="behavior-and-mechanisms">Behavior and mechanisms</h2>
+<p>When reclaimed concrete aggregate is used in a cement‑stabilized subgrade, the unhydrated cement it contains reacts with moisture that penetrates the compacted base or subbase; this hydration increases the stiffness of the material and yields other improved mechanical properties compared with virgin aggregates. The source does not provide information on how such a composition responds to loading, temperature variations, chemical exposure, or other service conditions. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p><small>[2] — Ch. 2 (p. 38)</small></p>
+<p>The behavior of cement‑stabilized subgrade is controlled by intertwined physical, chemical and mechanical mechanisms. Physically, the mix relies on “the physical skeleton formed by the aggregate particles” and on careful gradation; limiting “maximum particle size to one inch (preferably three‑quarters inch)” together with the “high angularity and rough surface texture of RCA makes it an exceptional base material” creates a dense interlock. The “physical and mechanical properties of RCA (particularly the absorption characteristics) must be considered,” because absorption can reduce binder availability, as noted by “the effect of absorption can be problematic, not from a moisture control issue but as an economic issue since there will be an increased demand for asphaltic binder due to the absorption of the RCA.” Chemically, any residual cement in recycled concrete aggregate undergoes “a chemical hydration reaction of residual unhydrated cement when moisture is present,” generating additional binding. Uncontrolled dissolution of calcium hydroxide can lead to carbonate formation, but “Coating or embedding the RCA in fresh cement paste or mortar prevents the migration of crusher fines and the dissolution and transport of significant amounts of calcium hydroxide” that would otherwise “form calcium carbonate precipitate in drain pipes.” Mechanically, strength develops through “mechanical stiffening that results from compaction of the moist mix,” and the presence of cementitious binders allows “When the cementitious content is increased, a stronger material called lean concrete base (LCB) is easily produced.” The combined effect of these mechanisms dictates stiffness, durability, and load‑bearing capacity. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[2] — Ch. 2 (p. 38), Ch. 8 (p. 226); [4] — Ch. 4 (p. 49); [5] — Ch. 6 (pp. 83–84)</small></p>
+<h2 id="durability-and-deterioration">Durability and deterioration</h2>
+<p>Durability of cement‑stabilized subgrade that incorporates recycled concrete aggregate is compromised if calcium hydroxide leaches from the fresh paste and migrates through the layer, because it can later precipitate as calcium carbonate in drainage systems. Likewise, uncoated RCA allows crusher fines to move within the mix, which can weaken the composite and promote further degradation. The high absorption capacity of RCA also demands careful control of moisture content during design and production, since excessive water uptake can affect strength development and long‑term performance. [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p><small>[4] — Ch. 4 (p. 49)</small></p>
+<p>The guides agree that durability of cement‑stabilized subgrades depends first on the inherent characteristics of the granular soil or aggregate used. Granular materials classified in AASHTO Groups A‑1, A‑2‑4, A‑2‑5 and A‑3, with no more than about one‑third passing the #200 sieve and a profile index of ten or less, provide the most resistant base. Limiting the maximum aggregate size to ¾–1 in further reduces susceptibility. Soils that are coarser or have higher profile indices—such as Groups A‑4 or A‑5—are acceptable only in non‑frost environments and where heavy truck traffic is limited; in frost zones or under large traffic volumes they increase the risk of deterioration. The guides uniformly advise avoiding soils classified as A‑6 or A‑7 because their fine‑grained nature makes rapid degradation likely. When recycled concrete aggregate (RCA) is incorporated, susceptibility is governed by its absorption capacity and exposure to leaching. High‑absorption RCA permits greater water ingress, which promotes dissolution of calcium hydroxide and subsequent carbonate precipitation that can weaken the matrix. Conversely, low‑absorption or RCA that has been sealed with a fresh cement paste or mortar coating limits water migration and calcium‑hydroxide leaching, thereby reducing deterioration risk. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p><small>[2] — Ch. 8 (p. 226); [4] — Ch. 4 (p. 49)</small></p>
+<h2 id="material-interactions-and-compatibility">Material interactions and compatibility</h2>
+<p>The guides describe several interacting mechanisms that govern cement‑stabilized subgrade performance. Adding a small amount of cement to the soil produces a cement‑modified subgrade in which the cement reacts with the soil particles and moisture, binding them into a composite material that gains improved mechanical strength and stability. When a cement‑stabilized base is built with recycled concrete aggregate (RCA), the fresh cement paste or mortar coats the RCA particles, which blocks the movement of crusher fines and stops calcium hydroxide from dissolving and being carried away; this protects downstream drainage. Because RCA absorbs water readily, its absorption capacity must be accounted for in mix design to ensure enough paste is provided for proper bonding and strength development. When cementitious binders such as lime‑fly‑ash mixtures or Portland cement are added to recycled concrete aggregate (RCA), the high angularity and rough surface of the aggregate promote strong mechanical interlock and chemical bonding, producing a lean concrete base that gains strength as the binder content rises. Incorporating RCA fines does not degrade the physical or chemical behavior of the stabilized mix, allowing full utilization of the material. If an asphaltic binder is used instead, the porous nature of RCA leads to significant absorption, which raises the amount of binder required and leaves less binder available to enhance the base’s structural properties. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The figure below illustrates how cement slurry is applied to the subgrade material.</p>
+<p><img alt="A white tanker truck applies cement slurry to a prepared sub" src="assets/cement-stabilized-subgrade-composition/d43f8a34fbff0ed4eabf10d3a16f924f9b5ea9e6f038445f4ba36e08794a4317.jpg" />
+<em>A white tanker truck applies cement slurry to a prepared subgrade surface using a rear-mounted distribution bar.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The image shows a large white tanker truck driving along a dirt road, with a specialized attachment at the rear distributing liquid onto the ground. The process involves mixing the cement into the soil using mixed-in-place methods to produce a working platform for subsequent pavement layers.</p>
+<p><small>[3] — Solution (p. 66); [4] — Ch. 4 (p. 49); [5] — Ch. 6 (pp. 83–84)</small></p>
+<h2 id="influence-of-production-and-placement">Influence of production and placement</h2>
+<p>The most critical construction‑related defect in cement‑stabilized subgrade is failing to properly coat or embed the recycled concrete aggregate (RCA) in fresh cement paste; without this barrier, crusher fines and dissolved calcium hydroxide can migrate through the mix and later precipitate as calcium carbonate in drainage pipes, undermining long‑term durability. Equally important, neglecting the absorption characteristics of RCA during mix design leads to moisture imbalances that reduce strength development and compromise the stability of the stabilized base. [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The following figure illustrates a typical drainage system designed to manage water flow when using free-draining recycled concrete aggregate bases.</p>
+<p><img alt="Cross-section of a pavement structure with free-draining sub" src="assets/cement-stabilized-subgrade-composition/d5d15641e602fa08b59cca0bf99677805d33dc2b7dd677ad36b57fa9b3e38c34.jpg" />
+<em>Cross-section of a pavement structure with free-draining subbase and collector pipe drainage system.</em> [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>]</p>
+<p>The figure illustrates a cross-sectional view of a concrete pavement system featuring a free-draining subbase layer, a separator geotextile, and an edge drain collector pipe installed in the subgrade. This drainage design is critical for cement-stabilized subgrades because it prevents residual crusher dust from entering the pipe, thereby avoiding the precipitation of calcium carbonate that undermines long-term durability.</p>
+<p><small>[4] — Ch. 4 (p. 49)</small></p>
+<h2 id="selection-specification-and-improvement">Selection, specification, and improvement</h2>
+<p>The criteria that guide material selection or specification for cement‑stabilized subgrade are drawn from soil classification limits, recycled aggregate characteristics, required hardened properties, and performance targets. The guides require that “Granular materials in AASHTO Soil Classification Groups A‑1, A‑2‑4, A‑2‑5, and A‑3 are used for cement-treated bases.” Acceptable gradation is defined by “They contain not more than 35 percent passing the #200 sieve, have a profile index (PI) of 10 or less” and “the maximum size of material is usually limited to 1 in. and preferably to ¾ in.” In non‑frost regions “Cement‑treated bases have been built with A‑4 and A‑5 soils in some nonfrost areas … Use of A‑6 and A‑7 soils is not recommended.” When recycled concrete aggregate (RCA) is employed, “The physical and mechanical properties of RCA (particularly the absorption characteristics) must be considered in the design and production of LCB and CSB materials” and to protect downstream drainage “Coating or embedding the RCA in fresh cement paste or mortar prevents the migration of crusher fines and the dissolution and transport of significant amounts of calcium hydroxide.” The stabilizing binder may be adjusted: “RCA is easily stabilized as a base material by adding cementitious binders (such as lime and fly ash (LFATB) or portland cement (CTB))” and “When the cementitious content is increased, a stronger material called lean concrete base (LCB) is easily produced.” Fine RCA particles are permissible because “Using RCA fines in stabilized base applications has no negative impact on its physical or chemical properties,” though “the effect of absorption can be problematic, not from a moisture control issue but as an economic issue since there will be an increased demand for asphaltic binder due to the absorption of the RCA.” Finally, performance specifications focus on hardened metrics: “The most common hardened properties are unit weight and unconfined compressive strength, which should be measured on every job.” Additional properties such as air content, permeability, sorption capacity, or modulus of elasticity may be included only when explicitly requested: “Most of the other hardened properties, such as air content, permeability, sorption, modulus of elasticity, and others, are typically not tested unless specifically requested by the design engineer.” These criteria collectively ensure that the selected composition meets structural capacity, durability, and constructability requirements. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p><small>[2] — Ch. 8 (p. 226); [4] — Ch. 4 (p. 49); [5] — Ch. 6 (pp. 83–84); [7] — Ch. 2 (p. 22)</small></p>
+<p>The performance of cement‑stabilized subgrade can be improved through several complementary strategies identified across the guides. Recycled aggregates are encouraged: &ldquo;Incorporating recycled aggregates such as reclaimed concrete aggregate (RCA), coarse fractionated reclaimed asphalt pavement (FRAP) or air‑cooled blast furnace slag (ACBFS) into a cement‑stabilized subgrade can boost stiffness and other mechanical properties while reducing reliance on virgin material.&rdquo; The inherent residual cement in RCA further contributes to strength, as &ldquo;RCAs typically contains some unhydrated cement that, when exposed to moisture in compacted bases and subbases, can hydrate to produce base/ subbase materials with increased stiffness and other improved properties when compared with those of virgin aggregates.&rdquo; Proper selection of granular base material is also required: &ldquo;Granular materials in AASHTO Soil Classification Groups A-1, A-2-4, A-2-5, and A-3 are used for cement‑treated bases,&rdquo; and they &ldquo;contain not more than 35 percent passing the #200 sieve, have a profile index (PI) of 10 or less.&rdquo; Soils classified as A‑6 and A‑7 should be avoided: &ldquo;Use of A-6 and A-7 soils is not recommended.&rdquo;</p>
+<p>A modest cement addition to native soil creates a cement‑modified soil that enhances load‑bearing capacity: &ldquo;Add a small amount of cement to the soil to create a cement-modified soil.&rdquo; Additional binders further raise performance: &ldquo;adding cementitious binders (such as lime and fly ash (LFATB) or portland cement (CTB))&rdquo; and &ldquo;When the cementitious content is increased, a stronger material called lean concrete base (LCB) is easily produced.&rdquo; The fine fraction of RCA can be retained without adverse effects: &ldquo;Using RCA fines in stabilized base applications has no negative impact on its physical or chemical properties.&rdquo;</p>
+<p>To address weaknesses specific to recycled concrete aggregate, coating or fully embedding the particles in fresh paste is recommended: &ldquo;Coating or embedding the RCA in fresh cement paste or mortar prevents the migration of crusher fines and the dissolution and transport of significant amounts of calcium hydroxide.&rdquo; Design mixes must also account for the higher absorption of RCA: &ldquo;The physical and mechanical properties of RCA (particularly the absorption characteristics) must be considered in the design and production of LCB and CSB materials.&rdquo;</p>
+<p>Finally, routine quality‑control focuses on hardened properties. The guides stress that &ldquo;The most common hardened properties are unit weight and unconfined compressive strength, which should be measured on every job.&rdquo; Additional properties such as air content, permeability, sorption, or modulus of elasticity may be evaluated when specified: &ldquo;Most of the other hardened properties, such as air content, permeability, sorption, modulus of elasticity, and others, are typically not tested unless specifically requested by the design engineer.&rdquo; These measurements provide the basis for assessing service life: &ldquo;The hardened properties of LCC are the properties that the engineering community uses for the service life of the project.&rdquo; [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The figure below illustrates how these hardened properties influence bearing capacity and the spread of compressive forces in LCC.</p>
+<p><img alt="Diagram illustrating the bearing capacity and spread of comp" src="assets/cement-stabilized-subgrade-composition/60a892bc44d602ca3ce379350170750a81568b9fc18c4f32be5a0aed3e50eba4.jpg" />
+<em>Diagram illustrating the bearing capacity and spread of compressive forces in Lean Concrete (LCC).</em> [<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The figure depicts a structural analysis where a load is applied to a steel plate on top of an LCC layer, demonstrating how pressure spreads at a 45-degree angle through the material. Calculations in the source context verify that the bearing capacity (compressive strength) of the LCC is sufficient to support the applied pressure, which is a key property for verifying its performance as a foundation.</p>
+<p><small>[2] — Ch. 2 (p. 38), Ch. 8 (p. 226); [3] — Solution (p. 66); [4] — Ch. 4 (p. 49); [5] — Ch. 6 (pp. 83–84); [7] — Ch. 2 (p. 22)</small></p>
+<h2 id="performance-evaluation-and-implications">Performance evaluation and implications</h2>
+<p>The primary laboratory and field evidence used to assess a cement‑stabilized subgrade is its hardened unit weight and unconfined compressive strength, which are required to be measured on every job. These two properties represent the final product’s ability to support loads and remain stable over the service life. Additional hardened characteristics such as air content, permeability, sorption, or modulus of elasticity are only evaluated when specifically called for by the design engineer. [<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p><small>[7] — Ch. 2 (p. 22)</small></p>
+<p>The performance and durability of cement‑stabilized subgrades are governed by the interaction of soil type, aggregate characteristics, cement content, and the resulting hardened properties. Across sources, granular soils classified in AASHTO groups A‑1 through A‑3 are identified as suitable for cement‑treated bases, while coarser or weaker groups (A‑4, A‑5) may be used only where frost is absent and traffic loads are moderate. Designers limit aggregate size to about one inch and select a lean cement dosage that achieves the target strength without reaching conventional concrete levels, which influences both handling during construction and long‑term stiffness of the layer. When recycled concrete aggregate (RCA) is incorporated, its high angularity and rough surface texture contribute to an exceptionally strong, stable base, and the mix can include all RCA fines without degrading physical or chemical properties. Because RCA’s absorption capacity affects moisture balance, designers must account for its physical and mechanical traits; coating or embedding the RCA in fresh cement paste prevents the migration of crusher fines and calcium hydroxide, protecting drainage systems and sustaining durability. The engineered performance is ultimately evaluated through hardened metrics—unit weight and unconfined compressive strength are measured on every job to verify that the subgrade can sustain service loads, guide thickness design, and provide quality‑control checkpoints that reduce future maintenance. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p><small>[2] — Ch. 8 (p. 226); [4] — Ch. 4 (p. 49); [5] — Ch. 6 (pp. 83–84); [7] — Ch. 2 (p. 22)</small></p>
+<h2 id="references">References</h2>
+<ol start="2">
+<li><a id="ref-2"></a>Integrated Materials and Construction Practices for Concrete Pavement: A STATE-OF-THE-PRACTICE MANUAL · <code>2019-12_IMCP_manual</code></li>
+<li><a id="ref-3"></a>Guide to Cement-Based Integrated Pavement Solutions · <code>IPS</code></li>
+<li><a id="ref-4"></a>Recycling Concrete Pavement Materials: A Practitioner&rsquo;s Reference Guide · <code>RCA_practioner_guide_w_cvr</code></li>
+<li><a id="ref-5"></a>SUSTAINABLE CONCRETE PAVEMENTS: A Manual of Practice · <code>Sustainable_Concrete_Pavement_508</code></li>
+<li><a id="ref-6"></a>Guide to Cement-Stabilized Subgrade Soils · <code>guide_to_CSS</code></li>
+<li><a id="ref-7"></a>Guide to Lightweight Cellular Concrete for Geotechnical Applications · <code>guide_to_LCC_for_geotech_apps</code></li>
+</ol>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li><li id="ref-3"></li><li id="ref-4"></li><li id="ref-5"></li><li id="ref-6"></li><li id="ref-7"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

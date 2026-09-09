@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coring for Crack Depth and Material Deterioration</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html" class="active" aria-current="page">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Coring for Crack Depth and Material Deterioration</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=coring">coring</a><a class="tag" href="index.html?q=pavement-condition-assessment">pavement-condition-assessment</a><a class="tag" href="index.html?q=crack-depth">crack-depth</a><a class="tag" href="index.html?q=material-deterioration">material-deterioration</a><a class="tag" href="index.html?q=structural-integrity">structural-integrity</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>Coring for crack depth and material deterioration is a field investigation method that extracts concrete core samples from distressed pavements to directly assess the internal condition of the slab, underlying base, and transverse joints[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. By locating the core at a visible crack or joint, measuring the penetration depth, confirming actual slab thickness, and visually inspecting the exposed face for tortuous versus straight‑through cracking around aggregate, dowel condition, and bond or friction characteristics of the base, engineers obtain factual evidence needed to distinguish early‑age from later‑age cracking mechanisms and to evaluate whether damage is superficial or threatens structural capacity[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]. Because each core represents a discrete point, the technique provides precise dimensional data—crack depth, slab thickness, joint‑saw depth, reinforcement corrosion—but must be complemented by broader assessments when condition variability across the distressed zone is of concern[<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-investigation-objectives">Purpose and investigation objectives</a></li><li><a href="#scope-and-applicability">Scope and applicability</a></li><li><a href="#existing-information-and-records">Existing information and records</a></li><li><a href="#visual-inspection-and-condition-assessment">Visual inspection and condition assessment</a></li><li><a href="#field-measurements-and-testing">Field measurements and testing</a></li><li><a href="#sampling-and-laboratory-investigation">Sampling and laboratory investigation</a></li><li><a href="#structural-and-functional-performance">Structural and functional performance</a></li><li><a href="#data-interpretation-and-diagnosis">Data interpretation and diagnosis</a></li><li><a href="#findings-confidence-and-next-actions">Findings, confidence, and next actions</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (1)</summary><div class="sources-body"><a href="#ref-1">concrete_pvmt_distress_assessments_and_solutions_guide_w_cvr</a></div></details>
+
+<h2 id="purpose-and-investigation-objectives">Purpose and investigation objectives</h2>
+<p>Coring evaluates the internal condition of a concrete pavement at locations of distress by extracting core samples. The investigation should answer how deep the crack penetrates and whether it reaches or exceeds the slab thickness, whether the cracking follows a tortuous path around coarse aggregate or cuts through it (distinguishing early‑age from structural cracking), what the actual slab thickness is relative to design, and what condition the underlying base exhibits—including its bond or friction characteristics. It also addresses whether transverse joint saw cuts are adequate/activated and if any embedded reinforcement shows signs of corrosion. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure below illustrates a concrete pavement core sample extracted to assess these internal conditions.</p>
+<p><img alt="Concrete pavement coring" src="assets/coring-for-crack-depth-and-material-deterioration/eb69c8db36e46c1af3c27e137eaa7db64b4c07eacc419332384b4111044f682f.jpg" />
+<em>Concrete pavement coring</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The image shows a rotary core drill with a hollow cylindrical barrel actively cutting into the concrete surface. Water is being used to cool the bit, creating a slurry that flows around the base of the equipment. This field sampling method extracts material samples for testing layer type and distress cause.</p>
+<p><small>[1] — Ch. 4 (pp. 85–174), Ch. 18 (pp. 358–411)</small></p>
+<p>The core data give engineers a factual basis for every major decision point. Measured crack penetration and slab thickness tell whether damage is superficial or threatens structural capacity, which drives the choice between surface‑only repair and full‑depth rehabilitation. The observed tortuosity—cracks that weave around aggregate versus those that cut through it—identifies early‑age versus later‑age cracking mechanisms, informing whether preventive maintenance, design modifications, or more extensive reconstruction are warranted. Joint‑saw cores verify that saw cuts meet specifications and reveal any crack propagation beneath weakened planes, guiding joint‑maintenance plans, overlay designs, and future joint detailing. Finally, direct inspection of any embedded reinforcement for corrosion provides concrete evidence for prioritizing cathodic protection, dowel replacement, or slab replacement. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 4 (pp. 101–174), Ch. 18 (pp. 358–442)</small></p>
+<h2 id="scope-and-applicability">Scope and applicability</h2>
+<p>Coring for crack depth and material deterioration is appropriate on Portland‑cement concrete pavements—and on composite sections that include an unbonded concrete overlay—where visible cracking or other distress is present. It can be applied to the slab, underlying base/subbase, and transverse joints (including dowels) to assess structural condition. &ldquo;Concrete core samples can be retrieved at the cracks to determine the depth of the crack penetration through the slab, as well as to verify the thickness of the slab.&rdquo; This measurement also enables distinction between early‑age and later‑age cracking: &ldquo;Cracking around an aggregate particle suggests an early cracking mechanism while cracking through the aggregate (when paste bond strength has increased) suggests later age cracking.&rdquo; When joints are involved, coring is valuable for dowel inspection: &ldquo;Coring directly over and through any dowels at the transverse joint (particularly dowels located closest to the nearest longitudinal joint) will allow inspection of the condition of the dowels and the surrounding concrete at the joint face.&rdquo; For composite or overlay sections, coring confirms layer thicknesses in distressed zones: &ldquo;Coring is useful in determining actual pavement layer thicknesses in areas of distress for structural evaluation and assessment.&rdquo; [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 4 (pp. 85–174), Ch. 18 (pp. 358–411)</small></p>
+<p>Coring can accurately reveal pavement layer thicknesses and spot concrete‑asphalt interface problems at a specific location, but the technique itself may damage what it is trying to evaluate—standard coring can break the bond interface and wet coring can cause raveling or stripping of asphalt layers. Because each core represents only a single point, its results often do not reflect conditions across the whole distressed area; therefore, when a broader, less invasive picture of crack depth, material deterioration, or overall bond quality is needed, additional or alternative investigative methods should be employed to complement the limited, potentially disruptive data from coring. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The following figure illustrates common field examples of interface debonding, delamination, and asphalt raveling that can result from or accompany such coring activities.</p>
+<p><img alt="Field example of a concrete panel removed as an overlay, sho" src="assets/coring-for-crack-depth-and-material-deterioration/d00e926c5d2ae5888a89e5c52a6e983b35f3f5c814be815ae40afb8ca8b1905a.jpg" />
+<em>Field example of a concrete panel removed as an overlay, showing interface debonding, delamination between asphalt lifts, and raveling.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The image displays a cross-section of a pavement structure where the top layer has been partially excavated to reveal internal defects. Coring is useful in assessing the quality of the concrete-asphalt interface bond and identifying these specific types of deterioration without removing full panels.</p>
+<p><small>[1] — Ch. 18 (pp. 358–359)</small></p>
+<h2 id="existing-information-and-records">Existing information and records</h2>
+<p>The existing record package frequently provides only design‑based or single‑point observations, leaving several critical unknowns that must be clarified on site. First, the true extent of crack penetration and whether the slab thickness conforms to as‑built values are rarely documented, creating uncertainty about material loss and structural capacity. Second, visual classifications of cracks around versus through aggregate are used to infer early‑ or later‑age mechanisms, yet those guidelines are not definitive, so the actual cracking mode cannot be confirmed without physical evidence. Third, specifications for transverse‑joint saw cuts are often absent or only nominal; it is unclear whether the cuts meet depth requirements or if cracks have propagated beneath the weakened plane. Fourth, the condition of embedded reinforcement—dowels, dowel corrosion, concrete spalling—and the bond or friction characteristics at the slab‑to‑base interface are typically omitted from reports, obscuring potential loss of support. Finally, because most records represent isolated measurements, they may not capture variability across a distressed zone and can be confounded by coring artefacts, making it essential to obtain direct core data to validate thickness, joint condition, and underlying base performance. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The following figure illustrates typical slab cracking patterns and saw-cut conditions that highlight the need for direct physical verification of these critical parameters.</p>
+<p><img alt="Comparison of a proper weakened plane saw cut and an induced" src="assets/coring-for-crack-depth-and-material-deterioration/78406c05ae8af364b60c220ff65102dbc8d78b4bdeeebc7062b43550eed87582.jpg" />
+<em>Comparison of a proper weakened plane saw cut and an induced crack occurring parallel to the joint.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The image displays a concrete pavement surface featuring two distinct vertical features: a straight, dark incision representing a weakened-plane saw cut and a tortuous, irregular fissure running vertically through the slab.</p>
+<p><small>[1] — Ch. 4 (pp. 101–174), Ch. 18 (pp. 358–411)</small></p>
+<h2 id="visual-inspection-and-condition-assessment">Visual inspection and condition assessment</h2>
+<p>When coring for crack depth and material deterioration, the extracted concrete core is inspected visually to gauge how far deterioration has penetrated, to evaluate the tortuosity of cracks—whether they wind around or cut through aggregate—and to detect any staining or exudate that may have seeped into the fissures; cores taken away from joints and existing cracks generally appear in better condition than those taken directly at a joint or crack, offering a useful reference point for assessing overall pavement health. &ldquo;Concrete core samples can be retrieved at the cracks to determine the depth of the crack penetration through the slab, as well as to verify the thickness of the slab.&rdquo; The observer should note whether cracking weaves around coarse aggregate (early‑age mechanism) or cuts through it (later‑age structural cracking). &ldquo;Cracking around an aggregate particle suggests an early cracking mechanism, while cracking through the aggregate (when paste bond strength has increased) suggests later age cracking.&rdquo; In addition, any steel reinforcement present should be examined for signs of corrosion or deterioration. Coring also reveals dowel deficiencies such as loss of cross‑section, spalling of concrete around dowels, and support gaps at the slab‑to‑base interface caused by erosion that degrades bond/friction characteristics. Finally, the core allows verification of actual pavement layer thicknesses, assessment of the concrete‑asphalt interface bond, and identification of asphalt‑layer raveling or delamination. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The following figure illustrates fractured aggregate in D-cracked pavement.</p>
+<p><img alt="Fractured aggregate in D-cracked pavement" src="assets/coring-for-crack-depth-and-material-deterioration/48ea2ed7e7abf360fdddc202ba8d8fcd0d4ec1bbdd22965f482a8741129c2f9b.jpg" />
+<em>Fractured aggregate in D-cracked pavement</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The image displays a cross-section of concrete containing coarse aggregates embedded within a cementitious matrix. A prominent crack is visible traversing directly through the interior of a large, light-colored aggregate particle rather than following its perimeter.</p>
+<p><small>[1] — Ch. 4 (pp. 85–174), Ch. 18 (pp. 358–359)</small></p>
+<h2 id="field-measurements-and-testing">Field measurements and testing</h2>
+<p>Field evaluation for crack depth and material deterioration centers on coring. A core is extracted at a visible crack (or adjacent joint) and measured to determine how far the fracture penetrates through the slab and to verify the actual slab thickness. &ldquo;Concrete core samples can be retrieved at the cracks to determine the depth of the crack penetration through the slab, as well as to verify the thickness of the slab.&rdquo; The exposed face reveals the tortuosity of the crack path—whether it weaves around coarse aggregate, indicating an early‑age mechanism, or cuts straight through aggregate, signifying later‑age structural cracking. &ldquo;Cracking around an aggregate particle suggests an early‑age cracking mechanism while cracking through the aggregate (when paste bond strength has increased) suggests later age cracking&rdquo; Visual inspection also notes staining, exudate, or stripping in the HMA layer and assesses the condition and frictional/bond characteristics of the underlying base or subbase. When cores are taken over transverse or longitudinal sawed joints, the depth (and width) of the joint cut is measured against design specifications and any propagation of cracks below the weakened plane is identified. &ldquo;Cores of adjacent transverse joints can also be retrieved to measure the depth of the joint sawing (for comparison with specification requirements) and to determine if cracks have activated below the weakened plane;&rdquo; Reinforcement intersected by the core can be examined for corrosion, and dowels at joints can be inspected for loss of cross‑section, spalling, or gaps that effectively widen the joint. &ldquo;Identification of stripping in the existing HMA layer(s);&rdquo; The combined measurements provide direct evidence of layer thicknesses, crack depth, joint activation, material stripping, and underlying concrete deterioration, all essential for structural evaluation. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure below illustrates how insufficient saw cut depths in quarter-point longitudinal joints can lead to long-term cracking.</p>
+<p><img alt="Longitudinal cracking due to inadequate saw cut depths of th" src="assets/coring-for-crack-depth-and-material-deterioration/3e47410dca9eec1ac7be40d7340d3579aaeac0cbdfcafdba8bc68acd4ebddf02.jpg" />
+<em>Longitudinal cracking due to inadequate saw cut depths of the quarter-point longitudinal joints</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The image displays a concrete pavement surface featuring a prominent, irregular crack running longitudinally down the center of the slab. This visual evidence illustrates the failure mode described in the source context where joints are &ldquo;sawed or formed too late&rdquo; or not deep enough, leading to &ldquo;random, uncontrolled cracking elsewhere in the slab.&rdquo;</p>
+<p><small>[1] — Ch. 4 (pp. 85–174), Ch. 18 (pp. 386–411)</small></p>
+<h2 id="sampling-and-laboratory-investigation">Sampling and laboratory investigation</h2>
+<p>Sampling for crack‑depth and material‑deterioration assessment should focus on the Portland‑cement concrete slab at each visible crack, taking a core that passes through the full crack to capture its penetration and confirm slab thickness. &ldquo;Concrete core samples can be retrieved at the cracks to determine the depth of the crack penetration through the slab, as well as to verify the thickness of the slab.&rdquo; The core is then extended into the underlying base or subbase so that bond‑or‑friction characteristics and any erosion at the slab‑to‑base interface can be evaluated; &ldquo;Coring can also be used to assess the condition and potential bond/friction characteristics of the underlying base below the crack and determine whether loss of slab support developed due to erosion at the slab-to-base interface or in a lower layer.&rdquo; Adjacent sawed joints—longitudinal for early‑age transverse cracking and transverse when diagonal cracks are present—are also cored to verify joint sawing depth against specifications and to see if cracks have propagated along the weakened plane: &ldquo;Cores of adjacent sawed longitudinal joints should also be retrieved to measure the depth of the joint sawing (for comparison with specification requirements) and to determine whether cracks have activated in the weakened plane below the saw cut.&rdquo; Where dowels are present, cores are taken directly over and through those dowels at transverse joints, especially the dowels nearest a longitudinal joint, to inspect dowel corrosion, loss of cross‑section, and concrete spalling: &ldquo;Coring directly over and through any dowels at the transverse joint (particularly dowels located closest to the nearest longitudinal joint) will allow inspection of the condition of the dowels and the surrounding concrete at the joint face.&rdquo; If an HMA layer or unbonded concrete overlay exists, cores are driven through these layers as well so that actual thicknesses and any stripping or deterioration can be measured. Location selection may be either directly at a crack for maximum penetration information or away from joints/cracks when a comparative undisturbed condition is needed; the choice depends on the investigative purpose. The guidance does not prescribe a fixed number of cores, spacing, or sampling frequency—these decisions are left to project‑specific judgment based on distress extent, pavement age, and required confidence level. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 4 (pp. 85–174), Ch. 18 (p. 411)</small></p>
+<p>A laboratory examination of retrieved concrete cores consists primarily of a visible inspection, which is used to gauge how deep the deterioration extends, to map the tortuous path of cracks as they navigate through or around aggregate, and to note any staining or exudate that may be present in the fissures; cores taken away from joints generally show better condition than those extracted at joints or existing cracks. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The following figure illustrates examples of this direct visual examination of the bond interface.</p>
+<p><img alt="Exposed concrete core showing delamination and a debonded in" src="assets/coring-for-crack-depth-and-material-deterioration/65c0350cd796cc5a69c3638b58adf6817e45098cc01ec7a787597d5a175b2025.jpg" />
+<em>Exposed concrete core showing delamination and a debonded interface.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The image displays a rectangular concrete slab that has been extracted from the pavement, revealing a distinct separation between the upper layer and the underlying material. A label explicitly identifies this interface as &ldquo;UNBONDED,&rdquo; visually confirming the presence of delamination within the core sample.</p>
+<p><small>[1] — Ch. 4 (p. 85)</small></p>
+<h2 id="structural-and-functional-performance">Structural and functional performance</h2>
+<p>The coring process supplies the essential dimensional data required to judge both structural capacity and functional condition. It directly measures how far cracks penetrate into the concrete slab, confirms the actual slab thickness at the point of distress, records the depth of any joint‑saw cuts adjacent to the crack, and allows assessment of the condition and potential bond or friction characteristics of the underlying base/sub‑base (including reinforcement corrosion). These four measurements—crack penetration depth, verified layer thickness, joint‑saw depth, and base‑interface quality—constitute the quantitative inputs needed to evaluate load‑transfer capability and bearing performance. Coring does not itself provide deflection, load‑transfer efficiency, surface roughness, ride quality, or bearing strength data. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 4 (pp. 101–174), Ch. 18 (pp. 358–442)</small></p>
+<h2 id="data-interpretation-and-diagnosis">Data interpretation and diagnosis</h2>
+<p>When coring is employed to evaluate crack depth and material deterioration, the practitioner begins with a visual inspection of the extracted core. By observing the tortuosity of the cracking—whether it weaves around coarse aggregate or cuts through it—the inspector can infer an early‑age mechanism (crack around aggregate) versus a later‑age mechanism (crack through aggregate). Field measurements taken directly from the same core provide quantitative data on crack penetration depth and confirm slab thickness, which are then checked against specification limits for joint‑saw depth. Laboratory analysis of the core material, especially dowel sections and surrounding concrete, quantifies corrosion loss, spalling, or support gaps; these material conditions are linked to performance indicators such as increased joint deflection that result from weakened or poorly supported dowels. By synthesizing visual path characteristics, measured dimensions, lab‑based condition assessments, and observed structural response, a coherent interpretation of crack depth and material deterioration is achieved. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 4 (pp. 136–174)</small></p>
+<p>Coring shows that cracks that weave around aggregate particles point to early‑stage mechanisms, while those that cut through aggregates indicate later‑age cracking as the paste bond strengthens; thus aging of the concrete is a likely cause. The presence of badly corroded dowels and spalling or gaps in the concrete surrounding them reveals material deterioration that reduces stiffness and creates weak support at joints, effectively widening the joint and increasing deflection. Additionally, erosion at the slab‑to‑base interface uncovered by coring signals loss of underlying support, another form of material deterioration contributing to the observed condition. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 4 (p. 174)</small></p>
+<h2 id="findings-confidence-and-next-actions">Findings, confidence, and next actions</h2>
+<p>Coring provides direct measurements of crack penetration depth and slab thickness – &ldquo;Concrete core samples can be retrieved at the cracks to determine the depth of the crack penetration through the slab, as well as to verify the thickness of the slab.&rdquo; It also reveals the fracture path relative to coarse aggregate, allowing an assessment of cracking mechanism – &ldquo;Cracking around an aggregate particle suggests an early cracking mechanism while cracking through the aggregate (when paste bond strength has increased) suggests later age cracking &hellip; although these guidelines are not absolute.&rdquo; These observations support conclusions about structural integrity, reinforcement condition, and joint compliance. Nonetheless, coring samples only isolated locations, so its findings cannot be assumed to represent the entire pavement – &ldquo;the method yields information only at discrete locations, leaving uncertainty about conditions between sampled points.&rdquo; [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p><small>[1] — Ch. 4 (pp. 85–174), Ch. 18 (pp. 358–411)</small></p>
+<p>Following coring that quantifies crack penetration and slab layer thickness, the program must move to a series of targeted follow‑up actions. First, cores taken from adjacent transverse joints are used to confirm that the saw cuts meet design limits; this verification checks both the prescribed sawing depth and whether cracks have opened in the weakened plane beneath the cut. The observed cracking pattern—whether &ldquo;cracking around an aggregate is suggestive of an early cracking mechanism while cracking through the aggregate is suggestive of structural cracking&rdquo;—directs the focus of subsequent monitoring, with early‑age distress calling for more frequent surface inspections and structural‑age cracking prompting consideration of rehabilitation. Any reinforcement encountered in the cores should be examined, as &ldquo;If present, any steel reinforcement in the slab may be inspected for signs of corrosion or deterioration,&rdquo; which could trigger localized repair, cathodic protection, or other corrosion mitigation measures. The condition of the base beneath the crack must also be evaluated; &ldquo;assess the condition and potential bond/friction characteristics of the underlying base&rdquo; informs decisions on sealants, overlay bonding, or other preservation treatments. If joint saw depths are found insufficient or if cracks have propagated along the weakened plane, design checks on joint spacing and sawing depth should be revisited, and appropriate preservation strategies—such as sealing, overlay application, or steel corrosion mitigation—implemented while an ongoing monitoring program tracks further crack development. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The following figure illustrates the specific joint saw cut depth and width requirements referenced in the design verification process.</p>
+<p><img alt="Illustration of BCOC joint saw cut depth and width requireme" src="assets/coring-for-crack-depth-and-material-deterioration/17bd492945000b03df1166e10efded55a146ec8ba1ae17c2ba743fa10074d81a.jpg" />
+<em>Illustration of BCOC joint saw cut depth and width requirements Modified from Harrington and Fick 2014</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure depicts a cross-section of an existing concrete pavement overlaid with bonded concrete overlay, highlighting the alignment between the new transverse overlay joint and the underlying crack in the existing slab. It illustrates specific geometric requirements for saw cuts, showing that the width of the new overlay transverse joint (X) must be greater than the width of the saw cut in the existing slab (Y), which is positioned directly above the underlying crack. This diagram supports the concept by visualizing how coring data regarding crack depth and location informs the design of overlay joints to prevent bridging, ensuring that compressive forces do not cause spalling or debonding.</p>
+<p><small>[1] — Ch. 4 (pp. 101–136)</small></p>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

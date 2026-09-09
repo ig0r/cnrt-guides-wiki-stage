@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Equipment Inspection and Compliance</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html" class="active" aria-current="page">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Equipment Inspection and Compliance</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=equipment-inspection">equipment-inspection</a><a class="tag" href="index.html?q=construction-compliance">construction-compliance</a><a class="tag" href="index.html?q=diamond-grooving">diamond-grooving</a><a class="tag" href="index.html?q=air-and-hydro-excavation">air-and-hydro-excavation</a><a class="tag" href="index.html?q=contractor-requirements">contractor-requirements</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>Equipment Inspection and Compliance is a quality‑control process that evaluates and controls the condition, capability, calibration, and functional performance of all construction equipment used in pavement repair and preservation projects, requiring contractors to demonstrate that each unit meets or exceeds owner‑specified operational criteria before it is placed in service [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>] [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]. The procedure mandates a pre‑start inspection of every machine—verifying critical components such as cutting teeth, spray bars, nozzles, sand‑blasting rates, air‑compressor pressure and filtration, water‑blast flow, weight, horsepower, and depth‑control devices—and halts work until any deficiencies are corrected and approved [<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>] [<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]. By confirming that equipment operates within contract‑specified tolerances for parameters such as load, pressure, flow, mixing timing, compaction density, and groove geometry, the process prevents construction‑related problems, safeguards long‑term pavement performance, and ensures safety throughout the project [<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>] [<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-quality-objectives">Purpose and quality objectives</a></li><li><a href="#scope-and-applicability">Scope and applicability</a></li><li><a href="#test-methods-and-procedures">Test methods and procedures</a></li><li><a href="#sampling-and-testing-frequency">Sampling and testing frequency</a></li><li><a href="#acceptance-criteria-and-tolerances">Acceptance criteria and tolerances</a></li><li><a href="#quality-control-and-process-monitoring">Quality control and process monitoring</a></li><li><a href="#nonconformance-and-corrective-action">Nonconformance and corrective action</a></li><li><a href="#documentation-and-reporting">Documentation and reporting</a></li><li><a href="#relationship-to-long-term-performance">Relationship to long-term performance</a></li><li><a href="#references">References</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (11)</summary><div class="sources-body"><a href="#ref-1">2019-12_IMCP_manual</a>, <a href="#ref-2">ACPTP-2022-4_QC_QA_of_concrete_airfield_pvmt_manual_w_cvr_508</a>, <a href="#ref-3">Guide_to_FDR_with_Cement_Jan_2019_reprint</a>, <a href="#ref-4">IADOT_InTrans_RB33_014_Reeder_Implementation_Manual_3D_Engineered_Models_Highway_Const_2015_Final</a>, <a href="#ref-5">PDR_guide_Apr2012</a>, <a href="#ref-6">concrete_pvmt_preservation_guide_3rd_edition_web</a>, <a href="#ref-7">guide_to_CSS</a>, <a href="#ref-8">guide_to_LCC_for_geotech_apps</a>, <a href="#ref-9">guide_to_concrete_overlays_4th_Ed_web</a>, <a href="#ref-10">overlay_construction_doc_dev_guide_w_cvr</a>, <a href="#ref-11">preservation_reference_manual</a></div></details>
+
+<h2 id="purpose-and-quality-objectives">Purpose and quality objectives</h2>
+<p>Equipment Inspection and Compliance evaluates and controls the condition, capability, calibration, and functional performance of all construction equipment used in repair and preservation projects. The guides require that before a piece of machinery is placed in service the contractor must demonstrate to the owner or field representative that it meets or exceeds the owner‑specified criteria, confirming operational readiness and compliance with contract‑specified parameters such as weight, horsepower, pressure, flow, feed rate, cleaning effectiveness, groove geometry, cement content, application rate, mixing depth, compaction quality, moisture levels, and curing performance. A pre‑start inspection of every unit is mandated, verifying that critical components are intact and functioning; work cannot proceed until any deficiencies are corrected and approved. &ldquo;Equipment Inspection and Compliance controls the performance characteristic of field equipment by requiring the contractor to prove that each piece of equipment intended for the FDR process satisfies or surpasses the owner‑specified criteria before it is placed in service on the construction site.&rdquo; &ldquo;Ensuring that construction equipment is in good working order helps avoid construction-related problems&rdquo;. &ldquo;Equipment Inspection and Compliance evaluates and controls the condition, capability, calibration, and functional performance of all construction equipment used in repair and preservation projects, ensuring each unit conforms to contract‑specified operational criteria and safety requirements.&rdquo; &ldquo;The inspector should verify that all cutting teeth of the reclaimer are in place and in good condition, the spray bar and nozzles are working properly and not clogged, the onboard stabilizing agent system is functioning and accurate, and the water application rate is correct.&rdquo; [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>]</p>
+<p><small>[3] — Ch. 7 (pp. 87–89); [5] — Equipment Inspections (p. 32), Other Equipment (p. 33), Verify the following: (p. 32); [6] — Ch. 5 (p. 120), Ch. 6 (pp. 158–159), Ch. 8 (pp. 199–207), Ch. 9 (pp. 222–252); [7] — Ch. 5 (p. 45); [8] — Ch. 6 (p. 56); [11] — Ch. 5 (pp. 104–106), Ch. 6 (p. 132), Ch. 8 (p. 170), Ch. 9 (p. 189), Ch. 10 (p. 207)</small></p>
+<p>Prior to using field equipment on the construction site, it is important for the contractor to demonstrate to the owner/owner’s field representative that the equipment to be used for the FDR process meets or exceeds the following criteria: Equipment inspection and compliance is required to confirm that every piece of construction machinery is fit for service and meets contract‑specified capacities before work begins. Equipment Inspection and Compliance is intended to guarantee that all contractor‑owned plant, equipment, and machinery are verified as fully functional, properly calibrated, scaled, controlled and adjusted before construction begins and throughout the project. Equipment Inspection and Compliance is a core quality‑control step that verifies every piece of machinery meets contract‑specified performance and safety criteria before work begins. These shared requirements ensure that key performance parameters—such as media‑blasting rates, oil/moisture trap condition, air‑compressor pressure and volume, weight, horsepower and blade configuration of diamond‑grinding machines, and the presence of depth‑control devices on grooving equipment—are verified against contract documents. By confirming that each unit operates within acceptable tolerances, the inspection prevents a range of potential problems, including insufficient pulverization or surface cleaning depth, incorrect sand or water‑blast rates, contaminated airstreams, substandard compaction density, misaligned or shallow grooves, uneven texture, and unsafe operating conditions that could compromise repair performance, pavement durability, or worker safety. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>]</p>
+<p><small>[3] — Ch. 7 (pp. 87–89); [5] — Equipment Inspections (p. 32), Other Equipment (p. 33), Verify the following: (p. 32); [6] — Ch. 5 (p. 120), Ch. 6 (pp. 158–159), Ch. 8 (pp. 199–207), Ch. 9 (pp. 222–252); [7] — Ch. 5 (p. 45); [8] — Ch. 6 (p. 56); [11] — Ch. 5 (pp. 104–106), Ch. 6 (p. 132), Ch. 8 (p. 170), Ch. 9 (p. 189), Ch. 10 (p. 207)</small></p>
+<h2 id="scope-and-applicability">Scope and applicability</h2>
+<p>Equipment Inspection and Compliance is required for any machinery used in pavement‑repair and surface‑treatment work. The guides state that the procedure applies to all materials and activities involved in a full‑depth reclamation (FDR) treatment, including the existing asphalt pavement and underlying base, the stabilizing cement, water, additives, and any surrounding structures such as curbs and manholes. Inspectors must verify each construction process—pulverization depth, gradation, moisture content, cement spread rates, mixing homogeneity, compaction density, grading profile, finish‑rolling condition, microcracking parameters, and curing application—to ensure they meet the contract specifications and accepted tolerances such as a minimum 6 in. longitudinal joint overlap, a minimum 2 ft. transverse joint overlap, mixing initiation within 30 minutes of cement placement and not exceeding 60 minutes after water contact, and proper moisture maintenance throughout. The requirement also covers any equipment used during partial‑depth repair work, regardless of the specific pavement materials or components involved in those repairs, and it is triggered whenever sand‑blasting, air‑compressor cleaning, or water‑blasting operations are performed on a project. It applies to both partial‑depth repairs (PDRs) and full‑depth repairs (FDRs), regardless of the pavement material—concrete or asphalt—being restored, and extends to related preparation activities such as media‑blasting, air‑compressor cleaning, water‑blasting, dowel‑bar retrofit/slot‑stitching, drilling/tie‑bar placement with epoxy injection, and diamond grinding of concrete pavements. Equipment inspection and compliance also applies to diamond‑grooving operations on concrete pavements and bridge decks before construction begins. For soil‑cement stabilization (CSS) work performed on a stripped subgrade—whether the site has been cleared of vegetation or existing pavement—and when unstable zones are identified during proof rolling, all related equipment such as the reclaimer cutting teeth, spray bar, nozzles, bulk spreader, and water‑application system must be inspected and calibrated. The procedure is required for all pavement‑related construction activities that involve machinery or tools, including partial‑depth repairs, full‑depth repairs, slot‑sawing, concrete removal, sandblasting of slots, subbase compaction, dowel‑bar drilling, diamond grinding, and associated air‑powered equipment. It must be performed before work begins (or during specific steps such as patch‑area cleaning) to verify that each piece of equipment is in proper working order and conforms to contract‑specified performance criteria for weight, horsepower, configuration, pressure/flow capacity, filter or moisture trap functionality, and calibration. Accordingly, the scope covers the materials and components involved—concrete pavement, repair mixes, grout, sandblasting media, subbase material, dowel‑bars, profiling equipment, and ancillary items such as steel probes, grout‑application brushes, and certified technicians. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>]</p>
+<p><small>[3] — Ch. 7 (pp. 88–89); [5] — Equipment Inspections (p. 32), Verify the following: (p. 32); [6] — Ch. 5 (p. 120), Ch. 6 (pp. 158–159), Ch. 8 (pp. 199–207), Ch. 9 (pp. 222–226); [7] — Ch. 5 (p. 45); [11] — Ch. 5 (pp. 105–106), Ch. 6 (p. 132), Ch. 8 (p. 170), Ch. 9 (p. 189)</small></p>
+<h2 id="test-methods-and-procedures">Test methods and procedures</h2>
+<p>The equipment‑inspection and compliance process is organized as a sequential checklist that begins with site preparation (proof‑rolling, utility marking) and proceeds through verification of each piece of machinery before it is placed in service. First, cleaning and surface‑preparation tools are checked: sand‑blasting units must be set to the contract‑specified sand feed rate and verified to have functional oil/moisture traps; air compressors are tested for both pressure and volume capability and their filtration systems inspected by passing airflow over a board and examining for contaminants. When water‑blasting is employed, pump output is measured to confirm flow and pressure meet contractual limits.</p>
+<p>For cementitious stabilization work, the mixing equipment is inspected to ensure that cement spread rates, water addition, and start‑up timing (mixing within 30 min of placement, not exceeding 60 min) comply with specifications. Compaction rollers and scrapers are examined for proper operating weight, water systems, and tire condition before each lift. In‑place density is verified using a nuclear gauge in direct‑transmission mode to the full depth of the stabilized layer, and moisture content is determined by microwave oven, direct heating, or other ASTM‑approved procedures. Field density testing is performed throughout construction in accordance with approved AASHTO or ASTM methods.</p>
+<p>Diamond‑grinding projects require inspection of the grinding machine for contract‑specified weight, horsepower, blade configuration, wheelbase, and cutting‑head blade spacing; the vacuum assembly must be functional to leave a near‑dry surface. The inertial profiling unit is calibrated on a comparable diamond‑ground texture following manufacturer recommendations before profile measurements are taken by certified operators. During grinding, passes are run parallel to the centreline, depth continuity is kept within 0.12 in., shoulder ridges are limited to 0.19 in., and cross‑slope deviation does not exceed 0.25 in. per 12 ft as measured with a straightedge.</p>
+<p>Compaction equipment such as plate compactors and gang drills are operated to confirm they can achieve required sub‑base densities and, for dowel‑bar drilling, that the drill is calibrated, aligned, and sufficiently heavy/powerful. All equipment is calibrated according to manufacturer recommendations and documented training or certification is verified before work proceeds. The final step prior to opening to traffic includes a walk‑through and proof roll to locate any soft spots, confirm temporary markings are in place, and ensure that finish rolling has been performed in static mode without surface damage. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>]</p>
+<p>The following figure illustrates the final compaction process using specific heavy machinery.</p>
+<p><img alt="Final compaction of FDR base with a tamping roller (right) a" src="assets/equipment-inspection-and-compliance/5e095d611dbe5f21f31b73f845dd9adbd0bf6f8d600ba39b684a26322eaeef22.jpg" />
+<em>Final compaction of FDR base with a tamping roller (right) and a smooth-wheeled vibrating roller</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The image displays two large yellow construction rollers operating side-by-side on a dirt surface, identified as a smooth-wheeled vibrating roller on the left and a tamping roller with multiple protruding pads on the right.</p>
+<p><small>[3] — Ch. 7 (pp. 88–89); [5] — Verify the following: (p. 32); [6] — Ch. 5 (p. 120), Ch. 9 (pp. 222–223); [7] — Ch. 5 (p. 45); [11] — Ch. 5 (pp. 105–106), Ch. 6 (p. 132), Ch. 9 (p. 189)</small></p>
+<p>Valid equipment inspection across construction projects rests on three interrelated pillars—calibration of the equipment, qualified operators, and control of the work environment. Calibration must follow prescribed methods, manufacturer recommendations, and contract documents; measurement devices such as density gauges are required to operate in direct‑transmission mode through the full depth of the stabilized layer and moisture content must be determined with ASTM‑approved procedures, while mechanical units—including sandblasting equipment, gang drills, volumetric mixers, motor graders, vibratory rollers, and air compressors—must be set to contract‑specified rates, pressures, alignments, size, speed, and amplitude limits and verified through routine checks. Access to all non‑proprietary plant and machinery must be maintained so that calibration, scales, controls, and operating adjustments can be inspected at any time.</p>
+<p>Operator qualifications are addressed variably: some sources require no specific certification beyond confirming that equipment follows calibrated settings, whereas others mandate that personnel performing measurements, concrete testing, abrasive cleaning, or profilograph operation hold the training and certification documented in the contract.</p>
+<p>Environmental controls are equally essential. Surface moisture must be continuously monitored and water applied as needed to keep materials at optimum moisture and protect treated mats from drying out or over‑working. Air streams for dust removal or blasting must be free of contaminants; this is verified by passing the stream over a board to detect oil or water, and equipment such as sandblasting units and compressors must employ functioning oil/moisture traps and approved air‑purification devices. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>]</p>
+<p><small>[3] — Ch. 7 (pp. 88–89); [6] — Ch. 5 (p. 120), Ch. 6 (p. 159), Ch. 8 (pp. 199–207), Ch. 9 (p. 222); [8] — Ch. 6 (p. 56); [11] — Ch. 5 (pp. 105–106), Ch. 6 (p. 132), Ch. 8 (p. 170), Ch. 9 (p. 189)</small></p>
+<h2 id="sampling-and-testing-frequency">Sampling and testing frequency</h2>
+<p>Equipment inspection determines sampling locations by targeting any point where conditions are likely to vary—along curbs, around manholes, at longitudinal and transverse joints, wherever the pulverization depth is altered or equipment pauses, and also in zones that roll as unstable during proof‑rolling. &ldquo;Unstable areas identified during the proof rolling should be evaluated by the contractor and geotechnical consultant to determine the depth of treatment required.&rdquo; &ldquo;Samples of the unstable material should be obtained for laboratory testing at this time to determine the percentage of cement required for stabilization.&rdquo; The number of tests is linked to each depth change, any idle period, and to every compacted lift; &ldquo;Take a depth check anytime the depth changes or if the equipment sits idle.&rdquo; Application rates are verified by periodically measuring the cement spread: &ldquo;Check application rates are correct by periodically measuring the cement spread.&rdquo; Density and moisture tests are performed on a regular basis—typically every 5,000 ft² (465 m²) for each lift: &ldquo;Density and moisture tests should be performed on a regular basis (for example, every 5,000 ft2 [465 m2]) for each compacted lift of material.&rdquo; When a nuclear gauge is used, it must be operated in direct transmission mode through the full depth of the stabilized layer: &ldquo;If a nuclear gauge is used to determine in-place density, conduct tests in the direct transmission mode to the full depth of the stabilized layer.&rdquo; Moisture content should be measured using microwave‑oven, direct heating, or established ASTM procedures rather than relying on the nuclear gauge: &ldquo;The moisture content should be taken using microwave oven, direct heating, or established ASTM procedures instead of relying on the nuclear gauge.&rdquo; All testing frequencies are driven by these triggers and are scheduled to fall within contract‑specified windows (e.g., within the 30‑minute placement window and no later than 60 minutes before mixing). [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p><small>[3] — Ch. 7 (pp. 88–89); [7] — Ch. 5 (p. 45)</small></p>
+<p>To obtain representative data, inspectors select measurements whenever a condition that could affect performance changes. They &ldquo;Take a depth check anytime the depth changes or if the equipment sits idle,&rdquo; and they &ldquo;Verify the pulverized material is consistent with samples/cores provided for the mix design.&rdquo; Application rates are confirmed by &ldquo;Check application rates are correct by periodically measuring the cement spread,&rdquo; while in‑place density is measured with a nuclear gauge operating &ldquo;If a nuclear gauge is used to determine in-place density, conduct tests in the direct transmission mode to the full depth of the stabilized layer.&rdquo; When unstable zones are identified, &ldquo;Samples of the unstable material should be obtained for laboratory testing at this time.&rdquo; A systematic program of field checks is applied to each compacted lift, with &ldquo;Density and moisture tests should be performed on a regular basis (for example, every 5,000 ft2 [465 m2]) for each compacted lift of material,&rdquo; and all &ldquo;Field density testing should be performed during construction in accordance with approved AASHTO or ASTM methods.&rdquo; [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p><small>[3] — Ch. 7 (pp. 88–89); [7] — Ch. 5 (p. 45)</small></p>
+<h2 id="acceptance-criteria-and-tolerances">Acceptance criteria and tolerances</h2>
+<p>The guides require that equipment be accepted only when every contract‑specified numerical limit, statistical tolerance, or visual condition is met. Joint integrity is confirmed by &ldquo;Check that longitudinal joints overlap a minimum of 6 in.&rdquo; and &ldquo;Check that transverse joints overlap a minimum of 2 ft.&rdquo; Cement work must begin within the allotted window – &ldquo;Ensure that the time after initial contact of cement with water does not exceed 60 minutes. Mixing operations should begin within 30 minutes of placement of the cement.&rdquo; Sand‑blasting units, air compressors and any water‑blasting gear are set to the contract rates; acceptance is documented by &ldquo;Sand blasting unit is adjusted for correct sand rate&rdquo; and by confirming that &ldquo;the air stream … contains no water or oil prior to use by passing the stream over a board and examining for contaminants.&rdquo; Hand tools are limited by weight and size – &ldquo;maximum rated weight of 30 lb&rdquo; for jackhammers and &ldquo;≤1 in. in diameter&rdquo; for vibrators. Drill‑bit shanks must exceed tie‑bar diameters by &ldquo;typically 0.25 to 0.38 in.&rdquo; Diamond‑ground surfaces are measured against dimensional tolerances: ridges no greater than &ldquo;0.19 in.&rdquo;, successive passes may not differ by more than &ldquo;0.12 in.&rdquo;, and cross‑slope deviations must stay within &ldquo;0.25 in. per 12 ft when measured with a 12‑ft straightedge.&rdquo; All compactors, gang drills, vacuum units and related equipment must pass functional verification before work proceeds. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>]</p>
+<p><small>[3] — Ch. 7 (pp. 88–89); [5] — Verify the following: (p. 32); [6] — Ch. 6 (p. 159), Ch. 8 (pp. 199–207), Ch. 9 (p. 223); [11] — Ch. 5 (pp. 105–106), Ch. 8 (p. 170)</small></p>
+<p>Inspectors check each grinding pass against the contract tolerances, confirming that the texture depth does not differ from the prior pass by more than the permitted amount (about 0.12 in) and that cross‑slope deviations stay within 0.25 in over a 12‑ft straightedge; they also verify that overlap between passes is limited to the contract‑specified amount. By measuring every individual result and comparing successive applications, variability is directly controlled, while the guide does not call for averaging results across a lot. [<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p>The following figure illustrates the diamond-grooved concrete pavement and its typical grooving dimensions.</p>
+<p><img alt="Diamond-grooved concrete pavement showing typical grooving d" src="assets/equipment-inspection-and-compliance/1402bdfcceb7a6ecaa4eb36809ae0102f2f88b7027579dfd7f90fc1d224a91c8.jpg" />
+<em>Diamond-grooved concrete pavement showing typical grooving dimensions</em> [<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p>The image displays a close-up view of a concrete surface featuring closely spaced longitudinal diamond grooves, with a ruler placed across the texture to indicate scale.</p>
+<p><small>[6] — Ch. 9 (p. 223)</small></p>
+<h2 id="quality-control-and-process-monitoring">Quality control and process monitoring</h2>
+<p>During production and construction the inspection program continuously verifies that the depth of pulverization meets the depth specified in the contract documents, that material density/compaction satisfies specification requirements, and that longitudinal joints overlap a minimum of 6 in. Finish rolling is confirmed to be performed in static mode without damaging the surface. Cement content, application rate, moisture content, mixing depth, compaction and curing are all checked against project specifications; equipment is inspected before cement placement, field density testing follows approved AASHTO/ASTM methods, and mixing must start within 30 minutes of cement placement and be completed before sixty minutes elapse. Sand‑blasting units are adjusted for the correct sand rate and equipped with properly functioning oil/moisture traps; media‑blasting units are similarly set to the correct rate with functional filtration. Air compressors are verified to have sufficient pressure and volume capabilities to clean the repair area in accordance with contract specifications, and they must be equipped with effective oil and moisture filters—verification can be performed by passing the airstream over a board and examining for contaminants. When water‑blasting is used, its volume and pressure must meet contract limits. Plate compactors are checked to ensure proper operation and capability to achieve required sub‑base density. Volumetric mixing equipment is kept in good condition and calibrated regularly to maintain correct mix proportions, while vibrators must match the size specified in the contract documents and operate correctly. Diamond grinding machines are inspected for compliance with contract‑specified weight, horsepower, blade configuration, effective wheelbase, and blade spacing; they must include a vacuum assembly capable of removing concrete slurry, produce texture depths that do not vary more than 0.12 in between passes, and maintain finished cross‑slope within the tolerance of 0.25 in per 12 ft. Inertial profiling units are calibrated according to manufacturer recommendations on comparable surfaces. Grooving equipment must possess a depth‑control device for adjusting cutting head height, be capable of maintaining alignment with the roadway centreline, and install grooves at the dimensions and spacing shown in the plans. Slot‑sawing machines are required to have sufficient weight, horsepower and configuration to cut the specified number of slots per wheel path to the plan depth. Gang drills are calibrated, aligned, and sufficiently heavy and powerful for dowel‑bar hole production; appropriate fixtures ensure correct angle, size and depth, and drill bits must be oversized by 0.25–0.38 in relative to tie bars. Vacuum equipment used with drilling must function properly. Jackhammers are limited to a maximum rated weight of 30 lb (14 kg). Engineers retain continuous access to verify calibration of scales, controls and operating adjustments, and all test equipment—including profilographs or pavement profilers—is calibrated per manufacturer guidance and operated by certified personnel, with concrete cylinders stored on‑site. OSHA safety requirements are observed throughout drilling operations. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>]</p>
+<p>The following figure illustrates the proper procedures for mixing and compacting cement and subgrade.</p>
+<p><img alt="Compacting cement-stabilized subgrade with a vibratory rolle" src="assets/equipment-inspection-and-compliance/e50639affa884bc603196aed9a10883ad5a43c13e17428d4692f69e388aba688.jpg" />
+<em>Compacting cement-stabilized subgrade with a vibratory roller.</em> [<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The image displays an orange construction vehicle, specifically a single-drum vibratory roller, operating on a dirt surface to compact the ground.</p>
+<p><small>[3] — Ch. 7 (pp. 88–89); [5] — Verify the following: (p. 32); [6] — Ch. 5 (p. 120), Ch. 6 (p. 159), Ch. 8 (pp. 199–207), Ch. 9 (pp. 222–226); [7] — Ch. 5 (p. 45); [8] — Ch. 6 (p. 56); [11] — Ch. 5 (pp. 105–106), Ch. 6 (p. 132), Ch. 8 (p. 170), Ch. 9 (p. 189)</small></p>
+<p>The guides concur that any trend or deviation beyond the contract‑specified limits must initiate an immediate process adjustment or additional testing. Depth‑related observations such as a shift in pulverization depth, equipment idle periods, or moisture content outside the optimum range trigger &ldquo;Take a depth check anytime the depth changes or if the equipment sits idle.&rdquo; and require &ldquo;Determine the moisture content of the initial pulverized material to determine if an adjustment is needed to reach or maintain optimum moisture.&rdquo; Changes in cement spread rate are addressed by &ldquo;Notify the engineer anytime the cement application rate is changed.&rdquo; and must be recorded before work proceeds. When density verification does not meet specifications, the requirement is &ldquo;If a nuclear gauge is used to determine in-place density, conduct tests in the direct transmission mode to the full depth of the stabilized layer.</p>
+<p>Equipment performance checks are similarly mandated. Sand‑blasting units must be set correctly; the guides state both &ldquo;Sand blasting unit is adjusted for correct sand rate and is equipped with and uses properly functioning oil/ moisture traps.&rdquo; and &ldquo;Verify that the sandblasting unit is adjusted for correct sand rate and that it is equipped with and using properly functioning oil/moisture traps.&rdquo; Air compressors are required to deliver contract‑required pressure and volume, expressed as &ldquo;Verify that air compressors have sufficient pressure and volume capabilities to clean the repair area adequately in accordance with contract specifications.&rdquo; and &ldquo;Verify that air compressors have sufficient pressure and volume capabilities to clean patch area adequately in accordance with contract specifications.&rdquo; Their filtration systems must function; the guides note &ldquo;Verify that air compressors are equipped with and using properly functioning oil and moisture filters/ traps.&rdquo; and additionally &ldquo;Verify that air compressors are equipped with and using properly functioning oil and moisture filters/traps. This can be accomplished by passing the air stream over a board, and then examining for contaminants.&rdquo; Water‑blasting equipment must meet volume and pressure limits: &ldquo;Verify that the volume and pressure of water-blasting equipment (if used) meets the contract specifications.&rdquo; and &ldquo;Verify that the volume and pressure of waterblasting equipment (if used) meets the specifications.</p>
+<p>Grinding operations are governed by several dimensional tolerances; deviations such as a ridge exceeding 0.19 in., depth differences greater than 0.12 in., or cross‑slope variations beyond 0.25 in. per 12 ft trigger corrective measures, reflected in &ldquo;leaving no more than a 0.19 in. ridge&rdquo;, &ldquo;depth of the previous application by more than the amount permitted in the contract documents, typically 0.12 in.&rdquo;, and &ldquo;no depressions or misalignment in slope greater than 0.25 in. per 12 ft&rdquo;. Additionally, any raveling, aggregate fracture, or joint disturbance requires &ldquo;Verify that the grinding equipment does not cause raveling, aggregate fractures, or disturbance to the joints.&rdquo;.</p>
+<p>Proof‑rolling findings also demand action: &ldquo;Unstable areas identified during the proof rolling should be evaluated by the contractor and geotechnical consultant to determine the depth of treatment required.&rdquo; Pre‑construction inspections are mandatory; both &ldquo;Before cement is applied to the subgrade, all equipment should be inspected.&rdquo; and &ldquo;Before start-up, the contractor’s equipment shall be carefully inspected.&rdquo; must be completed, and any malfunction halts work until corrected and approved. Cement application monitoring is reinforced by &ldquo;During cement application, the application rate should be monitored for accuracy.&rdquo; Field density or moisture results outside approved limits trigger repeat testing: &ldquo;Field density testing should be performed during construction in accordance with approved AASHTO or ASTM methods to confirm that the project specifications are being met.</p>
+<p>Collectively, these observed trends—depth changes, idle time, moisture shifts, rate variations, equipment performance shortfalls, grinding tolerances, instability detections, and out‑of‑spec density/moisture readings—constitute the triggers for process adjustments or additional testing across the equipment inspection and compliance domain. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>]</p>
+<p><small>[3] — Ch. 7 (pp. 88–89); [5] — Verify the following: (p. 32); [6] — Ch. 5 (p. 120), Ch. 9 (p. 223); [7] — Ch. 5 (p. 45); [8] — Ch. 6 (p. 56); [11] — Ch. 5 (pp. 105–106)</small></p>
+<h2 id="nonconformance-and-corrective-action">Nonconformance and corrective action</h2>
+<p>Equipment inspection requires a pre‑start‑up review of all contractor machinery; if any item is found not to operate correctly, work must be halted. The identified deficiencies must be remedied and the corrective actions must receive formal approval from the engineer before any further construction can resume. [<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p><small>[8] — Ch. 6 (p. 56)</small></p>
+<h2 id="documentation-and-reporting">Documentation and reporting</h2>
+<p>The equipment‑inspection file must contain a complete set of records that verify each piece of preparation, grinding, stabilization or blasting equipment is configured, calibrated and operating in strict accordance with contract specifications. Verification includes statements such as &ldquo;Verify that the media-blasting unit is adjusted for the correct rate and that it is equipped with and using properly functioning oil/moisture traps.&rdquo; and &ldquo;Verify that the sandblasting unit is adjusted for correct sand rate and that it is equipped with and using properly functioning oil/moisture traps.&rdquo; Air‑compressor performance must be documented, for example &ldquo;Verify that air compressors have sufficient pressure and volume capabilities to clean the repair area adequately in accordance with contract specifications&rdquo; and the parallel requirement &ldquo;Verify that air compressors have sufficient pressure and volume capabilities to clean patch area adequately in accordance with contract specifications.&rdquo; Filter and trap condition is recorded by either a cloth test (&ldquo;Verify that air compressors are equipped with and using properly functioning oil and moisture filters/ traps. (This can be accomplished by placing a cloth over the air compressor nozzle and visually inspecting for oil.)&rdquo;) or a board‑test (&ldquo;Verify that air compressors are equipped with and using properly functioning oil and moisture filters/traps. This can be accomplished by passing the airflow over a board, and then examining for contaminants.&rdquo;). Water‑blasting equipment flow and pressure are logged as required (&ldquo;Verify that the volume and pressure of water-blasting equipment (if used) meets the contract specifications&rdquo;; &ldquo;Verify that the volume and pressure of waterblasting equipment (if used) meets the specifications&rdquo;).</p>
+<p>Diamond‑grinding machinery records must confirm weight, horsepower, blade configuration and wheelbase (&ldquo;Verify that the diamond grinding machine meets the requirements of the contract documents for weight, horsepower, blade configuration, and effective wheelbase.&rdquo;) as well as the simplified version (&ldquo;Verify that the diamond grinding machine meets requirements of the contract documents for weight, horsepower, and configuration.&rdquo;). Blade spacing capable of producing the required corduroy texture is documented (&ldquo;Verify that the blade spacing on the diamond grinding cutting head meets the requirements of the contract documents and can produce the desired corduroy texture.&rdquo;; &ldquo;Verify that the blade spacing on the diamond‑grinding cutting head meets the requirements of the contract documents.&rdquo;). Vacuum effectiveness is recorded (&ldquo;Verify that the equipment has an effective means of vacuuming the grinding residue from the pavement, leaving the surface in a clean, near-dry condition.&rdquo;).</p>
+<p>Profiling or pavement‑profiling devices must be calibrated per manufacturer guidance on comparable surfaces (&ldquo;Verify that the inertial profiling unit has been calibrated in accordance with its manufacturer’s recommendations and contract documents; calibration should be conducted on a similarly diamond‑ground texture.&rdquo;; &ldquo;Verify that the unit has been calibrated in accordance with manufacturer&rsquo;s recommendations and contract documents.&rdquo;) and operator training or certification is noted (&ldquo;Verify that the profilograph operator meets the requirements of the contract documents for training/certification.&rdquo;).</p>
+<p>Stabilization equipment inspections include reclaimer cutting teeth, spray bar/nozzles, stabilizing‑agent system and water rate (&ldquo;Before cement is applied to the subgrade, all equipment should be inspected. The inspector should verify that all cutting teeth of the reclaimer are in place and in good condition, the spray bar and nozzles are working properly and not clogged, the onboard stabilizing agent system is functioning and accurate, and the water application rate is correct.&rdquo;) and bulk‑spreader calibration when used (&ldquo;If a bulk spreader is used, it should be properly calibrated (ARRA 2013).&rdquo;).</p>
+<p>Test results recorded in the file cover critical tolerances for grinding (&ldquo;no more than a 0.19 in. ridge&rdquo;, &ldquo;does not vary from the depth of the previous application by more than the amount permitted in the contract documents, typically 0.12 in.&rdquo;, &ldquo;no depressions or misalignment in slope greater than 0.25 in. per 12 ft&rdquo;) and field density/moisture testing at prescribed intervals (&ldquo;Field density testing should be performed during construction in accordance with approved AASHTO or ASTM methods to confirm that the project specifications are being met.&rdquo;). Laboratory test results from sampled unstable material determine cement content for stabilization (&ldquo;Samples of the unstable material should be obtained for laboratory testing at this time to determine the percentage of cement required for stabilization.&rdquo;).</p>
+<p>Any non‑conforming condition—equipment malfunction, out‑of‑tolerance measurement or procedural lapse—is logged as a corrective‑action entry that details the deficiency and remedial steps (e.g., adjusting sand rate, repairing filters, recalibrating equipment, replacing components, contractor or geotechnical consultant evaluation of treatment depth, repeat testing) together with the date of resolution before work may resume. [<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>]</p>
+<p><small>[6] — Ch. 5 (p. 120), Ch. 9 (pp. 222–223); [7] — Ch. 5 (p. 45); [11] — Ch. 5 (pp. 105–106), Ch. 9 (p. 189)</small></p>
+<h2 id="relationship-to-long-term-performance">Relationship to long-term performance</h2>
+<p>Inspection of each construction step—verifying that pulverization reaches the contract‑specified depth, that the pulverized material meets gradation and moisture targets, that cement spread rates and mixing times stay within the limits (e.g., cement‑water contact not exceeding 60 min and mixing begun within 30 min), that compaction density is confirmed with a nuclear gauge in direct transmission mode, and that joint overlaps are at least 6 in. longitudinally and 2 ft. transversely—provides measurable evidence that the FDR layer will achieve its designed strength and resist cracking or rutting over its service life. Maintaining optimum moisture during grading and curing, and performing prescribed pre‑cracking with correct roller size, speed and amplitude, further ensures a homogeneous, well‑cured mat whose durability matches contract requirements. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The following figure illustrates the hand-squeeze moisture test used to verify that materials meet the specified moisture targets during inspection.</p>
+<p><img alt="Hand-squeeze moisture test" src="assets/equipment-inspection-and-compliance/38d356880ee19e03a4e10a153c0aa27dae9ec2d8ab0e46f64a05f64a3fe5e82c.jpg" />
+<em>Hand-squeeze moisture test</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The image shows a pair of hands holding and squeezing clumps of brown, granular soil against a background of loose earth.</p>
+<p><small>[3] — Ch. 7 (pp. 88–89)</small></p>
+<p>After construction is complete, the inspection and engineering teams conduct a series of follow‑up checks to verify that both the finished surfaces and the associated equipment continue to meet contract specifications. The surface verification includes walking the entire length and width of the FDR surface to ensure it has hardened with no soft spots, then proof rolling the surface to confirm it can support light traffic, confirming that temporary pavement markings required by the contract documents are in place, and ensuring initial traffic does not impair material curing. For any repaired concrete patches, inspectors must have a steel chain, rod, or hammer available to check for unsound concrete around the patch area and keep grout‑application brushes (if necessary) on hand for immediate remedial work. Ongoing equipment compliance requires unrestricted access to all non‑proprietary plant, equipment, and machinery so that calibration, scales, controls, and operating adjustments can be re‑checked; this access is mandated at all times for inspection and calibration. Specific equipment checks include verifying that the sandblasting unit is adjusted for the correct sand rate and equipped with functioning oil/moisture traps, confirming air compressors provide sufficient pressure and volume and that their oil and moisture filters/traps are operating properly by passing the airflow over a board and inspecting for contaminants, and ensuring water‑blasting equipment meets specified flow and pressure limits. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>][<sup><a href="#ref-11" aria-label="Reference 11">11</a></sup>]</p>
+<p>The following figure illustrates the proper technique for sounding concrete patches with a hammer to detect unsound areas.</p>
+<p><img alt="Worker performing a hammer test on concrete pavement." src="assets/equipment-inspection-and-compliance/5a05d990cfd2ba75dd7b6f3ea89008549c19bf665f44056c20c158e97644d50f.jpg" />
+<em>Worker performing a hammer test on concrete pavement.</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>A worker in high-visibility safety gear is bent over, striking the surface of a paved road with a hand tool to check for defects.</p>
+<p><small>[3] — Ch. 7 (pp. 88–89); [5] — Other Equipment (p. 33); [8] — Ch. 6 (p. 56); [11] — Ch. 5 (pp. 105–106)</small></p>
+<h2 id="references">References</h2>
+<ol start="3">
+<li><a id="ref-3"></a>Guide to FULL-DEPTH RECLAMATION (FDR) with Cement · <code>Guide_to_FDR_with_Cement_Jan_2019_reprint</code></li>
+<li><a id="ref-5"></a>PDR_guide_Apr2012 · <code>PDR_guide_Apr2012</code></li>
+<li><a id="ref-6"></a>Concrete Pavement Preservation Guide (Third Edition) · <code>concrete_pvmt_preservation_guide_3rd_edition_web</code></li>
+<li><a id="ref-7"></a>Guide to Cement-Stabilized Subgrade Soils · <code>guide_to_CSS</code></li>
+<li><a id="ref-8"></a>Guide to Lightweight Cellular Concrete for Geotechnical Applications · <code>guide_to_LCC_for_geotech_apps</code></li>
+<li><a id="ref-11"></a>Concrete Pavement Preservation Workshop · <code>preservation_reference_manual</code></li>
+</ol>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li><li id="ref-3"></li><li id="ref-4"></li><li id="ref-5"></li><li id="ref-6"></li><li id="ref-7"></li><li id="ref-8"></li><li id="ref-9"></li><li id="ref-10"></li><li id="ref-11"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

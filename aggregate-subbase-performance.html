@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aggregate Subbase Performance</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html" class="active" aria-current="page">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Aggregate Subbase Performance</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=pavement-design">pavement-design</a><a class="tag" href="index.html?q=subbase-systems">subbase-systems</a><a class="tag" href="index.html?q=aggregate-subbase">aggregate-subbase</a><a class="tag" href="index.html?q=subgrade-performance">subgrade-performance</a><a class="tag" href="index.html?q=traffic-load-distribution">traffic-load-distribution</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>Aggregate subbase performance refers to the ability of a well‑graded granular layer placed between a natural subgrade and either rigid or flexible pavement to provide a uniform, stiff foundation that mitigates the deficiencies of weak, variable, poorly drained soils [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]. By spreading traffic loads over a larger area, reducing stresses on the underlying soil, and acting as a capillary break with high permeability (≈150 ft/day), the subbase limits settlement, frost heave, rutting, surface deflection and moisture‑induced deterioration while also serving as a stable construction platform [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]. Its performance is governed by specific material limits—maximum particle size no more than one‑third of the layer thickness (typically ≤ ¾–1 in), fines passing #200 sieve &lt; 15 %, plasticity index ≤ 6, Los Angeles abrasion loss ≤ 50 %, and compaction to at least 100 % of ASTM D698/AASHTO T99 density (105 % for heavy traffic) [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]. When these criteria are met, the aggregate subbase delivers superior drainage, erosion resistance, and long‑term durability that translate into smoother rides, lower IRI/PCI values and extended service life for both concrete and asphalt pavements [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-design-objectives">Purpose and design objectives</a></li><li><a href="#scope-and-applicability">Scope and applicability</a></li><li><a href="#design-inputs-and-requirements">Design inputs and requirements</a></li><li><a href="#design-methods-and-criteria">Design methods and criteria</a></li><li><a href="#structural-section-and-dimensions">Structural section and dimensions</a></li><li><a href="#materials-and-mixture-design">Materials and mixture design</a></li><li><a href="#structural-details-and-interfaces">Structural details and interfaces</a></li><li><a href="#drainage-environment-and-accessibility">Drainage, environment, and accessibility</a></li><li><a href="#verification-and-expected-performance">Verification and expected performance</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (10)</summary><div class="sources-body"><a href="#ref-1">2016_joint_deterioration_in_pvmts_guide</a>, <a href="#ref-2">2019-12_IMCP_manual</a>, <a href="#ref-3">Guide_to_FDR_with_Cement_Jan_2019_reprint</a>, <a href="#ref-4">How_to_Reduce_Tire-Pavement_Noise_final</a>, <a href="#ref-5">IHRB_TR-640_foundation_layers_guide</a>, <a href="#ref-6">IPS</a>, <a href="#ref-7">concrete_pvmt_distress_assessments_and_solutions_guide_w_cvr</a>, <a href="#ref-8">hif13059</a>, <a href="#ref-9">preservation_reference_manual</a>, <a href="#ref-10">smooth_concrete_pvmt_guidelines_w_cvr</a></div></details>
+
+<h2 id="purpose-and-design-objectives">Purpose and design objectives</h2>
+<p>The engineering problem that aggregate subbase performance is meant to solve is the insufficient and uneven support offered by natural subgrade soils, which are often weak, variable, poorly drained, or prone to freeze‑thaw and moisture‑induced movement. This condition leads to excessive settlement, frost heave, cracking, roughness, rutting, surface deflection, and accelerated deterioration of both flexible and rigid pavements. By inserting a granular aggregate layer that provides “providing a stable, stiff foundation” and acts as a “stable working platform that can reduce construction delays,” the design creates a uniform, strong base that “serve as a construction platform and improve the level of stability and uniformity for the pavement foundation.” The aggregate subbase “spreads traffic loads over a larger area,” thereby “Reduce stresses on the subgrade” and “Reduce rutting and deflections in a flexible pavement surface.” In addition, its high permeability ensures “drainage of these layers is outstanding” and “improve the drainage under the pavement, minimizing the deterioration caused by water entrapment,” delivering a “uniform, drainable, and stable support system” that prevents settlement‑related cracking in concrete slabs. Overall, the design addresses the need for uniform bearing capacity, effective load distribution, and long‑term durability of the pavement structure. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p>The following figure illustrates why subgrade and subbase failures must be repaired to achieve uniform support.</p>
+<p><img alt="Excavated pavement section revealing subgrade and subbase fa" src="assets/aggregate-subbase-performance/4bdc20d21131632cc40b786948e242c628c8371c47720f13fcf6ce2dfb078ad2.jpg" />
+<em>Excavated pavement section revealing subgrade and subbase failure.</em> [<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p>The image displays a rectangular excavation in an asphalt road surface, exposing the underlying soil layers where the pavement structure has been removed or failed. The caption notes that such failures must be repaired to achieve uniform support, highlighting the necessity of a stable foundation layer.</p>
+<p><small>[1] — Ch. 3 (pp. 18–19); [5] — Aggregate Subbase Thickness (pp. 31–32), Benefits of Aggregate Subbase … (p. 30), INTRODUCTION (p. 8), SUMMARY (pp. 39–42), Subgrade Soil Key Factors (p. 9), Unstabilized Aggregate Subbases (pp. 12–13); [6] — Objectives (p. 62); [7] — Ch. 4 (pp. 149–302); [8] — 2. Factors Influencing Long-Li… (p. 32), 4. Pre-Paving (p. 41)</small></p>
+<p>The aggregate subbase must satisfy multiple objectives. Functionally it provides a uniform support layer and, where required, drainage to create a stable working platform for construction and service: “Provides a construction platform”, “The subgrade and subbase system should provide uniform support and drainage (where required) for the PCCP and serve as a working platform for placing the PCCP”, “stable working platform that can reduce construction delays”, “A granular support layer will also serve as a drainage system to help drain surface water away from the pavement as well as provide a cutoff layer from subsurface moisture”, and “drainage of these layers is outstanding”. Structurally it must deliver high stiffness and strength, distribute traffic loads evenly and limit settlement or rutting: “high subgrade stiffness and strength value”, “Nonuniformity can lead to stress concentrations in the PCCP, which may lead to premature failure.”, “Reduce stresses on the subgrade.”, “Reduce rutting and deflections in a flexible pavement surface.”. Durability is achieved by controlling gradation, fines content, abrasion loss and compaction density, and by resisting erosion and clogging: “Maximum particle size of no more than one third the subbase thickness”, “the maximum size of material is usually limited to 1” and preferably to ¾”.”, “Limit the amount of fines passing a 75‑μm (#200) sieve.”, “Aggregates having less than 50 percent loss in the Los Angeles abrasion test (ASTM C 131 / AASHTO T 96) are satisfactory.”, “Minimum of 100 percent of ASTM D 698 / AASHTO T 99 density. For projects that will carry large volumes of heavy traffic, the specified density should not be less than 105 percent of standard density or 98 to 100 percent of ASTM D 1557 / AASHTO T 180 density.”, “stabilized subbases are more resistant to erosion and loss of support than granular materials”. Safety is provided by rapid removal of surface water, isolation from subsurface moisture, and control of shrink‑swell, frost heave and mud‑pumping: “Safety is provided by rapid removal of surface water, isolation from subsurface moisture, control of shrink‑swell behavior, frost heave, mud‑pumping, and acting as a capillary break.” Serviceability objectives include producing the smoothest pavement surface, limiting cracking and IRI, and maintaining acceptable curl/warp for concrete slabs: “these subbase systems can produce the smoothest pavements”, “significant reduction in failure modes for cracking and IRI when aggregate subbase is used”, “provide erosion‑resistant and uniform support, a good construction platform and acceptable levels of curl/warp and frictional stresses”, “All concrete pavements should be constructed on a uniform, drainable, and stable support system.” [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p>The following figure illustrates the arrangement of subgrade, subbase, and pavement layers.</p>
+<p><img alt="Illustration of Subgrade, Subbase and Pavement Layers" src="assets/aggregate-subbase-performance/c5c890b767bfe7648e8ab32b3956141d2286b7016b064b69390df67162761242.jpg" />
+<em>Illustration of Subgrade, Subbase and Pavement Layers</em> [<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p>The figure depicts a cross-section of a pavement structure consisting of PCC Pavement overlying a granular subbase layer. This assembly rests on prepared subgrade and includes a subdrain, illustrating the system designed to provide uniform support and drainage for the pavement.</p>
+<p><small>[1] — Ch. 3 (pp. 18–19); [5] — Aggregate Subbase Thickness (pp. 31–32), Benefits of Aggregate Subbase … (p. 30), SUMMARY (pp. 39–42), Unstabilized Aggregate Subbases (pp. 12–13); [6] — Objectives (p. 62); [7] — Ch. 4 (pp. 149–302); [8] — 2. Factors Influencing Long-Li… (p. 32), 4. Pre-Paving (p. 41)</small></p>
+<h2 id="scope-and-applicability">Scope and applicability</h2>
+<p>&ldquo;Aggregate subbase performance&rdquo; is appropriate for a wide range of pavement types and project situations. The guides state that “Granular aggregate subbase is appropriate for concrete pavements that carry high traffic volumes, such as major roadways and airport runways” and that it is used “when a stable working platform and excellent drainage are required.” It is also noted as “the preferred choice when the subbase must serve as a drainage layer in addition to supporting loads,” and that “Projects that demand long‑term performance or are located in areas with shallow water tables benefit from using thicker granular base layers to reduce clogging and extend service life.”</p>
+<p>Both rigid (Portland cement concrete) and flexible (asphalt) pavements are covered: “Aggregate subbase is appropriate for both rigid (Portland cement concrete) and flexible (asphalt) pavements that are placed directly on natural subgrades where the soil is weak, highly variable, or poorly drained.” When such soils exist, “the aggregate layer provides a stable, uniformly supportive construction platform and acts as a drainage/capillary cut‑off,” and “An aggregate subbase can also improve the drainage under the pavement, minimizing the deterioration caused by water entrapment.”</p>
+<p>For low‑volume roads, the guidance notes that “a minimum of about five inches of well‑graded granular material combined with a geotextile separator yields measurable reliability gains” and that “Thicker sections are generally unnecessary for such traffic levels, although asphalt pavements may require greater thickness because they transfer approximately 20 psi to the subbase versus less than 5 psi for concrete.” Materials must satisfy “AASHTO M147 requirements (maximum particle size ≤ one‑third of the subbase thickness, &lt;15 % passing #200 sieve, plasticity index ≤6, liquid limit ≤25, Los Angeles abrasion ≤50 %, and permeability around 150 ft/day).”</p>
+<p>The approach is also suited to rehabilitation: “Aggregate subbase performance is suited to rehabilitation projects on flexible pavements where an existing failed asphalt surface and base can be reclaimed,” providing a “strong, uniform base/sub‑base for current and future loading conditions using existing failed asphalt surface and base material,” while “maintaining existing grade with minimum material removal or addition” and “reducing stresses on the subgrade” as well as “reducing rutting and deflections in a flexible pavement surface.”</p>
+<p>For concrete pavements vulnerable to settlement, it is stated that “Aggregate subbase design is appropriate for concrete pavements that are susceptible to settlement or support problems, especially where erosion resistance, uniform bearing capacity, and a stable construction platform are needed.” It is also “suitable for low‑volume roads or any project with a nonuniform natural subgrade that can be stabilized by a granular layer, particularly when moisture‑related settlement and heave must be mitigated.” Both stabilized and unstabilized options are allowed: “Both stabilized and unstabilized (granular) aggregate bases may be used; the former provides greater erosion protection but higher stiffness that can increase curling or warping stresses, while the latter offers lower stiffness at the expense of less erosion resistance.”</p>
+<p>Long‑life concrete slabs benefit as well: “Aggregate subbase design is appropriate for Portland‑cement concrete pavements—particularly long‑life concrete slabs—that require a supporting layer between the prepared subgrade and the slab to provide uniform support, load distribution, and, when needed, drainage.” The method can employ “granular subbases of compacted crushed aggregate or gravel, cement‑ or bitumen‑stabilized aggregates, or drainable configurations that combine unbound aggregates with cement or bituminous binders,” and is “especially suited to projects where the native subgrade alone cannot guarantee even stress transfer or moisture control and where heavy traffic volumes demand higher compaction densities.” Material limits are given as “fines are limited to what passes a 75 µm (#200) sieve, Los Angeles abrasion loss must be less than 50 %, maximum particle size is generally capped at one inch (preferably three‑quarters of an inch), and compaction density must reach at least the standard specified by ASTM D698/AASHTO T99, with heavy‑traffic sections targeted to 105 % of that value or 98–100 % of ASTM D1557/AASHTO T180.” [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p><small>[1] — Ch. 3 (pp. 18–19); [5] — Aggregate Subbase Thickness (pp. 31–32), Benefits of Aggregate Subbase … (p. 30), INTRODUCTION (p. 8), SUMMARY (pp. 39–42), Subgrade Soil Key Factors (p. 9), Unstabilized Aggregate Subbases (pp. 12–13); [6] — Objectives (p. 62); [7] — Ch. 4 (pp. 149–302); [8] — 2. Factors Influencing Long-Li… (p. 32), 4. Pre-Paving (p. 41)</small></p>
+<p>Across the guides, several conditions are identified where an aggregate subbase is not the preferred solution. When project budgets are constrained, &ldquo;Unfortunately, this subbase is the most expensive,&rdquo; making cheaper alternatives more attractive, especially if drainage functions can be satisfied by other means. The guides note that many pavements are successfully built on a natural subgrade without any stabilized layer: &ldquo;It is common for local street and highway pavements to be constructed from PCC supported on a natural subgrade without considering or using a subgrade stabilized treatment or support layer such as an aggregate subbase.&rdquo; In low‑volume traffic contexts, adding more than about five inches of granular material provides little structural gain; indeed, &ldquo;aggregate subbase thickness above 5 inches, do not show a significant benefit over thicker sections.&rdquo; Soil characteristics also drive the decision. Soils with high moisture, pronounced expansive or shrink‑swell behavior, or low dry density (under roughly 95 lb/ft³) undermine the performance of an unstabilized granular layer: &ldquo;Those soils that have high moisture content or high expansive/shrinkage characteristics with low density (less than 95 pounds per cubic feet) will typically require either additional soil modification and/or a stabilized base.&rdquo; In such cases, designers are urged to consider alternatives—direct pavement on a uniform, drainable subgrade, thin aggregate layers combined with geotextile separators, or fully stabilized bases—to achieve the required durability and serviceability. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates how to prevent fines from entering a granular unstabilized subbase.</p>
+<p><img alt="Comparison of pavement performance with and without geotexti" src="assets/aggregate-subbase-performance/e4120f1f2064d3730eea3d3770beffa1712ec188a50ef126cafab27100fb5d51.jpg" />
+<em>Comparison of pavement performance with and without geotextile stabilization.</em> [<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The figure illustrates the concept of separation by contrasting a stable pavement structure on the left with a distressed one on the right. In the unstabilized scenario, migration of subgrade fines into the aggregate layer creates a weakened transition zone that compromises the structural integrity of the pavement. The inclusion of a geotextile layer prevents this contamination, maintaining an effective aggregate base that provides a uniform foundation.</p>
+<p><small>[1] — Ch. 3 (pp. 18–19); [5] — Aggregate Subbase Thickness (pp. 31–32), INTRODUCTION (p. 8), SUMMARY (pp. 39–42), Subgrade Soil Key Factors (p. 9), Unstabilized Aggregate Subbases (pp. 12–13); [7] — Ch. 4 (pp. 149–302)</small></p>
+<h2 id="design-inputs-and-requirements">Design inputs and requirements</h2>
+<p>Design of an aggregate subbase must be based on site‑specific data that capture the subgrade’s stiffness and drainage, the material strengths, traffic loading, environmental moisture conditions, geotechnical profile, and any existing pavement or soil conditions. Required inputs include the in‑situ modulus of subgrade reaction (k) and drainage coefficient (Cd), the California Bearing Ratio (CBR) values for both natural subgrade and aggregate subbase, identification of any weak subgrade layer (e.g., low‑CBR zones), traffic volume and truck percentage, planned pavement thickness, age or service life considerations, and information on current soil moisture or drainage characteristics. These parameters together define the geotechnical and existing‑condition context needed to predict performance and select appropriate aggregate subbase thickness and design. [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[5] — SUMMARY (pp. 39–42)</small></p>
+<p>The design of unstabilized aggregate subbases must comply with the AASHTO M147 material requirements and state DOT specifications for modified, granular, and special backfill. Across the guides the design is governed by the Mechanistic‑Empirical Pavement Design Guide (MEPDG), which &ldquo;according to MEPDG an increase over 5 inches of aggregate subbase does not provide any additional structural support for local roads with 1000 ADT and10 percent trucks&rdquo;; consequently thickness calculations target a design life of 30–40 years and aim for CBR values near the nominal 100 for new material. </p>
+<p>Performance requirements are consistent among the sources: &ldquo;Maximum particle size of no more than one third the subbase thickness&rdquo; and &ldquo;The maximum particle size should be no more than one‑third of the base thickness&rdquo;; the nominal maximum size is generally limited to one inch, with a preferred limit of three‑quarters inch (&ldquo;the maximum size of material is usually limited to 1” and preferably to ¾”). Fines are restricted by multiple statements – &ldquo;Less than 15 percent passing through the number 200 sieve&rdquo;, &ldquo;less than 10 percent passing the No. 200 sieve&rdquo;, and &ldquo;Limit the amount of fines passing a 75‑μm (#200) sieve.&rdquo; The plasticity index must be low: &ldquo;Plasticity index of 6 or less&rdquo; (also repeated in &ldquo;maximum relative density of 70 percent, plastic index of 6 or less, and liquid limit of 25 or less&rdquo;). Liquid limits shall not exceed twenty‑five. Compaction requirements state a &ldquo;Minimum of 100 percent of ASTM D 698 / AASHTO T 99 density&rdquo;; for heavy‑traffic projects the compacted density may not be lower than 105 % of that standard or must fall between 98 % and 100 % of the density defined by ASTM D1557/AASHTO T180. Abrasion resistance is limited to &ldquo;Aggregates having less than 50 percent loss in the Los Angeles abrasion test (ASTM C 131 / AASHTO T 96) are satisfactory.&rdquo; Drainage performance is set by &ldquo;Target permeability of about 150 ft/day, but no more than 350 ft/day in laboratory tests&rdquo; and reinforced by &ldquo;A target permeability should be about 150 feet per day.&rdquo; Expected drainage coefficients are around 0.9 (as noted in the increase from 0.8 to 0.9 for aggregate subbase). </p>
+<p>Project constraints emphasize functional and constructability goals: &ldquo;Provide a strong, uniform base/subbase for current and future loading conditions&rdquo;, &ldquo;Maintain existing grade with minimum material removal or addition.&rdquo;, &ldquo;Reduce stresses on the subgrade.&rdquo;, and &ldquo;Reduce rutting and deflections in a flexible pavement surface.&rdquo; Rapid reconstruction methods that cause little traffic disruption and meet sustainability objectives are required. A geotextile interlayer (or equivalent capillary break) is specified for low‑volume roads: &ldquo;For low volume roads, the design reliability has a measurable increase with a aggregate subbase of only 5 inches and a geotextile interlayer as compared to a natural subgrade.&rdquo; [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p><small>[5] — SUMMARY (pp. 39–42), Unstabilized Aggregate Subbases (pp. 12–13); [6] — Objectives (p. 62); [7] — Ch. 4 (pp. 301–302); [8] — 2. Factors Influencing Long-Li… (p. 32)</small></p>
+<h2 id="design-methods-and-criteria">Design methods and criteria</h2>
+<p>Aggregate subbase design follows AASHTO M147 material specifications and a set of empirical criteria that govern particle size, gradation, density, plasticity, liquid limit, abrasion resistance, and permeability. The guides require the maximum aggregate particle size to be no more than one‑third of the intended subbase thickness. Fines content is limited to less than 15 % passing a #200 sieve in one source, while another source specifies less than 10 % passing the No. 200 sieve. A relative density of at least 70 % is required by one guide. Plasticity index must not exceed 6 and liquid limit must be ≤25 %; Los Angeles abrasion loss is limited to 50 %. Target permeability is about 150 ft/day (laboratory ceiling 350 ft/day). Gradation is selected to provide sufficient fines for stability rather than maximum drainage, and capillary breaks such as geotextile filters or dense‑graded aggregate layers, often combined with subdrain systems, are incorporated to maintain high drainage coefficients.</p>
+<p>Design procedures employ the Pavement ME Design tool in AASHTOWare, which implements the Mechanistic‑Empirical Pavement Design Guide (MEPDG) to simulate cracking and International Roughness Index responses for varying traffic loads and subbase thicknesses. The mechanistic‑empirical analysis indicates that increasing aggregate subbase thickness beyond roughly five inches does not provide additional structural benefit for typical local roads, so thinner sections are frequently paired with a geotextile interlayer to achieve the required drainage coefficient.</p>
+<p>Long‑term performance is forecast using a Pavement Condition Index (PCI) prediction model derived from multivariate regression of field data (16 sites). The empirical formula incorporates pavement age, drainage coefficient, CBR and k values, traffic loading, and layer thicknesses, with drainage having the largest effect on predicted PCI. [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates the relationship between pavement condition and age under a traffic volume of 1000 AADT as predicted by this model.</p>
+<p><img alt="PCI vs Age 1000 AADT, 7&quot; PCC, Prediction Model" src="assets/aggregate-subbase-performance/1defd47c6174cae283cf4579cd80d565c48a51b6606c42131442245f31dc255c.jpg" />
+<em>PCI vs Age 1000 AADT, 7&rdquo; PCC, Prediction Model</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The figure plots the Pavement Condition Index (PCI) against pavement age in years for a rigid pavement structure. It compares two distinct scenarios: one representing a pavement on aggregate subbase and another on natural subgrade, demonstrating that the subbase configuration maintains a higher PCI over time. The model indicates that using an improved drainage coefficient with the aggregate subbase results in superior long-term performance compared to the baseline configuration.</p>
+<p><small>[5] — Aggregate Subbase Thickness (pp. 31–32), SUMMARY (pp. 39–42), Unstabilized Aggregate Subbases (pp. 12–13); [7] — Ch. 4 (pp. 301–302)</small></p>
+<p>The design of an aggregate subbase must satisfy a comprehensive set of load‑attenuation, material‑property, thickness, drainage and reliability criteria that together guarantee structural performance, durability and predictable service life.  Design assumptions recognize that traffic loads are transmitted to the subbase at markedly different pressures – “a 100 psi tire load typically results in less than 5 psi to the aggregate subbase for concrete pavement” and “approximately 20 psi for the aggregate subbase for asphalt pavement” – so that flexible pavements require proportionally thicker or stronger layers.  Material specifications are governed by multiple thresholds: the maximum particle size must not exceed one‑third of the layer thickness (“Maximum particle size of no more than one third the subbase thickness”; “The maximum particle size should be no more than one-third of the base thickness…”), with an upper limit of 1 in (preferably ¾ in) for practical grading; fines are limited to less than 15 % passing #200 sieve (“Less than 15 percent passing through the number 200 sieve”) and also to “Limit the amount of fines passing a 75‑μm (#200) sieve.”  The plasticity index shall be ≤6 (“Plasticity index of 6 or less”; “plastic index of 6 or less”), liquid limit ≤25, relative density ≤70 %, and Los Angeles abrasion loss ≤50 % (“Los Angeles abrasion resistance of 50 percent or less”; “Aggregates having less than 50 percent loss in the Los Angeles abrasion test (ASTM C 131 / AASHTO T 96) are satisfactory”).</p>
+<p>Thickness criteria reflect diminishing returns beyond a modest depth: “aggregate subbase thickness above 5 inches, do not show a significant benefit over thicker sections,” yet for soils prone to migration a “placing a thicker layer of aggregate subbase (8 to 9 inches for example); this additional thickness allows for the migration of soil into the aggregate subbase.”  When a layer thinner than 6 inches is used, a separation must be provided – “place a layer less than 6 inches and provide separation between the aggregate subbase and subgrade in the form of a geotextile” – which also yields measurable reliability gains.  For low‑volume roads, “the design reliability has a measurable increase with an aggregate subbase of only 5 inches and a geotextile interlayer as compared to a natural subgrade,” delivering “an increase of 15 to 31percent … for the 40 year pavement thickness design and an increase of 8 to 23 percent … for a 30 year pavement design life.”</p>
+<p>Drainage performance is required to prevent moisture saturation of the underlying subgrade: a target permeability of about 150 ft/day (“A target permeability should be about 150 feet per day”) and an improvement in the coefficient of drainage from 0.8 to 0.9 are stipulated, while fine‑soil subgrades demand a capillary break – “a capillary break or cutoff should be placed between the aggregate base and subgrade.”</p>
+<p>Functional performance goals include providing “a strong, uniform base/subbase for current and future loading conditions,” maintaining existing roadway grade with minimal cut/fill, “reducing stresses on the subgrade,” and “reducing rutting and deflections in a flexible pavement surface.”  The subgrade‑subbase system must also “provide uniform support and drainage (where required) for the PCCP,” serve as a stable working platform during concrete placement, and avoid non‑uniformity because “Nonuniformity can lead to stress concentrations … which may lead to premature failure.”  Together these criteria, thresholds, safety margins and reliability requirements define the design envelope that an aggregate subbase must satisfy. [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p>The following figure illustrates how non-uniform subgrade conditions can lead to stress concentrations within the concrete pavement.</p>
+<p><img alt="Non-uniform Subgrade Leads to Stress Concentrations in the C" src="assets/aggregate-subbase-performance/8bb18895090a41c0a8ad76a10a20312db6eda9a9873a29b97b16f92c9aa8d103.jpg" />
+<em>Non-uniform Subgrade Leads to Stress Concentrations in the Concrete Pavement</em> [<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p>The figure depicts a cross-section of a concrete pavement resting on a subgrade composed of alternating stiff and soft soil layers. A red oval highlights the interface above the central soft layer, indicating where stress concentrations occur within the rigid slab due to differential support. This visualizes how nonuniformity in the subgrade can lead to stress concentrations in the PCCP, which may lead to premature failure.</p>
+<p><small>[5] — Aggregate Subbase Thickness (pp. 31–32), SUMMARY (pp. 39–42), Subgrade Soil Key Factors (p. 9), Unstabilized Aggregate Subbases (pp. 12–13); [6] — Objectives (p. 62); [7] — Ch. 4 (pp. 301–302); [8] — 2. Factors Influencing Long-Li… (p. 32), 4. Pre-Paving (p. 41)</small></p>
+<h2 id="structural-section-and-dimensions">Structural section and dimensions</h2>
+<p>The guides together state that dimensional guidance is limited to the subbase and related aggregate layers; no explicit thicknesses are prescribed for the pavement surface, base course, treated‑soil, slab, shoulder, edge‑support, or reinforcement layers. For low‑volume roads a subbase thickness of about five inches is sufficient, and adding more than five inches does not improve structural capacity. Current practice often places an eight‑to‑nine inch layer to accommodate soil migration, while a thinner layer of less than six inches may be used when a geotextile provides separation from the subgrade. The largest aggregate particles must not exceed one‑third of the planned subbase thickness, and the same one‑third rule applies to unstabilized aggregate bases. When macadam stone is employed, a supplemental aggregate choke layer about 1 to 1½ inches thick is commonly added on top. Additionally, the moisture‑sensitive zone should be kept at least two to three feet below the pavement surface, and a capillary break or cutoff can be provided with a dense‑graded aggregate layer about four inches thick. [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates a typical IRI failure mode identified through Pavement ME Design.</p>
+<p><img alt="IRI failure mode from Pavement ME Design" src="assets/aggregate-subbase-performance/3682ea26cd2a2e5bec68ba93df56f1d3e24f1d6e4d563e4dca54c22670e94942.jpg" />
+<em>IRI failure mode from Pavement ME Design</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The figure plots the International Roughness Index (IRI) against varying aggregate subbase thicknesses for two different traffic volumes. It demonstrates that increasing the subbase layer reduces IRI values, confirming that a well-graded granular layer provides a uniform foundation that mitigates surface deterioration. The analysis indicates that for low traffic roadways, PCC pavement systems with aggregate subbase thickness above 5 inches do not show a significant benefit over thicker sections.</p>
+<p><small>[5] — Aggregate Subbase Thickness (pp. 31–32), SUMMARY (pp. 39–42), Unstabilized Aggregate Subbases (pp. 12–13); [7] — Ch. 4 (pp. 301–302)</small></p>
+<h2 id="materials-and-mixture-design">Materials and mixture design</h2>
+<p>The guides require the aggregate‑subbase specification to identify the subbase class (granular, stabilized, or drainable) and then prescribe material limits, gradation, durability, permeability, and compaction criteria. All sources state that the largest particle must be limited relative to thickness: “Maximum particle size of no more than one third the subbase thickness” and “The maximum particle size should be no more than one‑third of the base thickness, less than 10 percent passing the No. 200 sieve”. Fines are also limited; one source requires “Less than 15 percent passing through the number 200 sieve”, another limits “Limit the amount of fines passing a 75‑μm (#200) sieve.”, and a third caps fines at “less than 10 percent passing the No. 200 sieve”. The fine fraction must be low‑plasticity: “Plasticity index of 6 or less” and “plastic index must be six or less and the liquid limit twenty‑five or less”. Durability is controlled by abrasion resistance, with “Los Angeles abrasion loss of fifty percent or less” and “Aggregates having less than 50 percent loss in the Los Angeles abrasion test (ASTM C 131 / AASHTO T 96) are satisfactory”. Permeability requirements converge on about 150 ft/day: “permeability near one‑hundred‑fifty feet per day but never above three‑hundred‑fifty feet per day in laboratory testing” and “A target permeability should be about 150 feet per day.” For unstabilized granular layers the in‑place density is limited to “maximum relative density of 70 percent”. When subgrade contains silts or clays a capillary break is required: “The capillary cutoff can consist of a filter layer such as a geotextile woven fabric or a 4‑inch plus or minus dense‑graded aggregate layer.” Compaction criteria are set by standard dry density tests: “Minimum of 100 percent of ASTM D 698 / AASHTO T 99 density. For projects that will carry large volumes of heavy traffic, the specified density should not be less than 105 percent of standard density or 98 to 100 percent of ASTM D 1557 / AASHTO T 180 density.” Acceptable materials include “Granular – compacted crushed aggregate or gravel” and may incorporate up to 50 % reclaimed asphalt pavement, with crushed stone, gravels, or recycled pavement material that satisfy IM210 requirements. Maximum particle size is also limited by absolute dimension: “the maximum size of material is usually limited to 1&rdquo; and preferably to ¾&rdquo;.” [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p><small>[5] — Unstabilized Aggregate Subbases (pp. 12–13); [7] — Ch. 4 (pp. 301–302); [8] — 2. Factors Influencing Long-Li… (p. 32), 4. Pre-Paving (p. 41)</small></p>
+<p>Materials for an aggregate subbase are selected by controlling particle size, fines content, durability indices, and compaction level so that the blend meets established performance limits. The largest aggregate shall not exceed one‑third of the planned subbase thickness, with typical maximum sizes limited to 1 in (preferably ¾ in). Fines are restricted to a small proportion; less than 15 % (or, in some specifications, less than 10 %) may pass the #200 sieve, ensuring construction stability while preserving drainage. Acceptable aggregates must exhibit low plasticity (plasticity index ≤6) and low liquid limit (≤25), and durability is verified by a Los Angeles abrasion loss not greater than 50 %. The resulting gradation should provide a permeability near 150 ft/day (not exceeding about 350 ft/day in laboratory tests) to promote rapid drainage and protect long‑term uniform support. Compaction requirements call for achieving at least the full standard density defined by ASTM D698/AASHTO T99, with heavy‑traffic designs targeting 105 % of that density or 98–100 % of the density from ASTM D1557/AASHTO T180. When a stabilized subbase is considered, its higher stiffness and superior erosion resistance must be balanced against potential increases in curling, warping, and frictional stresses; designers therefore strike a compromise between structural capacity and adverse stress effects while still meeting the same gradation, durability, permeability, and compaction criteria. [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p>The following figure illustrates a permeability test used to verify these drainage requirements.</p>
+<p><img alt="Field permeability test on pavement support layers." src="assets/aggregate-subbase-performance/3bd9808289b1d21b6ce019b9ae844642b93ff9871ad5458c4085600c56cd2f92.jpg" />
+<em>Field permeability test on pavement support layers.</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The image shows a field permeability test being conducted on the in-situ support layers of a concrete pavement site. A worker pours water from a bucket into a blue funnel inserted into a metal ring, while another person operates a hand pump connected to the apparatus.</p>
+<p><small>[5] — Unstabilized Aggregate Subbases (pp. 12–13); [7] — Ch. 4 (pp. 149–302); [8] — 2. Factors Influencing Long-Li… (p. 32)</small></p>
+<h2 id="structural-details-and-interfaces">Structural details and interfaces</h2>
+<p>Aggregate subbases do not require special joints, reinforcement, load‑transfer devices, transitions, or connections; instead the key structural provisions are a subdrain with an outlet to provide adequate drainage for Iowa soils and, when macadam stone is used, a 1‑to‑1½ inch aggregate choke layer placed on top to supply stability. If an aggregate subbase is used, a subdrain and outlet will be needed to complete the drainage system. Note that a 1 to 1½ inch aggregate choke layer is often placed on top of the macadam stone to provide stability. In order to maintain a high coefficient of drainage it is important to maintain separation between the soil and aggregate subbase which can be achieved with a geotextile interlayer between the natural subgrade and granular material. [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The figure below illustrates a typical cross-section demonstrating how an aggregate subbase is constructed with geotextile separation.</p>
+<p><img alt="Typical section with aggregate subbase and geotextile separa" src="assets/aggregate-subbase-performance/6d141fdcf4546f078ce32d0408ea109f3ee1f0fe80dc2aaf7ce47f0e16d919b3.jpg" />
+<em>Typical section with aggregate subbase and geotextile separation</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The figure displays a cross-section of pavement construction for both rural and urban environments, highlighting the placement of an aggregate subbase layer over prepared soil.</p>
+<p><small>[5] — SUMMARY (pp. 39–42), Unstabilized Aggregate Subbases (pp. 12–13)</small></p>
+<p>The interfaces are designed so that “To design the interfaces, ensure the aggregate subbase acts as a stable, uniform platform that isolates the pavement from subsurface moisture and provides drainage;” while protecting the contact with fine‑grained subgrade by installing “Interfaces between the aggregate subbase and underlying fine‑grained subgrade should be protected with a capillary break or cutoff that isolates the subbase from migrating fines; this is typically achieved using a filter layer such as a woven geotextile or a dense‑graded aggregate of about 4 inches ±.” The overall system must be prepared to give “When designing the interface between subgrade, subbase, and the Portland cement concrete pavement, the system must be prepared to give a uniformly supportive and, where needed, well‑drained platform for the concrete slab; any irregularities at these contacts can concentrate stresses in the slab and cause early failure.” Finally, effective water removal is ensured by “To provide an outlet for an aggregate base, a subdrain system should be utilized, preferably on both sides of the roadway” to provide an outlet for water that penetrates through pavement joints. [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>][<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p>The figure below illustrates the drainage outlets for a geotextile or HMA separation layer.</p>
+<p><img alt="Cross-sectional details of Unbonded Concrete Overlay on Conc" src="assets/aggregate-subbase-performance/ff2c8917d35d6887b4fbd664c34ac279a358d81b1955bbc59e31f55e9285bb16.jpg" />
+<em>Cross-sectional details of Unbonded Concrete Overlay on Concrete (UBCOC) widening, illustrating drainage outlets for geotextile or HMA separation layers.</em> [<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The figure displays two cross-sections of a pavement widening detail where an unbonded concrete overlay is placed over existing concrete pavement and a granular subbase layer. It specifically illustrates the provision for positive drainage by daylighting the separation layer through the use of nonwoven geotextile outlet to prevent cracking due to stripping.</p>
+<p><small>[5] — Aggregate Subbase Thickness (pp. 31–32), SUMMARY (pp. 39–42), Unstabilized Aggregate Subbases (pp. 12–13); [7] — Ch. 4 (pp. 301–302); [8] — 4. Pre-Paving (p. 41)</small></p>
+<h2 id="drainage-environment-and-accessibility">Drainage, environment, and accessibility</h2>
+<p>The guides agree that aggregate subbase performance hinges on providing outstanding drainage through a well‑graded granular material. As one source states, &ldquo;If designed correctly, the drainage of these layers is outstanding; it has been reported these subbase systems can produce the smoothest pavements.&rdquo; The subbase must act both as a conduit for surface water and as a moisture cutoff: &ldquo;A granular support layer will also serve as a drainage system to help drain surface water away from the pavement as well as provide a cutoff layer from subsurface moisture,&rdquo; and &ldquo;An aggregate subbase can also improve the drainage under the pavement, minimizing the deterioration caused by water entrapment.&rdquo; To ensure reliable removal of infiltrating water, the guides require a high permeability target—&ldquo;A target permeability should be about 150 feet per day&rdquo; and &ldquo;Target permeability of about 150 ft/day, but no more than 350 ft/day in laboratory tests&rdquo;—while recognizing that stability may demand finer gradation: &ldquo;It is better to design the gradation of the unstabilized aggregate subbase to include more fines for the sake of stability than to omit the fines for the sake of drainage.&rdquo; In moisture‑sensitive locations or where shallow water tables exist, &ldquo;Thicker base layers are less likely to clog and should be considered where long-term performance is needed or in regions with water tables near the surface.&rdquo; Where native soils have poor permeability, a subdrain and outlet are mandated: &ldquo;If an aggregate subbase is used, a subdrain and outlet will be needed to complete the drainage system due to the poor drainage properties of Iowa soils.&rdquo; The design also addresses climate‑related effects; the subbase &ldquo;Controls excessive or differential frost heave&rdquo; and provides &ldquo;Provides capillary cut off for high water table,&rdquo; thereby limiting saturation of the subgrade within two to three feet beneath the pavement: &ldquo;To help minimize settlement and heaves associated with moisture-related conditions, a major objective of pavement design should seek to prevent saturation or exposure to constant high moisture levels of the subgrade 2 to 3 feet underneath the pavement, including the base.&rdquo; Finally, &ldquo;Positive drainage must be provided in these types of situations,&rdquo; and all concrete pavements should rest on &ldquo;a uniform, drainable, and stable support system&rdquo; to avoid water‑trapping conditions that could cause settlement or cracking. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates how these drainage measures protect against moisture subgrade conditions.</p>
+<p><img alt="Moist subgrade conditions at a pavement edge." src="assets/aggregate-subbase-performance/fd7cbdc684d0d5804afe7245141385a333a8643390a6adf34827df52626a3b2c.jpg" />
+<em>Moist subgrade conditions at a pavement edge.</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The image shows the exposed cross-section of a concrete slab resting on an earthen foundation, where the soil appears dark and damp along the vertical face. This visualizes poor pavement with moist subgrade conditions, which can compromise the uniform support platform required for aggregate subbase performance.</p>
+<p><small>[1] — Ch. 3 (pp. 18–19); [5] — Aggregate Subbase Thickness (pp. 31–32), Benefits of Aggregate Subbase … (p. 30), INTRODUCTION (p. 8), SUMMARY (pp. 39–42), Unstabilized Aggregate Subbases (pp. 12–13); [7] — Ch. 4 (pp. 149–302)</small></p>
+<p>The aggregate subbase must be designed to preserve the roadway’s existing vertical alignment, limiting any cuts or fills, while being installed quickly enough to keep traffic flowing and reduce safety hazards associated with lane closures. It also has to deliver a strong, uniform base that can accommodate present and future loads without over‑stressing the subgrade, thereby preventing rutting and deflection that could compromise vehicle stability. Finally, the solution should minimize the use of virgin aggregates, supporting broader sustainability objectives. [<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p><small>[6] — Objectives (p. 62)</small></p>
+<h2 id="verification-and-expected-performance">Verification and expected performance</h2>
+<p>The completed aggregate subbase is verified by confirming that the fine content does not exceed the limit for material passing a 75‑μm sieve, that the aggregates meet the Los Angeles abrasion requirement of less than 50 % loss, and that compaction achieves at least the specified density. For projects with heavy traffic the compacted density must be no lower than 105 % of the standard or fall within 98–100 % of the ASTM D1557/AASHTO T180 target, while the maximum particle size should not exceed one inch and preferably three‑quarters inch. [<sup><a href="#ref-8" aria-label="Reference 8">8</a></sup>]</p>
+<p><small>[8] — 2. Factors Influencing Long-Li… (p. 32)</small></p>
+<p>Aggregate subbase performance is expected to manifest as noticeably fewer cracking failures and a smoother ride, reflected by lower International Roughness Index (IRI) values. These outcomes are quantified through mechanistic‑empirical pavement design (MEPDG) analyses that predict cracking failure modes and compute IRI for the designed section. Aggregate subbase systems are expected to deliver a noticeably higher pavement condition index over the design life, extending remaining service life and providing a more reliable level of service. These outcomes are quantified using the PCI prediction model developed from the TR‑640 field data, which relates measured parameters such as drainage coefficient, subgrade reaction modulus, CBR, traffic volume and pavement thickness to observed PCI values over time. The performance benefits are most pronounced when the aggregate subbase is provided at a thickness up to about five inches; thicker layers do not yield additional gains, allowing a relatively thin, well‑drained subbase—potentially with geotextile separation—to achieve the desired distress resistance, ride quality, and sustained PCI throughout the pavement’s design life. [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates the relationship between pavement condition index and age based on data from the IHRB TR-640 test sites.</p>
+<p><img alt="PCI vs. Age (subbase vs. subgrade)" src="assets/aggregate-subbase-performance/c8de6712403df337558e8f6c03273a398861342a7c9eceefe9eb911e647c336a.jpg" />
+<em>PCI vs. Age (subbase vs. subgrade)</em> [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The figure plots the Pavement Condition Index against age for test sites, comparing pavements with an aggregate subbase to those on natural subgrade. Pavements with an aggregate subbase are performing better than those placed on natural subgrade, as indicated by the higher PCI values and shallower decline rate of the blue trend line compared to the red. The graph illustrates that using an aggregate subbase results in a higher level of service and extends the remaining service life compared to relying solely on the underlying soil.</p>
+<p><small>[5] — Aggregate Subbase Thickness (pp. 31–32), SUMMARY (pp. 39–42)</small></p>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li><li id="ref-3"></li><li id="ref-4"></li><li id="ref-5"></li><li id="ref-6"></li><li id="ref-7"></li><li id="ref-8"></li><li id="ref-9"></li><li id="ref-10"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

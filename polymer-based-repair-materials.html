@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Polymer-Based Repair Materials</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html" class="active" aria-current="page">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Polymer-Based Repair Materials</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=polymer-based-repair-materials">polymer-based-repair-materials</a><a class="tag" href="index.html?q=concrete-pavement-restoration">concrete-pavement-restoration</a><a class="tag" href="index.html?q=quick-setting-materials">quick-setting-materials</a><a class="tag" href="index.html?q=durability-and-adaptability">durability-and-adaptability</a><a class="tag" href="index.html?q=temporary-repair-solutions">temporary-repair-solutions</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>Polymer‑based repair materials are a two‑component composite created by blending a polymer resin—such as urethane, epoxy, or polyester—with an initiator and fine aggregate to form a rapid‑setting matrix that bonds directly to existing concrete [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]. Their chief purpose is to provide an early‑strength repair layer that restores structural continuity and surface performance while enabling traffic reopening within hours, owing to an exceptionally fast cure (about ninety seconds) and, in many formulations, moisture tolerance that allows placement on wet substrates [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]. The incorporated aggregate improves thermal compatibility, supplies a wear surface, and reduces cost, while the polymer matrix delivers high flexibility and strong adhesion; because the elastic modulus and coefficient of thermal expansion are temperature‑sensitive, matching the repair’s CTE to that of the host concrete is essential to prevent shrinkage‑induced debonding [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#material-purpose-and-applicability">Material purpose and applicability</a></li><li><a href="#composition-and-characteristics">Composition and characteristics</a></li><li><a href="#key-material-properties">Key material properties</a></li><li><a href="#behavior-and-mechanisms">Behavior and mechanisms</a></li><li><a href="#durability-and-deterioration">Durability and deterioration</a></li><li><a href="#material-interactions-and-compatibility">Material interactions and compatibility</a></li><li><a href="#influence-of-production-and-placement">Influence of production and placement</a></li><li><a href="#selection-specification-and-improvement">Selection, specification, and improvement</a></li><li><a href="#performance-evaluation-and-implications">Performance evaluation and implications</a></li><li><a href="#references">References</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (5)</summary><div class="sources-body"><a href="#ref-1">2019-12_IMCP_manual</a>, <a href="#ref-2">PDR_guide_Apr2012</a>, <a href="#ref-3">concrete_pvmt_preservation_guide_3rd_edition_web</a>, <a href="#ref-4">hif13059</a>, <a href="#ref-5">preservation_reference_manual</a></div></details>
+
+<h2 id="material-purpose-and-applicability">Material purpose and applicability</h2>
+<p>Polymer‑based repair materials are a class of concrete formed by combining a polymer resin—such as urethane, epoxy, or polyester—with an initiator and fine aggregate to create a two‑component system. Polymer‑based repair materials, such as polyurethane concrete, are composed of a two‑part polyurethane resin blended with aggregate. In the pavement system they serve as an early‑strength repair layer that restores structural continuity and surface performance; the resin provides rapid setting and strong adhesion to the existing concrete, while the aggregate supplies a wear surface and thermal compatibility. They set extremely quickly—about ninety seconds—and many formulations are moisture tolerant, allowing placement on wet substrates without adverse effects. This rapid setting enables fast partial‑depth repairs that restore pavement continuity while minimizing traffic disruption. Their quick‑setting and flexible nature allows them to be placed across joints and cracks without having to reestablish the joint, enabling traffic service to be returned in hours. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[3] — Ch. 5 (pp. 102–104); [5] — Ch. 5 (p. 95)</small></p>
+<h2 id="composition-and-characteristics">Composition and characteristics</h2>
+<p>Polyurethane repair materials generally consist of a two-part polyurethane resin mixed with aggregate, and polymer‑based repair materials are formed by combining polymer resin (such as urethane, epoxy, or polyester‑styrene) with an initiator and fine aggregate. Aggregate is added to the resin to make the polymer concrete more thermally compatible with the concrete (large differences in the coefficient of thermal expansion [CTE] can cause debonding), to provide a wearing surface, and to make the mixture more economical. The dual‑component system reacts to create a polymer matrix that incorporates the aggregate, providing structural integrity and strong bonding to existing pavement. Polyurethanes are generally very quick setting (90 seconds) – &ldquo;very quick sett ing (90 seconds)&rdquo; – which enables swift repairs, while the main advantage of polymers is that they set much more quickly than most cementitious materials. Some polyurethanes claim to be moisture‑tolerant; that is, they can be placed on a wet substrate with no adverse effects – &ldquo;moisture-tolerant; that is, they can be placed on a wet substrate&rdquo; and &ldquo;Some polyurethanes claim to be moisture‑tolerant; that is, they can be placed on a wet substrate with no adverse effects.&rdquo; Certain formulations are very sensitive to temperature changes, causing the elastic modulus to vary significantly with ambient temperature, and their coefficient of thermal expansion must be compatible with the substrate to avoid debonding. Resin type influences shrinkage and flexibility: polyurethane may exhibit higher CTE and initial shrinkage, whereas polyester shows low shrinkage and greater flexibility. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates a practical application of these materials by showing the injection of polyurethane for slab stabilization.</p>
+<p><img alt="Worker applying polyurethane injection for slab stabilizatio" src="assets/polymer-based-repair-materials/2c7202c005ec3c3c1b2a46ff7a0c9ee001a55616e3ac85c06c175eafd53e6ef6.jpg" />
+<em>Worker applying polyurethane injection for slab stabilization.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>A worker in protective gear is kneeling on a concrete surface, using a small container to apply material near the edge of a pavement slab.</p>
+<p><small>[2] — Polyurethane Concrete (p. 42); [3] — Ch. 5 (pp. 103–104); [5] — Ch. 5 (p. 95)</small></p>
+<p>Polymer‑based repair materials derive their performance from the specific resin selected and how it is proportioned with aggregate and initiator. Changing the polymer family (e.g., polyester, epoxy, polyurethane) or adjusting the aggregate content can alter setting time, temperature tolerance, elastic modulus, coefficient of thermal expansion, shrinkage, and moisture sensitivity; for example, polyurethanes set quickly and are flexible but have a high CTE and notable initial shrinkage, while epoxies show a wide range of strengths and bonding conditions that depend on the mix design. Because some polymers are highly temperature‑sensitive, variations in ambient or processing temperature can cause significant changes in elastic modulus, although proper removal of unsound concrete generally prevents bond loss. Consequently, manufacturers’ recommended proportions and placement depths must be followed to achieve the intended durability and avoid issues such as delamination when later overlaid. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p><small>[3] — Ch. 5 (pp. 103–104)</small></p>
+<h2 id="key-material-properties">Key material properties</h2>
+<p>Performance of polymer‑based repair materials hinges on several key properties. Physically, a rapid cure is essential; the guides describe a &ldquo;very quick setting (90 seconds)&rdquo; and note that &ldquo;The main advantage of polymers is that they set much more quickly than most of the cementitious materials.&rdquo; Chemically, the two‑part polyurethane resin mixed with aggregate provides the base system, and moisture tolerance—&ldquo;moisture‑tolerant; that is, they can be placed on a wet substrate with no adverse effects&rdquo;—allows application over damp surfaces without loss of bond strength. Mechanically, high flexibility is advantageous; &ldquo;Polyurethanes are generally very quick setting and are very flexible.&rdquo; Sufficient elasticity helps bridge joints and cracks, but the elastic modulus may be temperature‑sensitive—&ldquo;Some polymer‑based repair materials are very sensitive to temperature changes, and consequently their elastic modulus can vary significantly depending on ambient temperature conditions.&rdquo;—and initial shrinkage can be significant. Thermally, compatibility of coefficient of thermal expansion (CTE) with existing concrete is critical; &ldquo;Differences in the CTE values between the repair material and the existing concrete may lead to failures of the repair due to stresses resulting from the thermal expansion of the epoxy material,&rdquo; while some polymer types remain usable over a broad temperature range (&ldquo;approximately 40 °F to 130 °F&rdquo;). Together, these physical, chemical, mechanical, and thermal attributes determine durability and suitability of polymer‑based repairs. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[2] — Polyurethane Concrete (p. 42); [3] — Ch. 5 (pp. 103–104); [5] — Ch. 5 (p. 95)</small></p>
+<p>Polymer‑based repair materials are characterized through a set of measurable performance traits. Setting speed is quantified as the elapsed time to achieve full cure, which is typically reported as about ninety seconds (quick sett ing (90 seconds); very quick setting (90 seconds)). Moisture tolerance is evaluated by applying the mix to a wet substrate and confirming that bond strength and durability are not compromised; materials meeting this criterion are classified as moisture‑tolerant (moisture-tolerant; that is, they can be placed on a wet substrate). Mechanical response is characterized through laboratory tests of elastic modulus, which &ldquo;can vary significantly depending on ambient temperature conditions,&rdquo; and by measuring the coefficient of thermal expansion to compare with the existing pavement—&ldquo;Differences in the CTE values between the repair material and the existing concrete may lead to failures…&rdquo;. Post‑cure dimensional behavior is assessed for shrinkage or flexibility, noting that &ldquo;These more flexible repair materials generally do not crack.&rdquo; Bond performance is further characterized by strength and adhesive capability tests to ensure adequate bonding (Strength and adhesive capability are also assessed to ensure adequate bonding). Across the guides, the formulation is consistently described as a two‑part polyurethane resin mixed with aggregate (two-part polyurethane resin mixed with aggregate; Polyurethane-based repair materials generally consist of a two-part polyurethane resin mixed with aggregate), providing the basis for these property evaluations. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[2] — Polyurethane Concrete (p. 42); [3] — Ch. 5 (pp. 103–104); [5] — Ch. 5 (p. 95)</small></p>
+<h2 id="behavior-and-mechanisms">Behavior and mechanisms</h2>
+<p>The guides describe polymer‑based repair materials as quick‑setting composites that bond well to existing concrete. Polyurethane formulations set extremely fast—about ninety seconds—and are noted for rapid hardening, while other polymer mixes also cure quickly. Their behavior under service conditions is governed by the type of polymer. Flexible polyurethane systems exhibit high flexibility and generally do not crack under load, allowing placement across joints without re‑establishing the joint; however, they possess a high coefficient of thermal expansion, show initial shrinkage, and many types are intolerant of moisture. In contrast, some polyurethane formulations are described as moisture‑tolerant and can be applied to a wet substrate without detrimental effects. Epoxy‑based systems are characterized as impermeable with excellent adhesive properties, but they require compatibility of coefficient of thermal expansion with the substrate to avoid thermal‑stress cracking. Temperature changes affect the elastic modulus of polymer‑based repairs; the guides note that the modulus can vary significantly with ambient temperature, although this does not normally impair bond when unsound concrete is removed before placement. Differential expansion or moisture sensitivity in overlay applications may lead to delamination. The sources do not provide information on performance under chemical exposure or other long‑term service conditions. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[3] — Ch. 5 (pp. 103–104); [5] — Ch. 5 (p. 95)</small></p>
+<p>The behavior of polymer‑based repair materials is controlled by intertwined chemical, physical, and mechanical mechanisms. Chemically, the systems are built from a <strong>two-part polyurethane resin</strong> combined with an initiator; the rapid cure that occurs when the resin reacts—often within about <strong>quick setting (90 seconds)</strong>—sets the matrix and determines ultimate strength. Physically, the cured polymer exhibits temperature‑dependent elasticity and a coefficient of thermal expansion (CTE) that is typically higher than that of concrete; ambient temperature changes can cause significant variations in elastic modulus and generate thermal stresses that may debond the repair if CTE mismatch is large (<strong>Some polymer-based repair materials are very sensitive to temperature changes, and consequently their elastic modulus can vary significantly depending on ambient temperature conditions.</strong>, <strong>Differences in the CTE values between the repair material and the existing concrete may lead to failures of the repair due to stresses resulting from the thermal expansion of the epoxy material.</strong>). The resin‑aggregate mix also introduces shrinkage during cure; high CTE contributes to initial shrinkage (<strong>Polyurethanes are generally very quick setting and are very flexible. They also often exhibit, however, a high CTE and significant initial shrinkage, and many types are intolerant of moisture.</strong>). Mechanically, the inclusion of aggregate provides load‑bearing capacity and stiffness, while the polymer matrix imparts flexibility or rigidity depending on formulation; this interaction governs adhesion, crack resistance, and durability (<strong>Polymer-based concretes are formed by combining polymer resin (molecules of a single family or several similar families linked into molecular chains), aggregate, and an initiator.</strong>). Moisture tolerance is another chemical‑physical attribute of certain formulations, allowing placement on wet substrates without adverse effects (<strong>moisture-tolerant</strong>). Together, these mechanisms—rapid polymerization chemistry, thermal‑expansion behavior, shrinkage, moisture sensitivity, and aggregate‑driven mechanical strength—govern the performance of polymer‑based repair materials. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[3] — Ch. 5 (pp. 103–104); [5] — Ch. 5 (p. 95)</small></p>
+<h2 id="durability-and-deterioration">Durability and deterioration</h2>
+<p>Polymer‑based repair concretes are vulnerable to durability concerns primarily linked to thermal and moisture effects. Their elastic modulus can shift markedly with ambient temperature, and the high coefficient of thermal expansion often creates differential stresses that can lead to cracking or delamination, especially when a thin overlay is later placed. Additionally, many formulations show significant initial shrinkage and are intolerant of moisture, increasing the risk of bond loss if placement conditions are not carefully managed. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p><small>[3] — Ch. 5 (pp. 103–104)</small></p>
+<p>Polymer‑based repair materials become more prone to deterioration when they exhibit mismatched thermal properties or are exposed to adverse moisture and temperature conditions. &ldquo;Some polymer-based repair materials are very sensitive to temperature changes, and consequently their elastic modulus can vary significantly depending on ambient temperature conditions.&rdquo; Likewise, &ldquo;Differences in the CTE values between the repair material and the existing concrete may lead to failures of the repair due to stresses resulting from the thermal expansion of the epoxy material.&rdquo; Certain polyurethane systems also present intrinsic challenges: &ldquo;Polyurethanes &hellip; often exhibit, however, a high CTE and significant initial shrinkage, and many types are intolerant of moisture.&rdquo; In addition, thin overlay placements can exacerbate failure mechanisms: &ldquo;It should be noted that the placement of thin overlays (with either asphalt or concrete) over areas repaired using polymer-based repair materials may cause delamination issues.&rdquo; </p>
+<p>Conversely, susceptibility is reduced by selecting compatible formulations and employing construction practices that mitigate exposure stresses. Using products whose CTE aligns with the substrate, removing all unsound concrete before placement, and opting for materials that perform over a broad temperature range (e.g., polyester concretes) lower thermal‑induced stress. Moisture‑tolerant polyurethane options further improve durability: &ldquo;Some polyurethanes claim to be moisture-tolerant; that is, they can be placed on a wet substrate with no adverse effects.&rdquo; The inherently rapid set time of these systems also limits the window of vulnerability: &ldquo;Polyurethanes are generally very quick setting (90 seconds).&rdquo; Avoiding thin overlays over repaired sections further reduces the risk of delamination. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[3] — Ch. 5 (pp. 103–104); [5] — Ch. 5 (p. 95)</small></p>
+<h2 id="material-interactions-and-compatibility">Material interactions and compatibility</h2>
+<p>The polymer‑based repair materials are supplied as a two‑part polyurethane resin that is blended directly with the selected aggregate, creating a physical rather than chemical bond between matrix and particles. This formulation produces an extremely rapid set—on the order of seconds—which limits any prolonged reaction with surrounding cementitious material. Certain formulations are engineered to be moisture tolerant, allowing placement onto a wet substrate without loss of adhesion. Interaction with the existing concrete relies on proper surface preparation; removal of all unsound concrete is required before application so that the polymer can bond directly to the sound cement matrix. Because the resin and aggregate have their own coefficient of thermal expansion (CTE), aggregates are chosen to bring the composite CTE closer to that of the host concrete, preventing stress‑induced debonding that can arise from large CTE mismatches. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[2] — Polyurethane Concrete (p. 42); [3] — Ch. 5 (pp. 103–104); [5] — Ch. 5 (p. 95)</small></p>
+<p>Polymer‑based repair materials can be vulnerable to compatibility problems when the resin’s coefficient of thermal expansion (CTE) does not match that of the existing concrete, because CTE differences generate stresses that may cause failure, and polyurethane systems in particular show a high CTE together with significant initial shrinkage. Many polymer formulations are also moisture‑intolerant, so excess water or wet placement conditions can impair setting and bond quality. Finally, applying thin asphalt or concrete overlays over a polymer‑repaired area often leads to delamination, indicating that the repaired zone is not compatible with subsequent dissimilar surface layers. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p><small>[3] — Ch. 5 (pp. 103–104)</small></p>
+<h2 id="influence-of-production-and-placement">Influence of production and placement</h2>
+<p>Polymer‑based repair mixes, such as polyurethane systems, are produced by blending a two‑part resin with aggregate. Because the chemistry sets in roughly ninety seconds, the material must be placed promptly and compacted within that window to develop full strength. Moisture‑tolerant formulations allow placement on a wet substrate without adverse effects; some products explicitly market this capability. Prior to placement, all unsound concrete must be removed, and for deeper repairs the guides recommend building the repair in multiple lifts to limit heat buildup during cure. Temperature control is critical: many polymer mixes exhibit significant changes in elastic modulus with ambient temperature, so maintaining the recommended range and respecting thermal‑expansion compatibility helps prevent bond failures or stress cracking. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates the concrete placement process for a Type 1 repair using waxed cardboard.</p>
+<p><img alt="Concrete placement for Type 1 repair using waxed cardboard" src="assets/polymer-based-repair-materials/49de6621b4aed10f53e676f0fbcc951e1ff04e5e7695102836caebaa0af85752.jpg" />
+<em>Concrete placement for Type 1 repair using waxed cardboard</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The image shows a worker placing wet concrete into a square area defined by temporary wooden formwork on an existing surface.</p>
+<p><small>[2] — Polyurethane Concrete (p. 42); [3] — Ch. 5 (pp. 103–104); [5] — Ch. 5 (p. 95)</small></p>
+<p>The most critical construction‑related factors that govern the long‑term performance of polymer‑based repairs are proper substrate preparation and thermal compatibility. If any unsound concrete remains, the bond can deteriorate despite the material’s temperature‑sensitive modulus; likewise, a mismatch between the repair’s coefficient of thermal expansion and that of the existing pavement generates stresses that can cause cracking or delamination, especially for epoxy and polyurethane systems that have high CTE and initial shrinkage. Moisture intolerance of many polyurethanes further compromises durability when placement occurs in wet conditions, and oversized or deep repairs—particularly those later covered by thin overlays—are prone to delamination. Consequently, careful removal of deteriorated concrete, control of repair size, avoidance of moisture during placement, and consideration of future overlay plans are essential to preserve the material’s longevity. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The following figure illustrates full-depth repair recommendations for continuously reinforced concrete pavement that align with these critical preparation and compatibility requirements.</p>
+<p><img alt="Full-depth repair recommendations for a Continuously Reinfor" src="assets/polymer-based-repair-materials/b71f0c37afa2f79fd5d478bb843671d760fe615a15f69f07f3d3f9107595ad01.jpg" />
+<em>Full-depth repair recommendations for a Continuously Reinforced Concrete Pavement (CRCP).</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure illustrates the geometric layout of full-depth repairs on a CRCP, specifying that cracks should be replaced as a single area with dimensions defined by parameters &lsquo;a&rsquo; and &lsquo;b&rsquo;. It indicates that for multiple-lane considerations involving wide cracks or ruptured steel, special repair protocols are necessary to prevent blowups in adjacent lanes. The diagram visually demonstrates how polymer-based repair materials are applied to restore structural continuity and surface performance by filling these specific distress areas.</p>
+<p><small>[3] — Ch. 5 (pp. 103–104)</small></p>
+<h2 id="selection-specification-and-improvement">Selection, specification, and improvement</h2>
+<p>Selection of polymer‑based repair materials is guided by a set of performance and compatibility criteria that span composition, setting speed, environmental tolerance, dimensional stability, temperature range, intended future use, and strict adherence to manufacturer specifications.  The guides note that the typical system consists of a two‑part polyurethane resin combined with aggregate, a formulation prized for its very quick setting—about ninety seconds—and its moisture‑tolerant nature, allowing placement on wet substrates.  A primary consideration is rapid‑setting capability; as one source states, “When choosing a polymer‑based repair material, the primary consideration is its rapid‑setting capability, which enables the pavement to be reopened to traffic as soon as possible after repair.”  This rapid cure also supports early traffic opening, a recurring advantage highlighted across the sources.  Compatibility of the resin’s coefficient of thermal expansion (CTE) with that of the existing concrete must be verified to avoid stress‑induced cracking: “ensure the resin’s thermal expansion matches that of the existing concrete.”  The material must perform within the ambient temperature conditions expected on site; polyester concretes, for example, are valued for placement over a broad surface‑temperature window (approximately 40 °F to 130 °F).  Future pavement use influences selection—polymer repairs are generally discouraged where a thin overlay is planned and manufacturers’ depth‑and‑size limits should be observed to prevent premature failure.  Finally, the guides stress that “Equally important is strict compliance with the manufacturer’s instructions and specifications, because performance depends on following the prescribed mixing, placement, and curing procedures.” [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[2] — Polyurethane Concrete (p. 42); [3] — Ch. 5 (pp. 103–104), Ch. 8 (p. 191); [5] — Ch. 5 (p. 95)</small></p>
+<p>The guides advise that polymer‑based repairs are based on a two‑part polyurethane resin mixed with aggregate, which yields an extremely rapid set time of about ninety seconds. Selecting moisture‑tolerant blends allows placement on wet substrates without loss of bond strength. Proper quality control includes maintaining the correct resin‑to‑aggregate ratio to achieve the uniform quick setting. Adding suitably graded aggregate improves thermal compatibility by reducing coefficient of thermal expansion mismatches, thereby preventing debonding. Thorough removal of all unsound concrete before placement is required for a reliable bond. Limiting repair depth and overall size in accordance with manufacturer limits helps control shrinkage stresses and temperature‑induced modulus changes. When future overlays are anticipated, the guides suggest considering alternative rapid‑setting cements such as calcium sulfoaluminate (CSA), which provide low shrinkage, high sulfate resistance, and rapid strength gain. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p>The following figure illustrates the proper placement of grout at the edge of a partial-depth repair.</p>
+<p><img alt="Placement of grout at edge of partial-depth repair" src="assets/polymer-based-repair-materials/3b9e29f174ffab04c727733be5598fc7af05a4ee3c89b50d52fc1fb555503053.jpg" />
+<em>Placement of grout at edge of partial-depth repair</em> [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>]</p>
+<p>The figure shows workers using hand tools to place and smooth a material into the prepared edges of a concrete surface.</p>
+<p><small>[2] — Polyurethane Concrete (p. 42); [3] — Ch. 5 (pp. 103–104); [5] — Ch. 5 (p. 95)</small></p>
+<h2 id="performance-evaluation-and-implications">Performance evaluation and implications</h2>
+<p>The guides indicate that performance evaluation of polymer‑based repair materials draws on three complementary sources. Laboratory evidence comes from “controlled laboratory tests as well as on‑site field trials to gauge strength development, durability, and service life,” documented in recent investigations (e.g., Burnham et al. 2016; Ram et al. 2019; Falls 2019; Ramsey et al. 2020). Field evidence is provided by the accumulated experience of applying these materials in pavement distress repairs, which have been “used for several years with variable results,” offering real‑world proof of durability and effectiveness. Long‑term performance insight is inferred from this multi‑year field application, even though specific long‑term monitoring protocols are not detailed in the excerpts. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p><small>[2] — Polyurethane Concrete (p. 42); [3] — Ch. 5 (pp. 102–103)</small></p>
+<p>The guides note that &ldquo;Polyurethane repair materials are formulated as a two‑part resin combined with aggregate, which gives them an exceptionally rapid cure—about ninety seconds—allowing pavement cracks and joints to be sealed almost immediately after placement.&rdquo; This rapid cure, together with the statement that &ldquo;Polymer‑based repair materials accelerate construction because they set much more quickly than most of the cementitious materials, enabling traffic to be opened in just a few hours after placement,&rdquo; shortens construction schedules and reduces traffic disruption. Moisture tolerance is highlighted by &ldquo;Their ability to tolerate moisture means they can be applied over damp substrates without compromising the bond, expanding their use in wet conditions and reducing the need for extensive surface drying before repair.&rdquo; However, performance variability is reported: &ldquo;long‑term performance has been reported as variable, indicating that durability depends on specific product formulations and site conditions,&rdquo; and &ldquo;the variable performance reported in practice indicates that long‑term durability may still depend on site-specific factors and proper application techniques.&rdquo; Temperature sensitivity influences structural behavior, as expressed by &ldquo;Some polymer-based repair materials are very sensitive to temperature changes, and consequently their elastic modulus can vary significantly depending on ambient temperature conditions.&rdquo; Compatibility of thermal expansion is also critical: &ldquo;Differences in the CTE values between the repair material and the existing concrete may lead&hellip; failures of the repair due to stresses resulting from the thermal expansion of the epoxy material.&rdquo; Finally, successful application hinges on workmanship: &ldquo;It is critical that all manufacturer’s instructions be followed when working with these proprietary materials (ACPA 2006).&rdquo; [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[2] — Polyurethane Concrete (p. 42); [3] — Ch. 5 (pp. 103–104), Ch. 8 (p. 191); [5] — Ch. 5 (p. 95)</small></p>
+<h2 id="references">References</h2>
+<ol start="2">
+<li><a id="ref-2"></a>PDR_guide_Apr2012 · <code>PDR_guide_Apr2012</code></li>
+<li><a id="ref-3"></a>Concrete Pavement Preservation Guide (Third Edition) · <code>concrete_pvmt_preservation_guide_3rd_edition_web</code></li>
+<li><a id="ref-5"></a>Concrete Pavement Preservation Workshop · <code>preservation_reference_manual</code></li>
+</ol>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li><li id="ref-3"></li><li id="ref-4"></li><li id="ref-5"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Field Evaluation Report Preparation</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html" class="active" aria-current="page">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Field Evaluation Report Preparation</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=pavement-evaluation">pavement-evaluation</a><a class="tag" href="index.html?q=desktop-study">desktop-study</a><a class="tag" href="index.html?q=historical-records">historical-records</a><a class="tag" href="index.html?q=field-evaluation-report">field-evaluation-report</a><a class="tag" href="index.html?q=traffic-control-arrangements">traffic-control-arrangements</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>Field Evaluation Report Preparation is the process of consolidating and interpreting all existing roadway information—including design and construction documents, material test results, maintenance histories, traffic data, climate studies, and direct site observations—to create a factual baseline for assessing an existing asphalt or concrete pavement system [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]. It combines a visual inspection that records distress, surface roughness, friction, shoulder condition and drainage problems with material sampling, utility‑depth checks, and nondestructive measurements such as LiDAR profiling, roughness surveys, and intensified deflection testing when moisture or roughness cues indicate deeper issues [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]. The final report segments the corridor into sections sharing uniform structural and functional characteristics, identifies critical non‑pavement constraints (e.g., geometry, bridges, ADA requirements), evaluates remaining structural capacity against original design loads, and supplies the definitive data set that guides scoping, design alternatives, and preservation or rehabilitation strategies [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-investigation-objectives">Purpose and investigation objectives</a></li><li><a href="#scope-and-applicability">Scope and applicability</a></li><li><a href="#existing-information-and-records">Existing information and records</a></li><li><a href="#visual-inspection-and-condition-assessment">Visual inspection and condition assessment</a></li><li><a href="#field-measurements-and-testing">Field measurements and testing</a></li><li><a href="#structural-and-functional-performance">Structural and functional performance</a></li><li><a href="#data-interpretation-and-diagnosis">Data interpretation and diagnosis</a></li><li><a href="#findings-confidence-and-next-actions">Findings, confidence, and next actions</a></li><li><a href="#references">References</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (7)</summary><div class="sources-body"><a href="#ref-1">2019-12_IMCP_manual</a>, <a href="#ref-2">Guide_to_FDR_with_Cement_Jan_2019_reprint</a>, <a href="#ref-3">concrete_pvmt_preservation_guide_3rd_edition_web</a>, <a href="#ref-4">guide_to_concrete_overlays_4th_Ed_web</a>, <a href="#ref-5">optimum_joint_performance_guide_web</a>, <a href="#ref-6">overlays_parking_lots_guide_2nd_ed_web</a>, <a href="#ref-7">preservation_reference_manual</a></div></details>
+
+<h2 id="purpose-and-investigation-objectives">Purpose and investigation objectives</h2>
+<p>The investigation evaluates the existing pavement system—whether asphalt or concrete—including its surface condition, structural capacity, layer thicknesses and subgrade characteristics, together with site‑specific factors such as drainage adequacy, utility depths, corridor geometry, shoulder integrity, right‑of‑way constraints, bridges, ramps, ADA requirements and prevailing traffic patterns. It must answer whether drainage issues exist, how deep utilities are, what the overall condition of the pavement is along the corridor, whether the geometric design meets standards, what traffic levels have been experienced versus original design loads, which traffic‑control alternatives are viable during construction, what types and severities of distress (cracking, corner breaks, roughness, friction loss) are present, how moisture or pumping problems indicate subsurface drainage conditions, what the original design specifications and construction details were, and what caused any observed pavement failure so that appropriate treatment alternatives can be selected. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates the systematic process used to evaluate such conditions.</p>
+<p><img alt="Flowchart of a pavement condition assessment for an asphalt" src="assets/field-evaluation-report-preparation/3c30a842683c2a669c729f739cfa46bac9a4dcfd711ebdb8eb5043e188b94250.jpg" />
+<em>Flowchart of a pavement condition assessment for an asphalt parking lot</em> [<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>]</p>
+<p>The figure illustrates a three-step workflow for evaluating existing pavement systems, beginning with the review of historical records and data collection.</p>
+<p><small>[2] — Ch. 3 (p. 38); [3] — Ch. 3 (pp. 40–42); [4] — Ch. 1 (p. 24); [5] — 2 Types and Mechanisms of Join… (p. 18); [6] — Step 1. Review Historical Reco… (p. 16); [7] — Ch. 3 (pp. 34–40)</small></p>
+<p>The field evaluation report consolidates the full spectrum of existing‑roadway information—historical design and construction documents, material and subgrade test results, maintenance histories, traffic measurements, climate studies, and direct site observations. By translating observations such as drainage deficiencies, utility depth locations, pavement condition ratings, geometric alignment and traffic volumes into actionable data that guide the scoping and design phases, engineers obtain a factual baseline for segmenting the corridor into sections with uniform structural and functional characteristics. The compiled historical design details, construction practices, and operational maintenance records—such as foundation system characteristics, drainage provisions, design life expectations, mixture proportions, equipment used, compaction quality, pavement age, salting regimes, joint sealing history, and observed condition data—enable verification of whether the existing pavement meets its intended performance criteria and highlight deficiencies that may require redesign or targeted rehabilitation. The report also identifies all critical non‑pavement factors that could impact treatment selection, including shoulder condition, ditches, right‑of‑way, geometrics, bridges, ramps, ADA requirements, and traffic patterns. Quantified distress types, surface roughness, friction, moisture problems, and drainage observations provide the basis for prioritizing maintenance actions, justifying rehabilitation scopes, selecting cost‑effective preservation or overlay treatments, and supporting cost‑feasibility studies. Consequently, the findings serve planners, designers, and asset managers as the definitive data set for planning new construction, defining design parameters, scheduling routine maintenance, and formulating long‑term rehabilitation strategies. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates the distinctions between these treatment strategies by defining pavement preservation, rehabilitation, and reconstruction.</p>
+<p><img alt="Schematic representation of pavement condition over time ill" src="assets/field-evaluation-report-preparation/216e9e9c8b068da74e83e0e5678066b8bbb5a2e0027be7699738460c53664e67.jpg" />
+<em>Schematic representation of pavement condition over time illustrating the timing and scope of preventive maintenance, rehabilitation, reconstruction, and corrective maintenance.</em> [<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The figure displays a graph plotting Pavement Condition on the vertical axis against Time on the horizontal axis, showing a curve that declines from Good to Poor condition over time. Shaded regions and arrows indicate specific intervention windows: Preventive Maintenance occurs early in the pavement&rsquo;s life while conditions are still good, Rehabilitation is applied as deterioration accelerates, and Reconstruction addresses the pavement when it has reached a poor state.</p>
+<p><small>[2] — Ch. 3 (p. 38); [3] — Ch. 3 (pp. 40–42); [4] — Ch. 1 (p. 24); [5] — 2 Types and Mechanisms of Join… (p. 18); [6] — Step 1. Review Historical Reco… (p. 16), Step 3. Complete a Pavement Ev… (p. 19); [7] — Ch. 3 (pp. 30–36)</small></p>
+<h2 id="scope-and-applicability">Scope and applicability</h2>
+<p>The guides agree that a Field Evaluation Report is appropriate when the project involves existing asphalt pavements or concrete pavements and their underlying layers, requiring a visual assessment combined with material sampling of the existing asphalt pavement and underlying materials. It should be prepared where pavement information such as distress, surface roughness, surface friction, shoulder conditions, and moisture/drainage problems should be gathered, including observable distresses like surface cracking, loss of friction, deteriorated shoulder conditions, and moisture‑related issues (e.g., pumping, corner breaks, standing water). The preparation is also warranted under site factors such as drainage issues, utility depths, overall corridor geometry, traffic volumes, and any observed pavement failures. Additionally, an initial assessment of traffic control constraints, obstructions, right‑of‑way zones, the presence of bridges and other structures, ADA compliance considerations, and general safety concerns should be made during this visit. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates an example of a project strip chart used to document these field evaluation details.</p>
+<p><img alt="Example of a project strip chart showing concrete slab crack" src="assets/field-evaluation-report-preparation/f2a15153a76d77156c49f257ad7e26b5a50f2417455935006af862a9ce86041e.jpg" />
+<em>Example of a project strip chart showing concrete slab cracking severity and roughness.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays a project strip chart that plots the percentage of cracked slabs by severity level against distance along the pavement section, while also overlaying an International Roughness Index (IRI) curve. The chart segments the corridor into areas with different drainage and traffic conditions to summarize distress survey results for a project. This visualization consolidates pavement condition data to provide insight into overall performance, which serves as factual baseline information for assessing an existing concrete pavement system.</p>
+<p><small>[2] — Ch. 3 (p. 38); [3] — Ch. 3 (pp. 40–41); [7] — Ch. 3 (p. 34)</small></p>
+<p>The preparation of a field evaluation report is constrained by several inherent limitations. First, it depends heavily on historical pavement loading records; however, past pavement loading data can be difficult to obtain and may have questionable accuracy, and Complete historical information on the project is desirable, although it may not always be available. Second, the initial site visit yields only subjective information on distress, road roughness, surface friction, shoulder conditions, and moisture/drainage problems, which cannot fully quantify severity or underlying causes. When these gaps arise—such as missing loading histories, incomplete archives, or limited visual insight—the desktop assessment cannot reliably estimate remaining structural capacity. Additionally, traffic‑control restrictions on high‑volume corridors often limit the crew’s ability to conduct detailed inspections, forcing reliance on rapid surveys rather than comprehensive pavement examinations. Under such circumstances, complementary investigations become necessary: Observations of moisture/drainage problems (e.g., pumping, corner breaks, standing water, and so on) may indicate the need for a more intensive deflection testing program or a more thorough investigation of subsurface drainage conditions. Roughness anomalies that suggest differential sag or swell likewise warrant a rigorous measurement program. Employing these supplemental methods restores confidence in the condition assessment and supports appropriate preservation treatment selection. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates how center slab deflection varies along a project when normalized to a standard loading, demonstrating the type of supplemental data used to address assessment gaps.</p>
+<p><img alt="Center slab deflection variation along a project normalized" src="assets/field-evaluation-report-preparation/b2bc2d59ea7ec17f84f0fb15c2b1ce115449f6e6c48e7505c8e0c0deada6d6d8.jpg" />
+<em>Center slab deflection variation along a project normalized to a 9,000 lbf loading.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure plots the normalized maximum deflection in mils against the distance along the roadway in feet for a concrete pavement section. Deflections are referenced directly to project stationing so that they can be related to distress, drainage, materials, and subgrade surveys. This data is used to identify subsections within the project where adverse conditions may exist and to assess structural condition.</p>
+<p><small>[3] — Ch. 3 (pp. 40–46); [7] — Ch. 3 (p. 34)</small></p>
+<h2 id="existing-information-and-records">Existing information and records</h2>
+<p>The desktop study should begin by assembling all historical documentation for the segment. This includes the original Design reports and the associated Construction plans/specifications (new and rehabilitation) that describe pavement type, layer thicknesses, subgrade conditions, and any later widening or reconstruction work. Laboratory test results and published material‑soil property reports are consulted to understand the foundation system and aggregate gradation. Past performance is captured through Past pavement condition surveys, nondestructive testing and/or destructive sampling investigations, which provide structural and functional ratings as well as distress histories. Maintenance and repair histories—including joint sealing, salting practices, and previous preservation treatments—are reviewed to identify trends in service life. Traffic loading is evaluated using the segment’s traffic information—historical volumes, forecasts, and any measured axle loads—to define current and future stresses on the pavement. In addition, the agency’s pavement‑management system is accessed for condition segmentation data and performance metrics, while satellite or UAV imagery and right‑of‑way videos are used as supplemental “windshield” surveys before field work. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p><small>[2] — Ch. 3 (p. 38); [3] — Ch. 3 (pp. 40–42); [5] — 2 Types and Mechanisms of Join… (p. 18); [6] — Step 1. Review Historical Reco… (p. 16); [7] — Ch. 3 (pp. 34–40)</small></p>
+<p>Because desktop studies frequently lack current information, the field evaluation must close gaps concerning how water drains from the roadway, the exact depth and location of buried utilities, the true condition of the asphalt and underlying layers along the entire corridor, the as‑built geometric profile, present traffic volumes, and the feasibility of construction‑phase traffic control. Historical documentation often lacks complete traffic‑loading histories, and the load data that do exist are frequently difficult to locate and of uncertain accuracy, creating doubt about cumulative pavement stress. Design reports, construction specifications, material test results, condition surveys, maintenance logs, and climate or management records may be missing, outdated, or inconsistent, requiring on‑site verification to confirm section boundaries, current structural capacity, and actual performance against original design assumptions. The existing desktop sources—satellite imagery, video logs, and pavement management system data—also fail to provide current, site‑specific details on distress types, surface roughness values, friction levels, shoulder conditions, and moisture or drainage problems. Field investigators must directly observe distress, measure roughness and friction, assess shoulder and drainage conditions, and identify issues such as pumping, corner breaks, standing water, or other drainage deficiencies that may trigger more intensive deflection testing or subsurface studies. Historical records only provide past project information, leaving uncertainty about the current state of the pavement and any recent or ongoing maintenance actions; therefore gaps concerning actual surface distress, condition classifications, and the influence of recent repairs must be resolved through a visual on‑site survey with input from the local maintenance engineer. Missing design details such as the foundation system, aggregate gradation, drainage layout, intended design life, and specified mixture parameters must be clarified. Gaps in construction records—including weather conditions at time of work, the state of the foundation, compaction quality, equipment used, actual on‑site water additions, and any problems recorded during construction—require field investigation. Uncertainties about operation and maintenance—pavement age, salting practices, joint sealing and sealant upkeep, past structural and functional condition surveys, and drainage conditions—must be addressed on site. Absent or incomplete original design data, subgrade/subbase information, and prior laboratory test results also need verification through inspection. Insufficient traffic information and a lack of previous distress survey data are additional record deficiencies that field work must resolve. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates how deflection varies along a project to help resolve uncertainties about structural capacity and performance.</p>
+<p><img alt="Plot of normalized maximum pavement deflection versus distan" src="assets/field-evaluation-report-preparation/b5de60a7200e90ab116645195abece233ce30b1ce97a7bb9ca4a8eedee9d5a34.jpg" />
+<em>Plot of normalized maximum pavement deflection versus distance along the roadway.</em> [<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The figure displays a line graph plotting normalized maximum deflection against the distance along the roadway, illustrating how surface deformation varies spatially across the project. This data is used to assess the uniformity of support conditions and identify subsections within a project where distress or poor moisture conditions may be affecting the pavement structure. By referencing deflection measurements directly to stationing, engineers can relate these variations to material and subgrade surveys, which is a critical step in consolidating roadway information for field evaluation.</p>
+<p><small>[2] — Ch. 3 (p. 38); [3] — Ch. 3 (pp. 40–46); [4] — Ch. 1 (p. 24); [5] — 2 Types and Mechanisms of Join… (p. 18); [6] — Step 1. Review Historical Reco… (p. 16); [7] — Ch. 3 (p. 40)</small></p>
+<h2 id="visual-inspection-and-condition-assessment">Visual inspection and condition assessment</h2>
+<p>The field evaluation should include a visual inspection that looks for drainage problems and assesses the overall pavement condition along the entire corridor. Inspectors record all visible pavement distress, including overall surface roughness and loss of friction, as well as the condition of shoulders. General distress such as cracking or faulting is noted, and roughness that may indicate differential sag or swell is documented. Moisture‑related and drainage issues receive particular attention; observations of pumping, corner breaks, standing water, or other drainage deficiencies are recorded because they often trigger more detailed testing. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates how adding a longitudinal edgedrain can resolve drainage deficiencies by improving granular base drainability.</p>
+<p><img alt="Schematic of a longitudinal edgedrain installation reducing" src="assets/field-evaluation-report-preparation/c08f960d4e12748dcddc1188338309d674ac806a606196ba9f8b1fd61ff3d159.jpg" />
+<em>Schematic of a longitudinal edgedrain installation reducing the flow path within a granular base.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays a cross-section of a pavement structure, showing a &lsquo;Pavement surface&rsquo; overlying a &lsquo;Granular base&rsquo;. Arrows indicate water flow through the granular material towards an installed pipe labeled as an &lsquo;Outlet&rsquo;, which creates a &lsquo;New shortened flow path&rsquo;.</p>
+<p><small>[2] — Ch. 3 (p. 38); [3] — Ch. 3 (pp. 40–41); [7] — Ch. 3 (p. 34)</small></p>
+<h2 id="field-measurements-and-testing">Field measurements and testing</h2>
+<p>Field evaluation begins with a visual assessment of the roadway to identify surface distresses, roughness, friction, shoulder condition and moisture‑related drainage issues. This subjective information is complemented by material sampling of the existing asphalt pavement and underlying layers to determine composition and failure causes, and depth checks of existing utilities to measure clearance from the pavement structure. Nondestructive three‑dimensional data are obtained with Light Detection and Ranging (LiDAR) technology mounted on a stationary platform, vehicle or UAV; LiDAR quantifies distress severity, maps drainage features, captures longitudinal and transverse profiles, and records clearances. Roughness profiling and surface‑friction checks reveal skid‑resistance levels and can highlight sagging or swelling problems. When moisture or drainage deficiencies are observed, an intensified deflection testing program is added to gauge pavement stiffness, infer subgrade conditions, and assess subsurface drainage performance. Together these tests and measurements indicate the type and severity of surface failures, structural response, subsurface conditions, and utility conflicts that inform design and treatment selection. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p><small>[2] — Ch. 3 (p. 38); [3] — Ch. 3 (pp. 40–41); [7] — Ch. 3 (p. 34)</small></p>
+<p>The scope and detail of field testing are driven by observations made during the initial site visit: distress cues set the collection interval, determine how many surveyors are needed and whether extra measurement equipment is required; pronounced roughness can demand a more rigorous measurement program; and signs of moisture or drainage problems may call for an intensive deflection‑testing effort. Testing is generally performed without traffic control unless high traffic volumes create a safety hazard. [<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates the recommended deflection testing locations for jointed concrete pavements.</p>
+<p><img alt="Recommended deflection testing locations for jointed concret" src="assets/field-evaluation-report-preparation/9ed99745541a6ac899aad566f3365176ca7f52dd21801b34b82134bb20a1ffba.jpg" />
+<em>Recommended deflection testing locations for jointed concrete pavements.</em> [<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The figure illustrates a schematic layout of a pavement section divided into intervals, indicating specific points for basin and load-transfer testing relative to transverse joints. It visually defines the spatial relationship between test locations—such as mid-slab and corners—and structural features like the approach and leave sides of a joint, which is essential for gathering data on load transfer efficiency.</p>
+<p><small>[7] — Ch. 3 (p. 34)</small></p>
+<h2 id="structural-and-functional-performance">Structural and functional performance</h2>
+<p>The guides require that the initial site visit capture pavement distress, surface roughness and surface friction as core functional‑condition measurements. &ldquo;subjective information on distress, road roughness, surface friction, shoulder conditions, and moisture/drainage problems should be gathered&rdquo;. Roughness data may dictate the need for a more rigorous measurement program to address any differential sag/swell problems, while observations of moisture/drainage problems &hellip; may indicate the need for a more intensive deflection testing program to evaluate structural capacity. When such indications arise, additional quantitative tests—&ldquo;such as load‑transfer or layer‑thickness assessments&rdquo;—are incorporated into the field evaluation report. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p><small>[3] — Ch. 3 (pp. 40–41); [7] — Ch. 3 (p. 34)</small></p>
+<h2 id="data-interpretation-and-diagnosis">Data interpretation and diagnosis</h2>
+<p>The preparation of a field evaluation report starts by assembling all relevant historical records—design reports, construction plans, past pavement condition surveys (visual observations), nondestructive testing or other field measurements, laboratory test results on materials and soils, traffic and performance data, and maintenance histories. The final field evaluation report then brings together all information gathered during the pavement assessment—records review, visual observations from the site visit, quantitative field measurements, laboratory test results, and subsequent data analyses—into a single, coherent summary. By reviewing these sources together, the evaluator can group the roadway into discrete sections that share similar design attributes and observed performance, creating a consistent framework for interpreting the combined visual, measured, lab‑derived, and performance information when selecting appropriate treatments. Presenting these diverse inputs side‑by‑side enables engineers to interpret how observed conditions and measured performance relate to one another, identify any non‑pavement constraints (such as shoulder condition or traffic patterns), and inform the selection of treatment alternatives. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p><small>[3] — Ch. 3 (p. 42); [7] — Ch. 3 (p. 34)</small></p>
+<p>During a field evaluation reviewers focus on identifying why pavement distress occurs, and across the guides the primary likely cause identified is inadequate drainage. Visual inspections that note moisture‑related distresses such as pumping, corner breaks, standing water, or other signs of poor subsurface drainage are interpreted as evidence that drainage deficiencies are contributing to the observed condition. While these drainage problems may trigger additional testing (e.g., deflection surveys) to explore possible material deterioration or weak support, the guides treat inadequate drainage itself as the confirmed likely cause. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates how inadequate drainage can lead to potential deterioration of the subbase near CRCP structural distress.</p>
+<p><img alt="Diagram of subbase disintegration and pumping associated wit" src="assets/field-evaluation-report-preparation/0436a724a21b05f4c4015363f6e0603dc0273046319c4efc14b85b5c67116645.jpg" />
+<em>Diagram of subbase disintegration and pumping associated with concrete pavement distress.</em> [<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The figure displays a cross-section of a rigid pavement system where the underlying granular support layer is shown as broken, loose material beneath a fractured slab. Red lines on the surface represent cracks and joints, while text labels identify &lsquo;Subbase Disintegrated&rsquo; and &lsquo;Considerable Pumping and Excess Water&rsquo;.</p>
+<p><small>[2] — Ch. 3 (p. 38); [7] — Ch. 3 (p. 34)</small></p>
+<h2 id="findings-confidence-and-next-actions">Findings, confidence, and next actions</h2>
+<p>&ldquo;Drainage issues&rdquo; can be documented, and the field evaluation report &ldquo;substantiate a range of concrete conclusions about an existing roadway.&rdquo; It &ldquo;confirms the presence and severity of drainage problems,&rdquo; records &ldquo;pavement information such as distress, surface roughness, surface friction, shoulder conditions, and moisture/drainage problems should be gathered,&rdquo; and captures corridor geometry, traffic volumes, and viable construction‑traffic‑control alternatives. By integrating historical design data, &ldquo;Original design data (if available)&rdquo; and &ldquo;Construction information&rdquo; together with &ldquo;Subgrade/subbase data,&rdquo; the report enables segmentation of the pavement into discrete sections that share similar design and performance histories – &ldquo;The information gathered in this step can be used to divide the pavement into discrete sections with similar design and performance characteristics for the pavement evaluation.&rdquo; It also provides a preliminary estimate of remaining structural capacity by comparing original design traffic loads with cumulative traffic, allowing assessment of how much of the expected service life has been consumed – &ldquo;the results of which can then be compared to the actual pavement performance to see how much of the expected service life has been consumed.&rdquo; Critical non‑pavement elements are identified – &ldquo;all critical nonpavement factors that could impact the selection of treatment alternatives should be identified as part of the final field evaluation report&rdquo; and specifically &ldquo;shoulder condition, ditches, right of way, geometrics, curves, bridges, ramps, ADA requirements, and traffic patterns.&rdquo; The evaluation further defines future performance requirements – &ldquo;determining future performance requirements, such as expected traffic loadings and desired overlay design life&rdquo; – to guide preservation or overlay treatment selection and support cost‑feasibility studies.</p>
+<p>However, the conclusions are bounded by several uncertainties. The visual inspection and limited material sampling – &ldquo;The field review should involve a visual assessment of the roadway and material sampling of the existing asphalt pavement and underlying materials.&rdquo; – occur at a single point in time (preferably during a moist season) and may miss hidden subsurface conditions, seasonal variations, or utility conflicts until full coordination – &ldquo;During the field review, existing subsurface utilities should be analyzed and coordinated with the appropriate utility providers to proactively avoid utility conflicts during construction.&rdquo; Historic traffic loading data are often scarce or of questionable accuracy – &ldquo;past pavement loading data can be difficult to obtain and may have questionable accuracy&rdquo; – and gaps or inaccuracies in archived records reduce confidence in capacity assessments. Reliance on visual surveys, UAV video, LiDAR, high‑speed vehicle data collection, or windshield observations – &ldquo;assessment of pavement condition may be limited to surveys conducted using high-speed data collection vehicles or to windshield surveys&rdquo; – cannot fully resolve subsurface conditions without more intensive testing such as deflection or core sampling; indeed, &ldquo;observations of moisture/ drainage problems (e.g., pumping, corner breaks, standing water, and so on) may indicate the need for a more intensive deflection testing program or a more detailed investigation of subsurface drainage conditions.&rdquo; Access constraints and traffic‑control arrangements may limit the ability of survey crews to closely inspect the entire pavement – &ldquo;the survey crew must be allowed on the pavement with the freedom to closely inspect the entire pavement&rdquo; – rendering distress and roughness observations subjective – &ldquo;&hellip;subjective information on distress, road roughness, surface friction, shoulder conditions, and moisture/drainage problems&hellip;&rdquo; – and potentially insufficient for definitive quantification. Finally, completeness of original design and maintenance documentation is not always guaranteed – &ldquo;Ideally, complete historical information on the project is desirable, although it may not always be available.&rdquo; – leaving residual uncertainty that must be addressed through additional field testing or utility coordination. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-6" aria-label="Reference 6">6</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates pavement deflection as a function of dynamic load to highlight the need for intensive testing when visual surveys are insufficient.</p>
+<p><img alt="Pavement deflection as a function of dynamic load." src="assets/field-evaluation-report-preparation/ad3f0a2f4d4f9b3a44218d1859512d2d7cfdce597311ee1c2447be490cdfd25b.jpg" />
+<em>Pavement deflection as a function of dynamic load.</em> [<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The figure plots pavement deflection against applied load, illustrating the nonlinear behavior where higher loads produce disproportionately larger deformations compared to lower loads. It demonstrates that projecting a high-load response based on low-load data yields an erroneous result, highlighting the importance of using appropriate load levels for testing.</p>
+<p><small>[2] — Ch. 3 (p. 38); [3] — Ch. 3 (pp. 40–46); [4] — Ch. 1 (p. 24); [6] — Step 1. Review Historical Reco… (p. 16), Step 3. Complete a Pavement Ev… (p. 19); [7] — Ch. 3 (pp. 34–40)</small></p>
+<p>Following the field evaluation report, the next actions encompass a suite of testing, monitoring, design checks, and corrective or preservation measures. The guides advise that the project team should &ldquo;conduct targeted laboratory testing on the sampled asphalt and underlying materials&rdquo; to confirm the causes of pavement failure identified in the visual assessment, to &ldquo;verify drainage performance,&rdquo; and to &ldquo;re‑evaluate utility depths against design thresholds.&rdquo; In parallel, an &ldquo;assessment of the remaining structural capacity of the pavement by comparing the original design traffic loadings to those that have occurred to date&rdquo; should be performed, with a &ldquo;reevaluation of the existing pavement design (with the applied pavement loading) &hellip; using the AASHTO Mechanistic‑Empirical Pavement Design Guide.&rdquo; The outcomes are then compared to actual performance to determine how much service life has been consumed. </p>
+<p>When moisture or drainage issues such as pumping, corner breaks, or standing water are observed, the guides uniformly call for &ldquo;more intensive deflection testing&rdquo; and a &ldquo;detailed investigation of subsurface drainage conditions.&rdquo; Additionally, the manuals recommend expanding distress surveys to refine collection intervals, staffing levels, and any extra measurement tools needed, and launching a &ldquo;more rigorous roughness‑measurement program when differential sag or swell is suspected.&rdquo;</p>
+<p>All test results feed into design checks of corridor geometrics, traffic volumes, and construction traffic‑control plans. Any identified deficiencies trigger corrective actions such as improving drainage, redesigning sections to accommodate utilities, modifying the pavement structure, or selecting appropriate preservation treatments. Finally, ongoing monitoring of surface roughness, friction, and shoulder condition is required to verify that remedial work restores performance to acceptable levels. [<sup><a href="#ref-2" aria-label="Reference 2">2</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p><small>[2] — Ch. 3 (p. 38); [3] — Ch. 3 (pp. 40–41); [7] — Ch. 3 (p. 34)</small></p>
+<h2 id="references">References</h2>
+<ol start="2">
+<li><a id="ref-2"></a>Guide to FULL-DEPTH RECLAMATION (FDR) with Cement · <code>Guide_to_FDR_with_Cement_Jan_2019_reprint</code></li>
+<li><a id="ref-3"></a>Concrete Pavement Preservation Guide (Third Edition) · <code>concrete_pvmt_preservation_guide_3rd_edition_web</code></li>
+<li><a id="ref-4"></a>Guide to Concrete Overlays (Fourth Edition) · <code>guide_to_concrete_overlays_4th_Ed_web</code></li>
+<li><a id="ref-5"></a>Guide for Optimum JOINT PERFORMANCE of Concrete Pavements · <code>optimum_joint_performance_guide_web</code></li>
+<li><a id="ref-6"></a>IOWA STATE UNIVERSITY Institute for Transportation · <code>overlays_parking_lots_guide_2nd_ed_web</code></li>
+<li><a id="ref-7"></a>Concrete Pavement Preservation Workshop · <code>preservation_reference_manual</code></li>
+</ol>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li><li id="ref-3"></li><li id="ref-4"></li><li id="ref-5"></li><li id="ref-6"></li><li id="ref-7"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>

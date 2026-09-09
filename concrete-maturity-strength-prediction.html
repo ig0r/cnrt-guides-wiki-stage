@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concrete Maturity Strength Prediction</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #1c1c1c;
+  --ink: #1c1c1c;
+  --muted: #5b6472;
+  --sub: #5b6472;
+  --border: #e4e0da;
+  --line: #e4e0da;
+  --chip: #f1ede6;
+  --code: #f4f4f0;
+  --accent: #7a4a63;
+  --link: #2456c7;
+  --sidebar-bg: #23222a;
+  --sidebar-ink: #eae7e2;
+  --sidebar-sub: #9d97a8;
+  --sidebar-line: rgba(255, 255, 255, 0.1);
+  --sidebar-active: #c98fa8;
+  --sidebar-width: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* a11y: focus-visible (light content + dark sidebar) + skip link (FR-OB-14.1) */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sidebar :focus-visible { outline: 2px solid var(--sidebar-active); outline-offset: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--bg);
+  color: var(--link); padding: .5rem 1rem; border: 1px solid var(--border); z-index: 100; }
+.skip-link:focus { left: 0; }
+
+/* layout shell (adapted from example/00_table_of_contents.html) */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; align-self: flex-start; width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width); height: 100vh; overflow-y: auto; background: var(--sidebar-bg);
+  color: var(--sidebar-ink); padding: 28px 20px 40px;
+  font-family: "Helvetica Neue", Arial, sans-serif; }
+.sidebar-head { margin-bottom: 18px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-line); }
+.brand-kicker { margin: 0 0 6px; letter-spacing: .14em; text-transform: uppercase;
+  font-size: .72rem; color: var(--sidebar-active); font-weight: 700; }
+.brand-title { margin: 0 0 8px; font-size: 1.1rem; line-height: 1.3; font-weight: 700;
+  color: var(--sidebar-ink); }
+.brand-count { margin: 0; font-size: .8rem; color: var(--sidebar-sub); }
+.sidebar-filter { width: 100%; padding: .5rem .7rem; margin: 0 0 16px; font: inherit;
+  font-size: .85rem; color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sidebar-line); border-radius: 6px; }
+.sidebar-filter::placeholder { color: var(--sidebar-sub); }
+.content { flex: 1 1 auto; min-width: 0; padding: 48px 56px 120px; max-width: none; }
+.nav-toggle { display: none; }
+
+/* sidebar hierarchy tree: native <details>, indent capped for 375px (FR-OB-6.4) */
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree li { padding: 1px 0; }
+.tree ul { margin-left: .3rem; padding-left: .6rem; border-left: 1px solid var(--sidebar-line); }
+.tree a { display: inline-block; color: var(--sidebar-sub); text-decoration: none;
+  padding: 3px 6px; border-radius: 5px; overflow-wrap: break-word; word-break: break-word; }
+.tree a:hover { color: var(--sidebar-ink); background: rgba(255, 255, 255, 0.06); }
+.tree a.active { color: var(--sidebar-ink); font-weight: 700;
+  border-left: 3px solid var(--sidebar-active); padding-left: 6px;
+  background: rgba(201, 143, 168, 0.16); }
+.tree details { display: inline; }
+.tree summary { list-style: none; cursor: pointer; color: var(--sidebar-sub);
+  user-select: none; padding: 0 4px; display: inline-block; }
+.tree summary::-webkit-details-marker { display: none; }
+.tree details[open] > summary { color: var(--sidebar-ink); }
+.tree li[hidden] { display: none; }
+
+/* content typography */
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .1em 0 .4em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .35em; color: var(--ink); }
+h2 { font-size: 1.25rem; color: var(--accent); margin-top: 2rem; padding-bottom: .3rem;
+  border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--sub); }
+p, li { color: var(--ink); }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 3px solid var(--border);
+  color: var(--muted); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+code { background: var(--code); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+pre { background: var(--code); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* tables: override the example no-op with a scrolling block (FR-OB-5.1) */
+table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; }
+div.table-scroll { overflow-x: auto; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: .35rem .65rem; text-align: left; }
+th { background: var(--chip); }
+
+/* images capped to the content column (FR-OB-3.4) */
+img { max-width: 100%; height: auto; display: block; margin: 1rem 0;
+  border: 1px solid var(--border); border-radius: 4px; }
+article img { max-width: 100%; height: auto; }
+figure { margin: 1.4em 0; }
+figcaption { font-size: .86rem; color: var(--sub); margin-top: .5em; font-style: italic; }
+
+/* concept-viewer content classes, retuned to the light content palette */
+nav { margin-bottom: 1.5rem; font-size: .9rem; }
+.muted { color: var(--muted); }
+.meta { margin: .25rem 0 1.75rem; padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
+.meta div { margin-top: .2rem; }
+.tag { display: inline-block; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 .6em; font-size: .74rem; color: var(--muted);
+  margin: 0 .15rem .15rem 0; white-space: nowrap; }
+a.tag:hover { text-decoration: none; color: var(--fg); border-color: var(--muted); }
+.src { font-size: .78em; color: var(--muted); }
+a.src { color: var(--link); }
+.missing { color: var(--muted); border-bottom: 1px dotted var(--muted); cursor: help; }
+.breadcrumb { color: var(--muted); }
+.breadcrumb a { color: var(--link); }
+.breadcrumb .crumb-sep { margin: 0 .35em; color: var(--muted); }
+.breadcrumb .crumb-current { color: var(--fg); }
+.part-of { color: var(--muted); }
+.part-of::before { content: "\2193 "; }
+.subconcepts { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts::before { content: "\25b8 "; }
+
+/* citation rules */
+sup a { text-decoration: none; color: var(--link); }
+.references { margin-top: 2.5rem; font-size: .9rem; }
+.references li { margin: .35rem 0; overflow-wrap: anywhere; }
+.references li:target { background: var(--chip); outline: 2px solid var(--accent); }
+.page-toc { border: 1px solid var(--border); border-radius: 6px; padding: .55rem .9rem;
+  margin: 1.25rem 0 1.75rem; background: var(--chip); font-size: .9rem; }
+.page-toc-title { margin: 0 0 .3rem; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); }
+.page-toc ul { margin: 0; padding-left: 1.15rem; }
+.page-toc ul ul { padding-left: 1rem; }
+.page-toc li { margin: .12rem 0; }
+.sources-toggle { margin: .2rem 0; }
+.sources-toggle > summary { cursor: pointer; color: var(--muted); }
+.sources-toggle > summary:hover { color: var(--fg); }
+.sources-body { margin-top: .35rem; }
+.subconcepts-toggle { font-size: .92rem; color: var(--muted); margin: 0 0 1.6rem; }
+.subconcepts-toggle > summary { cursor: pointer; }
+.subconcepts-body { margin-top: .4rem; }
+
+/* responsive: off-canvas sidebar */
+@media (max-width: 900px) {
+  .content { padding: 40px 24px 100px; max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: block; position: fixed; top: 14px; left: 14px; z-index: 40;
+    background: var(--sidebar-bg); color: var(--sidebar-ink); border: none;
+    border-radius: 20px; padding: 10px 16px; font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: .85rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+  .shell { display: block; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 30;
+    transform: translateX(-100%); transition: transform .2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3); }
+  .sidebar.open { transform: translateX(0); }
+  .content { padding: 84px 20px 100px; }
+}
+
+/* print */
+@media print {
+  .sidebar, .nav-toggle { display: none; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: 100%; }
+}
+
+/* reduced motion (FR-OB-14.3) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
+/* figures: neat max size + centered, with its caption; click-to-zoom lightbox overlay.
+   Inert on figure-free pages (no `article img` -> no handlers). Self-contained, no loads. */
+article img { max-width: 100%; max-height: 20rem; width: auto; height: auto;
+  margin: 1.1rem auto; display: block; cursor: zoom-in; border-radius: 6px;
+  border: 1px solid rgba(128,128,128,.28); }
+article p:has(img) { text-align: center; }
+article p:has(img) em { color: var(--sub); font-size: .9rem; line-height: 1.5; }
+#lightbox { position: fixed; inset: 0; z-index: 3000; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  padding: 3rem 1.5rem; background: rgba(0,0,0,.9); cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 94vw; max-height: 80vh; width: auto; height: auto;
+  object-fit: contain; border-radius: 4px; box-shadow: 0 8px 44px rgba(0,0,0,.6); }
+#lightbox .lb-cap { color: #f1f1f1; max-width: 58rem; text-align: center;
+  font-size: .95rem; line-height: 1.5; }
+#lightbox .lb-close { position: fixed; top: .6rem; right: 1rem; color: #fff;
+  font: 400 2.2rem/1 system-ui, sans-serif; background: none; border: 0;
+  cursor: pointer; opacity: .85; }
+
+/* FR-MH-5.1: parent_relation typed-edge chip + reading sub-line (md->html reverse builder) */
+.edge { display: inline-block; margin-left: .5em; padding: 0 .55em; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--chip); color: var(--muted);
+  font-size: .72rem; white-space: nowrap; vertical-align: baseline; }
+.edge-taxonomic { border-color: #6b7fd7; color: #4a5fc0; }
+.edge-evaluative { border-color: #d78f6b; color: #b5673f; }
+.edge-attributive { border-color: #6bb2d7; color: #3f86b5; }
+.edge-compositional { border-color: #7ac07a; color: #4a9a4a; }
+.edge-causal { border-color: #c07a9a; color: #a04a72; }
+.edge-reading { font-size: .8rem; color: var(--muted); font-style: italic; margin-top: .15rem; }
+
+/* FR-MH-17: per-page under-construction badge (md->html reverse builder) */
+#uc-banner{position:fixed;top:14px;right:14px;z-index:100000;display:inline-flex;align-items:center;
+  gap:.45em;padding:.5em .9em;background:#ffcf33;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:10px;
+  font:700 .82rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.03em;
+  text-transform:uppercase;box-shadow:0 3px 12px rgba(0,0,0,.28);pointer-events:none;user-select:none}
+@media (prefers-reduced-motion:no-preference){#uc-banner{animation:uc-bob 1.8s ease-in-out infinite}
+  @keyframes uc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}}
+@media (max-width:760px){#uc-banner{top:10px;right:10px;font-size:.72rem;padding:.4em .7em}}
+</style>
+</head>
+<body>
+<!-- Generated by output-builder 1.0 from corpus: /private/tmp/claude-501/-Users-igor-dev-llm-ak-llm-wiki-llm-wiki-tools/bdb1df43-15e1-4cdf-b707-2e8ed8fc5f91/scratchpad/guides-full-visual-wo -->
+<a class="skip-link" href="#content">Skip to content</a>
+<button id="navToggle" class="nav-toggle" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">&#9776; Concepts</button>
+<div class="shell">
+<nav class="sidebar" id="sidebar" aria-label="Concept hierarchy">
+<div class="sidebar-head">
+<p class="brand-kicker">Wiki</p>
+<p class="brand-title">Concepts</p>
+<p class="brand-count">123 concepts</p>
+</div>
+<input id="filter" class="sidebar-filter" type="search" aria-label="Filter concepts by title, tag, or alias" placeholder="Filter concepts…">
+<ul class="tree" id="tree"><li><a href="3d-engineering-for-construction-accuracy.html">3D Engineering for Construction Accuracy</a></li><li><a href="aggregate-gradation-and-w-cm-ratio.html">Aggregate Gradation and W/CM Ratio</a></li><li><a href="aggregate-gradation-and-workability-optimization.html">Aggregate Gradation and Workability Optimization</a></li><li><a href="aggregate-subbase-performance.html">Aggregate Subbase Performance</a></li><li><a href="air-void-reduction-and-chemical-agent-impact-on-concrete-durability.html">Air Void Reduction and Chemical Agent Impact on Concrete Durability</a></li><li><a href="airport-concrete-pavement-construction-guidelines.html">Airport Concrete Pavement Construction Guidelines</a></li><li><a href="bcoa-thickness-calculation.html">BCOA Thickness Calculation</a></li><li><a href="bcoc-joint-preparation-and-bonding.html">BCOC Joint Preparation and Bonding</a></li><li><a href="cement-content-and-workability-optimization.html">Cement Content and Workability Optimization</a></li><li><a href="cement-hydration-heat-evolution.html">Cement Hydration Heat Evolution</a></li><li><a href="cement-stabilization-process.html">Cement Stabilization Process</a></li><li><a href="cement-modified-soils-subgrade-improvement.html">Cement-Modified Soils Subgrade Improvement</a></li><li><a href="cement-stabilized-fdr-stiffness-assessment.html">Cement-Stabilized FDR Stiffness Assessment</a></li><li><a href="cement-stabilized-subgrade-composition.html">Cement-Stabilized Subgrade Composition</a></li><li><a href="cement-stabilized-subgrade-strength-enhancement.html">Cement-Stabilized Subgrade Strength Enhancement</a></li><li><a href="coa-b-and-coa-u-overlay-bonding.html">COA-B and COA-U Overlay Bonding</a></li><li><a href="concrete-bleeding-induced-surface-defects.html">Concrete Bleeding-Induced Surface Defects</a></li><li><a href="concrete-maturity-strength-prediction.html" class="active" aria-current="page">Concrete Maturity Strength Prediction</a></li><li><a href="concrete-mix-design-and-durability-optimization.html">Concrete Mix Design and Durability Optimization</a></li><li><a href="concrete-mix-design-and-quality-control.html">Concrete Mix Design and Quality Control</a></li><li><a href="concrete-mixing-and-3d-modeling.html">Concrete Mixing and 3D Modeling</a></li><li><a href="concrete-mixing-uniformity-and-time.html">Concrete Mixing Uniformity and Time</a></li><li><a href="concrete-overlay-construction-procedures.html">Concrete Overlay Construction Procedures</a></li><li><a href="concrete-overlay-mix-design-and-surface-preparation.html">Concrete Overlay Mix Design and Surface Preparation</a></li><li><a href="concrete-pavement-design-and-construction.html">Concrete Pavement Design and Construction</a></li><li><a href="concrete-pavement-design-optimization.html">Concrete Pavement Design Optimization</a></li><li><a href="concrete-pavement-joint-spalling.html">Concrete Pavement Joint Spalling</a></li><li><a href="concrete-pavement-preservation-practices.html">Concrete Pavement Preservation Practices</a></li><li><a href="concrete-pavement-recycling-and-sustainability.html">Concrete Pavement Recycling and Sustainability</a></li><li><a href="concrete-pavement-recycling-cost-savings.html">Concrete Pavement Recycling Cost Savings</a></li><li><a href="concrete-pavement-recycling-integration.html">Concrete Pavement Recycling Integration</a></li><li><a href="concrete-recycling-air-quality-impact.html">Concrete Recycling Air Quality Impact</a></li><li><a href="concrete-recycling-environmental-benefits.html">Concrete Recycling Environmental Benefits</a></li><li><a href="concrete-shrinkage-mechanisms.html">Concrete Shrinkage Mechanisms</a></li><li><a href="concrete-surface-agitation-and-consolidation.html">Concrete Surface Agitation and Consolidation</a></li><li><a href="concrete-tensile-strength-testing.html">Concrete Tensile Strength Testing</a></li><li><a href="concrete-testing-procedures.html">Concrete Testing Procedures</a></li><li><a href="concrete-texture-application.html">Concrete Texture Application</a></li><li><a href="concrete-vibration-consolidation.html">Concrete Vibration Consolidation</a></li><li><a href="concrete-workability-testing-methods.html">Concrete Workability Testing Methods</a></li><li><a href="construction-operations-and-material-use-in-sustainable-concrete-pavement.html">Construction Operations and Material Use in Sustainable Concrete Pavement</a></li><li><a href="contraction-cracking-prevention-through-jointing.html">Contraction Cracking Prevention Through Jointing</a></li><li><a href="control-charts-for-process-stability.html">Control Charts for Process Stability</a></li><li><a href="control-charts-for-specification-compliance.html">Control Charts for Specification Compliance</a></li><li><a href="coring-for-crack-depth-and-material-deterioration.html">Coring for Crack Depth and Material Deterioration</a></li><li><a href="cost-effective-pavement-preservation-strategy.html">Cost-Effective Pavement Preservation Strategy</a></li><li><a href="crcp-material-properties-and-structural-design.html">CRCP Material Properties and Structural Design</a></li><li><a href="data-driven-quality-control-in-construction.html">Data-Driven Quality Control in Construction</a></li><li><a href="deflection-measurement.html">Deflection Measurement</a></li><li><a href="diamond-grinding-for-surface-restoration.html">Diamond Grinding for Surface Restoration</a></li><li><a href="diamond-grooving-texture-control.html">Diamond Grooving Texture Control</a></li><li><a href="digital-terrain-model-for-pavement-condition-analysis.html">Digital Terrain Model for Pavement Condition Analysis</a></li><li><a href="dowel-bar-embedment-and-alignment.html">Dowel Bar Embedment and Alignment</a></li><li><a href="dynamic-load-modeling-for-pavement-design.html">Dynamic Load Modeling for Pavement Design</a></li><li><a href="edge-drain-design-and-installation.html">Edge Drain Design and Installation</a></li><li><a href="edge-drain-retrofitting-for-pavement-drainage.html">Edge Drain Retrofitting for Pavement Drainage</a></li><li><a href="eot-concrete-repair-mix-design.html">EOT Concrete Repair Mix Design</a></li><li><a href="equipment-inspection-and-compliance.html">Equipment Inspection and Compliance</a></li><li><a href="falling-weight-deflectometer-fwd-soil-support-assessment.html">Falling Weight Deflectometer (FWD) Soil Support Assessment</a></li><li><a href="fdr-base-compaction-control.html">FDR Base Compaction Control</a></li><li><a href="fiber-enhanced-concrete-performance.html">Fiber-Enhanced Concrete Performance</a></li><li><a href="field-evaluation-report-preparation.html">Field Evaluation Report Preparation</a></li><li><a href="field-testing-methods-for-pavement-distress-assessment.html">Field Testing Methods for Pavement Distress Assessment</a></li><li><a href="freeze-thaw-damage-to-concrete-pavement-joints.html">Freeze-Thaw Damage to Concrete Pavement Joints</a></li><li><a href="frost-thaw-damage-to-concrete-joints.html">Frost-Thaw Damage to Concrete Joints</a></li><li><a href="full-depth-pavement-repair-method.html">Full-Depth Pavement Repair Method</a></li><li><a href="geotextile-separation-layer-design.html">Geotextile Separation Layer Design</a></li><li><a href="grout-injection-for-slab-stabilization.html">Grout Injection for Slab Stabilization</a></li><li><a href="iri-pavement-profile-measurement.html">IRI Pavement Profile Measurement</a></li><li><a href="lcc-quality-control-and-placement-management.html">LCC Quality Control and Placement Management</a></li><li><a href="life-cycle-assessment-of-environmental-impact.html">Life-Cycle Assessment of Environmental Impact</a></li><li><a href="life-cycle-cost-analysis.html">Life-Cycle Cost Analysis</a></li><li><a href="life-cycle-cost-analysis-in-sustainable-pavement-design.html">Life-Cycle Cost Analysis in Sustainable Pavement Design</a></li><li><a href="load-transfer-coefficient-and-drainage-coefficient.html">Load Transfer Coefficient and Drainage Coefficient</a></li><li><a href="load-transfer-efficiency-measurement.html">Load Transfer Efficiency Measurement</a></li><li><a href="material-characterization-and-strength-testing.html">Material Characterization and Strength Testing</a></li><li><a href="material-testing-and-subgrade-preparation.html">Material Testing and Subgrade Preparation</a></li><li><a href="material-uniformity-and-process-consistency-monitoring.html">Material Uniformity and Process Consistency Monitoring</a></li><li><a href="material-related-surface-defects-in-concrete-pavements.html">Material-Related Surface Defects in Concrete Pavements</a></li><li><a href="material-chemical-factors-in-pavement-distress.html">Material/Chemical Factors in Pavement Distress</a></li><li><a href="milled-spot-repair-cost-calculation.html">Milled Spot Repair Cost Calculation</a></li><li><a href="overlay-thickness-calculation.html">Overlay Thickness Calculation</a></li><li><a href="overlay-thickness-optimization.html">Overlay Thickness Optimization</a></li><li><a href="partial-depth-repair-pdr-technique.html">Partial-Depth Repair (PDR) Technique</a></li><li><a href="partial-depth-repair-pdr-techniques.html">Partial-Depth Repair (PDR) Techniques</a></li><li><a href="pavement-condition-assessment.html">Pavement Condition Assessment</a></li><li><a href="pavement-distress-analysis.html">Pavement Distress Analysis</a></li><li><a href="pavement-payment-adjustment-calculation.html">Pavement Payment Adjustment Calculation</a></li><li><a href="pavement-structural-elements.html">Pavement Structural Elements</a></li><li><a href="pavement-substructure-compaction.html">Pavement Substructure Compaction</a></li><li><a href="pavement-surface-quality-measurement.html">Pavement Surface Quality Measurement</a></li><li><a href="pavement-surface-smoothness-and-texture-impact.html">Pavement Surface Smoothness and Texture Impact</a></li><li><a href="pcc-material-properties-and-structural-design.html">PCC Material Properties and Structural Design</a></li><li><a href="pervious-concrete-stormwater-management.html">Pervious Concrete Stormwater Management</a></li><li><a href="polymer-based-repair-materials.html">Polymer-Based Repair Materials</a></li><li><a href="polyurethane-slab-stabilization.html">Polyurethane Slab Stabilization</a></li><li><a href="project-documentation-quality-control.html">Project Documentation Quality Control</a></li><li><a href="project-quality-assurance-through-testing-and-specification-compliance.html">Project Quality Assurance Through Testing and Specification Compliance</a></li><li><a href="quality-assurance-and-project-communication.html">Quality Assurance and Project Communication</a></li><li><a href="quality-control-and-quality-assurance-integration.html">Quality Control and Quality Assurance Integration</a></li><li><a href="quality-control-documentation.html">Quality Control Documentation</a></li><li><a href="rca-mechanical-strength-engineering.html">RCA Mechanical Strength Engineering</a></li><li><a href="real-time-smoothness-monitoring.html">Real-Time Smoothness Monitoring</a></li><li><a href="reclaimed-material-rca-recycling-process.html">Reclaimed Material (RCA) Recycling Process</a></li><li><a href="recycled-aggregate-pavement-sustainability.html">Recycled Aggregate Pavement Sustainability</a></li><li><a href="recycled-concrete-aggregate-utilization.html">Recycled Concrete Aggregate Utilization</a></li><li><a href="recycled-concrete-economic-and-environmental-benefits.html">Recycled Concrete Economic and Environmental Benefits</a></li><li><a href="resilient-modulus-and-joint-spacing.html">Resilient Modulus and Joint Spacing</a></li><li><a href="sealant-application-and-performance.html">Sealant Application and Performance</a></li><li><a href="silicone-sealant-application-guidelines.html">Silicone Sealant Application Guidelines</a></li><li><a href="soil-compaction-and-additive-testing.html">Soil Compaction and Additive Testing</a></li><li><a href="stringline-elevation-control.html">Stringline Elevation Control</a></li><li><a href="structural-concrete-fibers-in-pavement-prevention.html">Structural Concrete Fibers in Pavement Prevention</a></li><li><a href="supplementary-cementitious-materials-role-in-workability-and-strength.html">Supplementary Cementitious Materials&#x27;&#x27; Role in Workability and Strength</a></li><li><a href="surface-texture-depth-control.html">Surface Texture Depth Control</a></li><li><a href="sustainable-concrete-pavement-construction.html">Sustainable Concrete Pavement Construction</a></li><li><a href="temperature-impact-on-concrete-hydration-and-performance.html">Temperature Impact on Concrete Hydration and Performance</a></li><li><a href="thermal-and-fatigue-cracking-in-asphalt-pavement.html">Thermal and Fatigue Cracking in Asphalt Pavement</a></li><li><a href="thermal-expansion-measurement.html">Thermal Expansion Measurement</a></li><li><a href="traffic-control-plan-verification.html">Traffic Control Plan Verification</a></li><li><a href="trail-surface-design-and-maintenance.html">Trail Surface Design and Maintenance</a></li><li><a href="transverse-and-diagonal-cracking-in-concrete-pavement-joints.html">Transverse and Diagonal Cracking in Concrete Pavement Joints</a></li><li><a href="ultrasonic-testing-for-pavement-layer-assessment.html">Ultrasonic Testing for Pavement Layer Assessment</a></li></ul>
+</nav>
+<main class="content" id="content" tabindex="-1">
+<nav aria-label="Breadcrumb"><a href="index.html">&larr; All concepts</a></nav>
+<article><h1>Concrete Maturity Strength Prediction</h1>
+<div class="meta"><div><a class="tag" href="index.html?q=concrete-pavement">concrete-pavement</a><a class="tag" href="index.html?q=maturity-testing">maturity-testing</a><a class="tag" href="index.html?q=strength-development">strength-development</a><a class="tag" href="index.html?q=temperature-data">temperature-data</a><a class="tag" href="index.html?q=maturity-curve">maturity-curve</a></div><div>Created 2026-09-09 · Updated 2026-09-09</div></div>
+<p>Concrete Maturity Strength Prediction is a quality‑control methodology that estimates the early‑age compressive and flexural strength (including modulus of rupture and modulus of elasticity) of in‑place cement‑based pavement by linking elapsed time and temperature to a mix‑specific maturity‑strength curve [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]. The process records slab temperature with embedded sensors, logs placement and sawing times, and applies laboratory‑derived time‑temperature versus strength relationships—typically via software such as HIPERPAV—to predict when target strengths will be reached and whether internal stresses exceed the developing strength [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]. When predicted stresses surpass the maturity‑based strength within the first 72 hours, the method flags a high risk of uncontrolled cracking and triggers corrective actions such as mix adjustments, altered curing, or delayed traffic opening, thereby managing early‑age cracking risk [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>].</p>
+
+<nav class="page-toc" aria-label="On this page"><p class="page-toc-title">Contents</p><ul><li><a href="#purpose-and-quality-objectives">Purpose and quality objectives</a></li><li><a href="#scope-and-applicability">Scope and applicability</a></li><li><a href="#test-methods-and-procedures">Test methods and procedures</a></li><li><a href="#sampling-and-testing-frequency">Sampling and testing frequency</a></li><li><a href="#acceptance-criteria-and-tolerances">Acceptance criteria and tolerances</a></li><li><a href="#quality-control-and-process-monitoring">Quality control and process monitoring</a></li><li><a href="#nonconformance-and-corrective-action">Nonconformance and corrective action</a></li><li><a href="#documentation-and-reporting">Documentation and reporting</a></li><li><a href="#relationship-to-long-term-performance">Relationship to long-term performance</a></li></ul></nav>
+<details class="sources-toggle"><summary>Sources (7)</summary><div class="sources-body"><a href="#ref-1">2019-12_IMCP_manual</a>, <a href="#ref-2">ACPTP-2022-4_QC_QA_of_concrete_airfield_pvmt_manual_w_cvr_508</a>, <a href="#ref-3">concrete_pvmt_preservation_guide_3rd_edition_web</a>, <a href="#ref-4">hif13059</a>, <a href="#ref-5">preservation_reference_manual</a>, <a href="#ref-6">ternary_mix_manual-508-compliant-w-Iowa-DOT-statements</a>, <a href="#ref-7">testing_guide</a></div></details>
+
+<h2 id="purpose-and-quality-objectives">Purpose and quality objectives</h2>
+<p>Across the guides, concrete maturity strength prediction evaluates the early‑age development of in‑place concrete compressive and flexural strength (including modulus of rupture and modulus of elasticity) by linking elapsed time and temperature to a mix‑specific maturity‑strength curve. The process monitors slab temperature with embedded sensors, records placement and sawing times, and applies laboratory‑derived correlation curves through software such as HIPERPAV to predict when target strengths will be reached and whether internal stresses will exceed the developing strength. By flagging periods where stress may surpass predicted strength, the method controls the performance characteristic of early‑age cracking risk and informs decisions such as opening the pavement to traffic or adjusting mix design, curing practices, or placement timing. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The figure below illustrates the process of measuring in-place maturity.</p>
+<p><img alt="Field technician downloading data from a concrete maturity s" src="assets/concrete-maturity-strength-prediction/83bd041fe3e1d8494e8b67ac2cabbaf0b8eb47630e13feb8843600e16deb0471.jpg" />
+<em>Field technician downloading data from a concrete maturity sensor using a laptop.</em> [<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The image shows a field technician connecting a wired probe to a portable computer, which is the procedure for downloading temperature-time function (TTF) data from an embedded sensor in the pavement. This process allows engineers to &ldquo;Estimate the strength of the concrete pavement using computer software and the appropriate maturity curve.&rdquo;</p>
+<p><small>[1] — Ch. 3 (pp. 56–57), Ch. 6 (pp. 161–167), Ch. 9 (pp. 282–283); [3] — Ch. 6 (p. 141); [4] — 5. Plant Site and Mixture Prod… (p. 82); [5] — Ch. 6 (pp. 122–123); [7] — Ch. 3 (pp. 22–23), Ch. 7 (pp. 108–110), App. A (p. 119)</small></p>
+<p>The guides state that Concrete Maturity Strength Prediction is employed to satisfy the quality requirement that newly placed pavement achieve its required early‑age compressive or flexural strength before it is subjected to service stresses such as traffic loading or sawing. By continuously recording slab temperature and applying a mix‑specific time‑temperature‑strength correlation, engineers can estimate in‑place strength and compare it with induced stresses during the first 72 hours. When the estimated stress exceeds the predicted strength, the method flags a high potential for uncontrolled cracking and calls for corrective actions—adjusting mix composition, curing practices, placement timing, or delaying traffic—to prevent premature failures such as slab cracking, dowel‑bar socketing, or crushing. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates an example of HIPERPAV output showing tensile stress and strength in lb/in².</p>
+<p><img alt="Example HIPERPAV output showing tensile stress and strength" src="assets/concrete-maturity-strength-prediction/bdf121c6d0dfeb5116ddf748ddcaffc62a03dca0223fcb56bfdc98ec9a89efe2.jpg" />
+<em>Example HIPERPAV output showing tensile stress and strength (lb/in²)</em> [<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The figure displays a graph plotting critical stress against PCC strength over the time of day. A blue line representing PCC strength rises continuously, while red lines and shaded areas indicate critical stress at the top and bottom of the slab fluctuating with daily cycles. When stress approaches or exceeds strength, the probability of early cracking is increased.</p>
+<p><small>[1] — Ch. 3 (pp. 56–57), Ch. 6 (pp. 161–167), Ch. 9 (pp. 282–283); [3] — Ch. 6 (p. 141); [4] — 5. Plant Site and Mixture Prod… (p. 82); [5] — Ch. 6 (pp. 122–123); [7] — Ch. 3 (pp. 22–23), Ch. 7 (pp. 108–110)</small></p>
+<h2 id="scope-and-applicability">Scope and applicability</h2>
+<p>Across the guides, concrete maturity‑strength prediction is described as applicable to any cement‑based pavement concrete whose mix design is known—including Portland‑cement mixes and those using limestone, gneiss or gravel aggregates and a range of water‑to‑cement ratios. It can be used for new slab construction on conventional or fast‑track schedules, for slabs that will later be sawed to form joints, and for full‑depth repair sections (including 1.8 m and 4.6 m slabs with dowel bars). The procedure covers the in‑place concrete slab as a pavement component, the associated laboratory specimens (beams or cylinders) used to develop mix‑specific maturity‑strength curves, and related elements such as subbase/subgrade support, slab geometry, curing practices, and environmental conditions. Implementation requires recording the time‑temperature history of the placed concrete (and a representative test cylinder), logging placement and saw‑cutting times, embedding temperature sensors, and applying a laboratory‑derived curve per ASTM C1074/C31. Software tools such as HIPERPAV® or HIPERPAV II incorporate mix design, slab thickness, k‑value, dowel size, and weather variables to generate early‑age strength and stress predictions for the first 72 hours, supporting decisions on traffic opening and crack risk management. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates the practical application of these predictions by demonstrating how software tools can identify specific risks during early-age curing.</p>
+<p><img alt="HIPERPAV output showing predicted stress exceeding allowable" src="assets/concrete-maturity-strength-prediction/7307a8bc3d8c5bdf50c7b0bc0f8276eb624944559fa597b16b61e99e7e75e0e9.jpg" />
+<em>HIPERPAV output showing predicted stress exceeding allowable strength, indicating a high risk of cracking.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays the output of the HIPERPAV program, plotting tensile stress and strength over a period of 72 hours since construction. It illustrates the concept by showing that when predicted stresses exceed allowable stress (developed strength), cracking is indicated as likely, which triggers necessary changes to mix or practices. The plot specifically highlights a warning where stress exceeds strength at approximately six hours after paving, demonstrating how the method flags high risk of uncontrolled cracking.</p>
+<p><small>[1] — Ch. 3 (pp. 56–57), Ch. 6 (pp. 161–167), Ch. 9 (pp. 282–283); [3] — Ch. 6 (p. 141); [4] — 5. Plant Site and Mixture Prod… (p. 82); [5] — Ch. 6 (pp. 122–123); [7] — Ch. 3 (pp. 22–23), Ch. 7 (pp. 108–110)</small></p>
+<p>Concrete maturity strength prediction is not mandated by the guidance but is recommended as an optional tool when a repair must be opened to traffic very soon after placement—typically within four hours of casting. In such early‑opening cases, practitioners may use maturity meters or pulse‑velocity devices to estimate actual strength, and software such as HIPERPAV II can model strength development and stress for the first 72 hours to flag potential cracking; otherwise, standard compressive‑ and flexural‑strength criteria are applied without a maturity prediction. The approach is limited to early‑opening scenarios and depends on accurate input of mix, curing, and environmental data. [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[5] — Ch. 6 (pp. 122–123)</small></p>
+<h2 id="test-methods-and-procedures">Test methods and procedures</h2>
+<p>Concrete maturity strength prediction follows the standardized methods ASTM C918 and ASTM C1074. The guides require a laboratory program that establishes a time‑temperature versus strength curve for the exact mix design used on site, and then applies that calibrated curve to field temperature data, often with HIPERPAV III software (v3.3). </p>
+<p>The required equipment includes a personal computer running HIPERPAV, temperature sensors (or data loggers such as the Flex Maturity Logger, Comp Maturity Logger, and IQ Drum devices), standard strength specimens (beams or cylinders) cured together, a hydraulic loading frame for compressive/flexural testing, and a data acquisition system to download temperature histories. </p>
+<p>Step‑by‑step procedure:
+1. Cast thirteen concrete strength specimens using the project mix; embed a temperature sensor in one specimen solely for recording temperature over time while the remaining twelve are reserved for strength testing.
+2. Start the designated data loggers at prescribed times (e.g., Comp Maturity Logger at 8:45 AM, Flex Maturity Logger at 9:00 AM; IQ Drum at its start time).
+3. After three hours from placement take the first pin or temperature‑monitor sample and record fresh‑concrete properties—slump, air content, flow, unit weight, water content, and set time measured by penetration resistance.
+4. Continuously measure and record the temperature of each specimen (and the in‑place slab) using the embedded sensor or surface loggers; download the data to the computer.
+5. Break three specimens at each of four ages (commonly 1, 3, 5, 7 days), test their compressive (or flexural) strength on a hydraulic loading frame, and average the results for each age.
+6. Compute the time‑temperature factor (TTF) for each age using the ASTM‑defined equation M(t)=Σ(Ta–T0)Δt, plot log TTF versus measured strength, and fit a smooth maturity curve.
+7. In the field, embed a temperature sensor (thermocouple or equivalent) at a critical slab location; use a maturity meter to log temperatures, download the data, calculate cumulative M(t), and apply ASTM C1074 procedures to convert the in‑place maturity index to an estimated concrete strength. If the field maturity deviates from the calibrated curve, additional sensors or more frequent readings are employed.</p>
+<p>The resulting maturity curve links measured temperature history to concrete strength, enabling prediction of when target pavement opening strengths will be achieved. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates the maturity curve derived from this relationship.</p>
+<p><img alt="Maturity curve of all flexural strengths" src="assets/concrete-maturity-strength-prediction/386d9f9fab0ac25a5c7133bf42ac5b667412b2f51a654ade38d1efc3b7e20a40.jpg" />
+<em>Maturity curve of all flexural strengths</em> [<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The figure displays a semi-logarithmic plot with the x-axis representing the Log of TTF (°C-h) and the y-axis showing Flexural strength in lb/in². Several data points marked as &lsquo;Strengths&rsquo; are plotted, with a red regression line fitting through them to establish a trend.</p>
+<p><small>[1] — Ch. 6 (pp. 165–167), Ch. 9 (pp. 282–283); [3] — Ch. 6 (p. 141); [7] — Ch. 7 (pp. 108–110), App. A (p. 119)</small></p>
+<p>Valid maturity‑strength predictions depend on three control elements. First, all laboratory strength specimens must be cured together in a single location that provides a uniform, constant temperature environment. Second, a temperature sensor must be fully embedded in a dedicated specimen and later in the pavement; the sensor’s time/temperature factor (TTF) is downloaded and recorded for each set of specimens at breakage and used with software to generate a smooth maturity curve. Third, operators are required to follow the prescribed ASTM/AASHTO procedures exactly; the guides do not specify additional qualification or calibration steps beyond proper installation and use of the sensors. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p><small>[1] — Ch. 9 (p. 283); [7] — Ch. 7 (p. 110)</small></p>
+<h2 id="sampling-and-testing-frequency">Sampling and testing frequency</h2>
+<p>The sampling plan for concrete maturity strength prediction is built around a fixed set of on‑site cast cylinders and continuous temperature monitoring at critical points in the pavement. All guides require that thirteen strength specimens be cast from the same mix used for placement; one cylinder is completely embedded with a temperature sensor for continuous recording, while the remaining twelve are cured together and broken in groups of three at four predetermined ages (typically one, three, five and seven days) with the results averaged to develop the maturity curve. Sensors must be installed at locations that represent the thermal behavior of the slab – the manuals specify placement at the critical concrete surfaces (top or bottom, often mid‑height), whereas other guidance calls for installation directly in the pavement at representative points. Temperature data are collected on a schedule sufficient to capture temperature variations: some specifications call for readings at least twice daily, noting that more frequent intervals improve accuracy, while another source recommends recording sensor output every hour and logging placement, sawing times, and slab temperatures for each section. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates a typical field semi-adiabatic temperature monitoring system used to capture the thermal data required for this process.</p>
+<p><img alt="A field semi-adiabatic temperature monitoring system for mor" src="assets/concrete-maturity-strength-prediction/0817a86745ee18b1414221fb04221491648ac4e8799ea9bd56901beeca359f78.jpg" />
+<em>A field semi-adiabatic temperature monitoring system for mortar.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The image displays a portable aluminum carrying case containing a gray interface panel with four circular ports designed to hold cylindrical specimens or sensors. This apparatus is identified as a semi-adiabatic calorimetry system used for observing hydration kinetics and measuring heat gain, which are critical parameters in the concrete maturity strength prediction methodology. By monitoring these thermal properties, engineers can estimate pavement temperatures and assess the potential for early-age cracking.</p>
+<p><small>[1] — Ch. 6 (pp. 165–167), Ch. 9 (p. 283); [4] — 5. Plant Site and Mixture Prod… (p. 82); [7] — Ch. 7 (p. 110)</small></p>
+<p>To obtain a representative maturity prediction, samples must be taken from the same mix batch that will form the pavement and prepared as standard concrete cylinders or beams per recognized methods (e.g., ASTM C31/AASHTO T 23). A sufficient number of specimens—commonly thirteen—are cast on‑site from material mixed at the project site. One specimen is fully instrumented with an embedded temperature sensor and left unbroken to record the time‑temperature history; the remaining specimens are cured together in a single location under uniform conditions. Strength tests are performed at several early ages (e.g., 1, 3, 5, 7 days), breaking three specimens at each age and averaging the results to develop a statistically sound maturity curve according to ASTM C1074. In the field, temperature sensors are installed in the slab (typically on the top, bottom, or mid‑height) and read at least hourly; placement time, saw‑cut times, and corresponding slab temperatures are logged. The sensor data are downloaded and compared with the laboratory maturity curve using software such as HIPERPAV®, providing a strength prediction that represents the material, mixing/placement process, production lot, and completed pavement. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates a sample maturity curve derived from this process.</p>
+<p><img alt="A sample maturity curve plotting compressive strength agains" src="assets/concrete-maturity-strength-prediction/f1ebfc8f8797a2bbc4b6b83beffd6ef23b781de50b5cde93cae6a14151bd9530.jpg" />
+<em>A sample maturity curve plotting compressive strength against time-temperature history.</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays a plot with the x-axis representing Maturity in °C-hours and the y-axis representing Compressive strength in lb/in², showing an upward trend where strength increases as maturity increases. This graph serves as a &ldquo;Sample maturity curve&rdquo; used to estimate concrete pavement strength based on the time-temperature history of the material. The relationship depicted illustrates how a mix-specific curve links elapsed time and temperature to compressive strength, which is essential for predicting when target strengths are reached.</p>
+<p><small>[1] — Ch. 6 (pp. 165–167), Ch. 9 (pp. 282–283); [4] — 5. Plant Site and Mixture Prod… (p. 82); [7] — Ch. 7 (p. 110)</small></p>
+<h2 id="acceptance-criteria-and-tolerances">Acceptance criteria and tolerances</h2>
+<p>Concrete maturity strength prediction is considered acceptable when the predicted compressive and flexural strengths meet established minimums for opening fast‑track repairs to traffic. State practice typically requires at least 13.8 MPa up to 20.7 MPa compressive strength and 2.0–2.8 MPa flexural strength, while FHWA sets an absolute floor of 2.5 MPa flexural strength (3.1 MPa when heavy edge loading is expected). Additional compressive‑strength limits are applied based on dowel bar size—13.8 MPa for 38 mm bars and 17.2 MPa for 32 mm bars—to prevent crushing around the dowels. If software such as HIPERPAV II shows that early stresses exceed these strength predictions, the work is flagged as unacceptable and mix, curing, or placement adjustments are required. [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[5] — Ch. 6 (pp. 122–123)</small></p>
+<h2 id="quality-control-and-process-monitoring">Quality control and process monitoring</h2>
+<p>To keep concrete quality consistent, the maturity‑strength prediction program must continuously monitor a suite of inter‑related characteristics throughout production and construction. &ldquo;First, the slab’s temperature history is recorded with embedded thermocouples or thermistors placed at representative points (top, bottom or mid‑height) and logged at short intervals so that a time‑temperature factor can be calculated.&rdquo; &ldquo;Second, the elapsed time since placement is captured alongside temperature to form the maturity index that drives strength estimation.&rdquo; &ldquo;Third, mix‑specific parameters such as water‑cement ratio and air content are tracked because they directly influence the rate and magnitude of strength gain; a lower water‑cement ratio raises strength while increasing air reduces it.&rdquo; &ldquo;Fourth, a calibrated maturity curve—developed from standard‑strength specimens cured under controlled conditions—is used to translate the temperature‑time data into an in‑place strength estimate, which is updated in real time by dedicated software.&rdquo; The system also &ldquo;must continuously track the elapsed time and the temperature history of the fresh mix so that the laboratory‑derived time‑temperature‑strength curve can be applied on site&rdquo; and &ldquo;compare the developing strength against any imposed stresses, because exceeding the predicted strength signals a risk of uncontrolled cracking.&rdquo; When discrepancies arise, &ldquo;the program should flag the need to adjust mix design parameters, curing regimes, or the timing of placement.&rdquo; Production records &ldquo;the exact times of paving and subsequent sawing together with the slab temperature&rdquo;; &ldquo;temperature sensors must be placed in the pavement and read at least hourly so that the temperature history can be correlated to the interval between placement and sawing.&rdquo; All data are fed into HIPERPAV®/HIPERPAV II software, which models early‑age stress and strength, plots strength versus induced stress for the first 72 hours, and flags any condition where &ldquo;stress exceeds the measured strength&rdquo; prompting corrective actions. Concrete strength is also monitored directly using &ldquo;maturity meters or pulse‑velocity devices&rdquo; and compared against required compressive (e.g., 13.8 MPa) and flexural strengths. Additional inputs include &ldquo;material properties and mixture proportions &hellip; together with subbase conditions such as support capacity, friction characteristics and subbase temperature,&rdquo; &ldquo;ambient weather (temperature, humidity, wind, cloud cover) and slab dimensions (length, width, thickness),&rdquo; and other parameters such as slump, air pressure, flow, set time, unit weight and microwave‑determined water content. By maintaining this comprehensive monitoring regime, the predicted in‑place strength remains within expected limits, ensuring consistent concrete quality. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p><small>[1] — Ch. 3 (pp. 56–57), Ch. 6 (pp. 161–167), Ch. 9 (pp. 282–283); [3] — Ch. 6 (p. 141); [4] — 5. Plant Site and Mixture Prod… (p. 82); [5] — Ch. 6 (pp. 122–123); [7] — Ch. 7 (pp. 108–110), App. A (p. 119)</small></p>
+<p>If the stress exceeds the strength at any time, a high potential for uncontrolled cracking is indicated. This trigger applies when pavement analysis models or on‑site measurements show that predicted tensile, compressive, or flexural stresses surpass the maturity‑derived strength curve at any point, including within the first 72 hours of service. The guides also require that the time‑temperature versus strength relationship be determined in the laboratory for the specific mixture used in the construction project. When such exceedances occur, a high risk of cracking demands adjustments to mix design, curing regime, or placement timing and often additional testing.</p>
+<p>If on‑site maturity meters or pulse‑velocity measurements indicate compressive or flexural strengths below the minimum thresholds (for example, less than 13.8 MPa compressive for slabs with 38 mm dowels or below the FHWA‑recommended 2.5 MPa flexural strength), further curing, mix modification, or delayed opening is required.</p>
+<p>The guides emphasize that abnormal early‑age strength development is another trigger. When &ldquo;When the observed rate at which a mix gains strength deviates noticeably from that of comparable mixtures—such as taking substantially longer to reach an early‑age flexural strength target—or when premature random cracking appears in the newly placed pavement, these signs should prompt immediate process adjustments and/or additional maturity testing,&rdquo; corrective actions must be taken. For example, &ldquo;ND-517 reached an estimated 275 psi in 18.7 hours, while NY-606 reached the same value in 12.7 hours,&rdquo; illustrating a slower progression that warrants attention. These data support the fact that it is important to monitor strength development.</p>
+<p>Maturity methods, conducted in accordance with ASTM C1074, can be used to assess the strength of in‑place concrete pavements. For such cases, adjustments can be made to mix properties, curing practices, or the time of concrete placement to reduce the potential for cracking. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates how these maturity-based assessments inform adjustments to concrete mix and placement practices.</p>
+<p><img alt="Example plot of compressive strength versus maturity for a c" src="assets/concrete-maturity-strength-prediction/0bbf8c2942fb240c14d75a75b094dca779ef12f46736db9b4cfaf269236e498d.jpg" />
+<em>Example plot of compressive strength versus maturity for a concrete mixture.</em> [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>]</p>
+<p>The figure displays a curve plotting compressive strength against maturity, demonstrating the time-temperature versus strength relationship required by ASTM C1074 to assess in-place concrete pavements. This resultant curve is used to estimate the time at which desired concrete strength is expected to be reached for a specific mixture.</p>
+<p><small>[3] — Ch. 6 (p. 141); [5] — Ch. 6 (pp. 122–123); [7] — Ch. 3 (pp. 22–23)</small></p>
+<h2 id="nonconformance-and-corrective-action">Nonconformance and corrective action</h2>
+<p>Work should be corrected or adjusted whenever the HIPERPAV II analysis shows that predicted stresses exceed the maturity‑based strength, prompting changes to mix design, curing or placement timing; if early‑age measurements (e.g., from a maturity meter) indicate that the concrete has not yet reached the minimum required strengths—2.5 MPa flexural for any fast‑track opening, 3.1 MPa when heavy edge loading is expected, or the dowel‑specific compressive limits of 13.8 MPa (38 mm bars) and 17.2 MPa (32 mm bars)—the slab must be retested or the work rejected. When measured strength meets those minima but is close to them, the project may be accepted with adjustments such as extended curing; if values fall well below the absolute minimum flexural strength, the work should be rejected outright. [<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>]</p>
+<p><small>[5] — Ch. 6 (pp. 122–123)</small></p>
+<h2 id="documentation-and-reporting">Documentation and reporting</h2>
+<p>The documentation package shall contain a complete log of the temperature‑time data (TTF) recorded from the instrumented specimen and any in‑place sensors, together with the temperature history captured by the fully embedded sensor specimen and hourly temperature sensor readings taken from the pavement. It must also record the paving start time, the sawing time, and the slab temperature to enable correlation of temperature changes with elapsed time since placement.</p>
+<p>Concrete compressive strength results obtained at one, three, five and seven days for the three broken specimens at each age shall be entered, with measured concrete strengths obtained by breaking three specimens at each prescribed age and averaging them. The sampling plan requires casting thirteen strength specimens on site, with one dedicated to temperature monitoring that is retained unbroken; the remaining twelve are used for strength testing.</p>
+<p>The file must include the laboratory‑derived time‑temperature versus strength curve for the exact mix used on the project, as required by testing performed in accordance with ASTM C1074, and a plotted maturity curve (strength versus log TTF) showing TTF on the horizontal axis, strength on the vertical axis, and the fitted smooth curve used by the software to estimate in‑place pavement strength.</p>
+<p>Any instances where the predicted stress exceeds the estimated strength shall be documented, together with corrective actions taken such as modifying mix properties, curing methods, or placement timing; deviations from expected curves also trigger corrective actions. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates a generalized stress-strain curve for concrete.</p>
+<p><img alt="Generalized stress-strain curve for concrete" src="assets/concrete-maturity-strength-prediction/baacbc98b4a854797ab8a0c54682f787ede11525069374b850c939a2711794c9.jpg" />
+<em>Generalized stress-strain curve for concrete</em> [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>]</p>
+<p>The figure displays a generalized stress-strain curve illustrating the relationship between applied load and deformation in cementitious materials. It identifies the elastic range, permanent set resulting from inelastic deformation, and defines the modulus of elasticity as the ratio of stress to strain within that linear region.</p>
+<p><small>[1] — Ch. 9 (p. 283); [3] — Ch. 6 (p. 141); [4] — 5. Plant Site and Mixture Prod… (p. 82); [7] — Ch. 7 (p. 110)</small></p>
+<p>The guides require that quality records capture all time‑temperature information needed for maturity‑strength prediction. Records must log the exact time each paving operation occurs, the time of sawing, and slab temperature measured by sensors installed in the pavement and read at least hourly. For strength specimens, the time‑temperature factor (TTF) at breaking and the corresponding compressive strengths at prescribed ages are recorded. The collected data are plotted as a maturity curve with log TTF on the x‑axis and concrete strength on the y‑axis, and a smooth fitted line is generated using software such as HIPERPAV® or other calibrated programs. Review of the records involves importing the temperature‑time history into the software to model early‑age stress and strength, comparing the plotted points and fitted curve against expected trends and required opening strength, and confirming that predicted stresses remain below cracking thresholds and that predicted in‑place strength meets specifications. Once validated, the documented maturity curve and model outputs are used to accept the pavement, provide a baseline for future performance monitoring, and support any later adjustments to mix design or curing practices. [<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p><small>[4] — 5. Plant Site and Mixture Prod… (p. 82); [7] — Ch. 7 (p. 110)</small></p>
+<h2 id="relationship-to-long-term-performance">Relationship to long-term performance</h2>
+<p>Measured concrete strength obtained through maturity testing—recorded as a time‑temperature‑strength curve per ASTM C1074 and validated with field sensors or pulse‑velocity devices—is compared against calculated early‑age stresses to assess the pavement’s ability to resist distress over its service life. Across the guides, if at any point the predicted stress exceeds the measured strength, a high potential for uncontrolled cracking is indicated, which signals reduced durability and shortened service life. The software tools (HIPERPAV®/HIPERPAV II/III) use logged paving time, sawing time, slab temperature, and hourly sensor data to generate early‑strength predictions and internal stress histories for the first 72 hours; this enables engineers to identify when stresses may surpass strength and to take corrective actions such as adjusting mix design, curing practices, or delaying traffic loading. Specific acceptance criteria are provided: a minimum flexural strength of 2.5 MPa (or higher for slabs with dowel bars) must be reached before early opening, and mixes that achieve target early strengths more rapidly—e.g., NY‑606 reaching 275 psi in ~13 hours versus ND‑517 requiring ~19 hours—demonstrate greater resistance to early‑age cracking and consequently longer expected service life. Monitoring the rate of strength gain therefore serves as a reliable predictor: slower‑gaining mixes that fail to develop sufficient stiffness quickly have been observed to crack randomly, necessitating repairs that compromise pavement homogeneity and durability. [<sup><a href="#ref-3" aria-label="Reference 3">3</a></sup>][<sup><a href="#ref-4" aria-label="Reference 4">4</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The figure below illustrates the early-age estimated in-place flexural strength for the ND and NY mixes discussed above.</p>
+<p><img alt="Early-age estimated in-place flexural strength (ND &amp; NY)" src="assets/concrete-maturity-strength-prediction/b86bf841437bbf1cd4030b6b17e2db06b33c26356675185bf3c2adf176a7db27.jpg" />
+<em>Early-age estimated in-place flexural strength (ND &amp; NY)</em> [<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The figure plots the flexural strength of two concrete mixes, ND and NY, against elapsed time over a three-day period.</p>
+<p><small>[3] — Ch. 6 (p. 141); [4] — 5. Plant Site and Mixture Prod… (p. 82); [5] — Ch. 6 (pp. 122–123); [7] — Ch. 3 (pp. 22–23), Ch. 7 (p. 108)</small></p>
+<p>After placement, embedded temperature sensors remain active throughout the service period and are supplemented by surface‑mounted sensors that continue recording the pavement’s thermal history. Their data are retrieved on a regular schedule—often twice each day as required by many jurisdictions—and periodically downloaded into commercial maturity meters or laboratory‑derived software to calculate the time‑temperature factor (TTF) and update the estimated in‑place strength. Early‑age cylinder specimens tested after 24 hours (ASTM C918) are compared with the computed maturity index to validate or adjust the mix‑specific curve. Practitioners also employ maturity meters or pulse‑velocity equipment to measure in‑situ concrete strength and compare it with minimum compressive or flexural strengths required for fast‑track openings. The recorded TTF values, together with any pulse‑velocity results, are entered into software such as HIPERPAV II or equivalent programs to confirm that stresses have not exceeded strength during the first 72 hours and that the pavement reaches the required opening strength. If predicted or measured strengths fall below acceptance thresholds, additional curing measures, extended cure time, or mix adjustments are applied before traffic is allowed, providing a post‑construction check and alerting owners to any remedial actions needed. [<sup><a href="#ref-1" aria-label="Reference 1">1</a></sup>][<sup><a href="#ref-5" aria-label="Reference 5">5</a></sup>][<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The following figure illustrates the concept of in-place pavement maturity.</p>
+<p><img alt="Graph showing the relationship between elapsed time and Time" src="assets/concrete-maturity-strength-prediction/b7eaca91bbe89af5fa3ca9bf7ad45398621f3cc77f180fc88067ba5160c9d233.jpg" />
+<em>Graph showing the relationship between elapsed time and Time-Temperature Factor (TTF) for in-place pavement maturity.</em> [<sup><a href="#ref-7" aria-label="Reference 7">7</a></sup>]</p>
+<p>The figure displays a plot of the Time-Temperature Factor (TTF) on the vertical axis against elapsed time in days on the horizontal axis, illustrating how this factor increases linearly over the first several days. This visualization supports Concrete Maturity Strength Prediction by showing how embedded temperature sensors and software calculate a time-temperature factor to estimate early-age flexural strength for in-place cement-based pavement.</p>
+<p><small>[1] — Ch. 6 (pp. 165–167), Ch. 9 (pp. 282–283); [5] — Ch. 6 (pp. 122–123); [7] — Ch. 7 (p. 110)</small></p>
+<section class="references" aria-labelledby="references-heading">
+<h2 id="references-heading">References</h2>
+<ol>
+<li id="ref-1"></li><li id="ref-2"></li><li id="ref-3"></li><li id="ref-4"></li><li id="ref-5"></li><li id="ref-6"></li><li id="ref-7"></li>
+</ol>
+</section></article>
+<div id="uc-banner" role="status" title="This page is still being built and may change."><span aria-hidden="true">🚧</span> Under construction</div>
+</main>
+</div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-hidden="true"><button class="lb-close" aria-label="Close">×</button><img alt=""><div class="lb-cap"></div></div>
+<script>
+(function () {
+  var toggle = document.getElementById('navToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mobile = window.matchMedia('(max-width: 760px)');
+  function setInert() { if (sidebar) { if (mobile.matches && !sidebar.classList.contains('open')) { sidebar.setAttribute('inert', ''); } else { sidebar.removeAttribute('inert'); } } }
+  setInert();
+  if (mobile.addEventListener) mobile.addEventListener('change', setInert);
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        sidebar.removeAttribute('inert');
+        var first = sidebar.querySelector('input, a, summary');
+        if (first) first.focus();
+      } else {
+        setInert();
+        toggle.focus();
+      }
+    });
+    sidebar.addEventListener('click', function (e) {
+      if (e.target.closest('a') && mobile.matches) {
+        sidebar.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setInert();
+      }
+    });
+  }
+  var filter = document.getElementById('filter');
+  var tree = document.getElementById('tree');
+  if (filter && tree) {
+    var snapshot = new Set();
+    tree.querySelectorAll('details').forEach(function (d) { if (d.hasAttribute('open')) snapshot.add(d); });
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      var items = tree.querySelectorAll('li');
+      if (!q) {
+        items.forEach(function (li) { li.hidden = false; });
+        tree.querySelectorAll('details').forEach(function (d) { d.open = snapshot.has(d); });
+        return;
+      }
+      items.forEach(function (li) { li.hidden = true; });
+      tree.querySelectorAll('li > a').forEach(function (a) {
+        if (a.textContent.toLowerCase().indexOf(q) === -1) return;
+        var li = a.parentElement;
+        li.hidden = false;
+        var p = li.parentElement;
+        while (p && p !== tree) {
+          if (p.tagName === 'LI') p.hidden = false;
+          if (p.tagName === 'DETAILS') p.open = true;
+          p = p.parentElement;
+        }
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function () {
+  var lb, img, cap;
+  function capFor(el) { var p = el.closest('p'), em = p && p.querySelector('em');
+    return (em ? em.textContent.trim() : '') || el.getAttribute('alt') || ''; }
+  function openLb(el) { if (!lb) return; img.setAttribute('src', el.getAttribute('src'));
+    var c = capFor(el); img.setAttribute('alt', c); cap.textContent = c;
+    cap.style.display = c ? '' : 'none';
+    lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function closeLb() { if (!lb) return; lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+  document.addEventListener('DOMContentLoaded', function () {
+    lb = document.getElementById('lightbox'); if (!lb) return;
+    img = lb.querySelector('img'); cap = lb.querySelector('.lb-cap');
+    lb.addEventListener('click', closeLb);
+    document.querySelectorAll('article img').forEach(function (el) {
+      el.addEventListener('click', function () { openLb(el); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  });
+})();
+</script>
+</body>
+</html>
